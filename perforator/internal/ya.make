@@ -4,6 +4,7 @@ RECURSE(
     asynctask
     binaryprocessor
     buildinfo
+    ci-tools
     custom_profiling_operation
     linguist
     logfield
