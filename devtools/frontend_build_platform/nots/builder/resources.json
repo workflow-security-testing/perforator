@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-08-28T09:25:56Z",
+    "created": "2025-09-03T11:02:54.132Z",
     "pr": {
-      "id": 9826152,
-      "author": "khoden",
-      "summary": "FBP-2366: nots/builder: Релизный флоу не работает (try#9)"
+      "id": 9885348,
+      "author": "vturov",
+      "summary": "FBP-2497: Убрать NODE_PATH для сборки - модули должны приезжать явно"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9568673537"
+      "uri": "sbr:9620993704"
     },
     "darwin-arm64": {
-      "uri": "sbr:9568670798"
+      "uri": "sbr:9620991240"
     },
     "linux": {
-      "uri": "sbr:9568678828"
+      "uri": "sbr:9620998576"
     },
     "linux-aarch64": {
-      "uri": "sbr:9568675918"
+      "uri": "sbr:9620996285"
     }
   }
 }
