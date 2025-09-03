@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-03T14:36:21.443Z",
+    "created": "2025-09-03T21:21:14Z",
     "pr": {
       "id": 9864590,
       "author": "vturov",
-      "summary": "run_eslint: расширить NODE_PATH для pnpm@10, переместить директории хранилищ"
+      "summary": "run_eslint: расширить NODE_PATH для pnpm@10, переместить директории хранилищ - Добавить директорию виртуального хранилища в список директорий для поиска модулей для eslint. (для того, чтобы данное изменение начало работать для `eslint` необходим релиз test-tool) - Вынести content-addressable store в корень build-root - Путь к virtual-store приводим к стандартному для tier1"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9624157276"
+      "uri": "sbr:9627492272"
     },
     "darwin-arm64": {
-      "uri": "sbr:9624153633"
+      "uri": "sbr:9627491290"
     },
     "linux": {
-      "uri": "sbr:9624163716"
+      "uri": "sbr:9627494284"
     },
     "linux-aarch64": {
-      "uri": "sbr:9624160398"
+      "uri": "sbr:9627493292"
     }
   }
 }
