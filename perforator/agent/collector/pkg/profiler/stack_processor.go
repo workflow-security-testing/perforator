@@ -75,6 +75,7 @@ func processPythonFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, l
 		return
 	}
 
+	loc.SetMapping().SetPath(string(s.langMapping)).Finish()
 	processFrameCommon(s, mtr, loc, frame)
 }
 
