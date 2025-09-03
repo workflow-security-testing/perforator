@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-03T12:04:59Z",
+    "created": "2025-09-03T14:36:21.443Z",
     "pr": {
-      "id": 9885348,
+      "id": 9864590,
       "author": "vturov",
-      "summary": "FBP-2497: Убрать NODE_PATH для сборки - модули должны приезжать явно"
+      "summary": "run_eslint: расширить NODE_PATH для pnpm@10, переместить директории хранилищ"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9621876950"
+      "uri": "sbr:9624157276"
     },
     "darwin-arm64": {
-      "uri": "sbr:9621873921"
+      "uri": "sbr:9624153633"
     },
     "linux": {
-      "uri": "sbr:9621882344"
+      "uri": "sbr:9624163716"
     },
     "linux-aarch64": {
-      "uri": "sbr:9621879708"
+      "uri": "sbr:9624160398"
     }
   }
 }
