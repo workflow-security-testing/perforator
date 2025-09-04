@@ -142,15 +142,18 @@ message OperationSpec {
 
 enum OperationState {
     Unknown = 0;
-    Created = 1;
+    Prepared = 1;
     Running = 2;
     Failed = 4;
     Finished = 5;
+    Stopped = 6;
 }
 
 message OperationStatus {
     OperationState State = 1;
     string Error = 2;
+    google.protobuf.Timestamp Timestamp = 3;
+    OperationStats Stats = 4;
 }
 
 message OperationStats {
@@ -160,35 +163,35 @@ message OperationStats {
 
 message OperationMeta {
     google.protobuf.Timestamp CreatedAt = 1;
+    // TODO: add user ?
+}
+
+message OperationTargetState {
+    OperationState State = 1;
     google.protobuf.Timestamp UpdatedAt = 2;
-    google.protobuf.Timestamp StopRequestedAt = 3;
-    google.protobuf.Timestamp StoppedAt = 4;
 }
 
 message Operation {
     string ID = 1;
     OperationSpec Spec = 2;
     OperationMeta Meta = 3;
-    OperationStatus Status = 4;
-    optional OperationStats Stats = 5;
-}
 
-message OperationSummary {
-    string ID = 1;
-    OperationSpec Spec = 2;
-    OperationMeta Meta = 3;
-    optional OperationStats Stats = 5;
+    // This field is updated only by agent
+    optional OperationStatus Status = 4;
+
+    // This field is updated by user side to affect operation behavior
+    optional OperationTargetState TargetState = 6;
 }
 
 message PollOperationsResponse {
-    repeated OperationSummary Operations = 1;
+    repeated Operation Operations = 1;
     LongPollingData NextLongPollingData = 2;
 }
 
 message UpdateOperationExecutionInfoRequest {
-    // This field helps to prevent incorrect updates order
-    google.protobuf.Timestamp Timestamp = 1;
+    reserved 1;
     string ID = 2;
+    // Status->Timestamp helps to prevent incorrect updates order
     OperationStatus Status = 3;
     optional OperationStats Stats = 4;
 }
