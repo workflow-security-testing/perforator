@@ -127,6 +127,8 @@ class BaseBuilder(object):
         # Set directory with the `node` executable as the PATH
         env['PATH'] = os.path.dirname(self.options.nodejs_bin)
 
+        env['NODE_PATH'] = pm_utils.build_nm_path(self.options.bindir)
+
         return env
 
     @timeit
