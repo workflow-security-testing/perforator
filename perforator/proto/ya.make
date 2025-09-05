@@ -5,6 +5,7 @@ RECURSE(
     pprofprofile
     profile
     storage
+    symbolizer
 )
 
 IF(NOT OPENSOURCE)
