@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-04T04:11:59Z",
+    "created": "2025-09-05T17:38:01Z",
     "pr": {
-      "id": 9894792,
-      "author": "zaverden",
-      "summary": "fix(builder): revert r17413111"
+      "id": 9909914,
+      "author": "khoden",
+      "summary": "FBP-2486: nots/cli: Убрать выхлоп pnpm из nots test (показывать только при --verbose)"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9628832317"
+      "uri": "sbr:9648063443"
     },
     "darwin-arm64": {
-      "uri": "sbr:9628831824"
+      "uri": "sbr:9648062201"
     },
     "linux": {
-      "uri": "sbr:9628833066"
+      "uri": "sbr:9648065066"
     },
     "linux-aarch64": {
-      "uri": "sbr:9628832720"
+      "uri": "sbr:9648064167"
     }
   }
 }
