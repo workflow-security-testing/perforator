@@ -10,9 +10,11 @@ import (
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarycompound "github.com/yandex/perforator/perforator/pkg/storage/binary/compound"
+	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
+	postgres_cpo "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation/postgres"
 	"github.com/yandex/perforator/perforator/pkg/storage/databases"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope"
-	"github.com/yandex/perforator/perforator/pkg/storage/microscope/pg"
+	postgres_microscope "github.com/yandex/perforator/perforator/pkg/storage/microscope/pg"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	profilecompound "github.com/yandex/perforator/perforator/pkg/storage/profile/compound"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -30,10 +32,11 @@ type StorageBundle struct {
 
 	DBs *databases.Databases
 
-	ProfileStorage    profilestorage.Storage
-	BinaryStorage     binarystorage.StorageSelector
-	MicroscopeStorage microscope.Storage
-	TaskStorage       asynctask.TaskService
+	ProfileStorage                  profilestorage.Storage
+	BinaryStorage                   binarystorage.StorageSelector
+	MicroscopeStorage               microscope.Storage
+	TaskStorage                     asynctask.TaskService
+	CustomProfilingOperationStorage custom_profiling_operation.Storage
 }
 
 // bgCtx should be valid for as long as databases are used
@@ -97,7 +100,14 @@ func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger,
 			return nil, ErrPostgresClusterNotSpecified
 		}
 
-		res.MicroscopeStorage = pg.NewPostgresMicroscopeStorage(l, res.DBs.PostgresCluster)
+		res.MicroscopeStorage = postgres_microscope.NewPostgresMicroscopeStorage(l, res.DBs.PostgresCluster)
+	}
+
+	if c.CustomProfilingOperationStorage != nil {
+		if res.DBs.PostgresCluster == nil {
+			return nil, ErrPostgresClusterNotSpecified
+		}
+		res.CustomProfilingOperationStorage = postgres_cpo.NewStorage(l, res.DBs.PostgresCluster)
 	}
 
 	if c.TaskStorage != nil {

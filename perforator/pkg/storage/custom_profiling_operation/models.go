@@ -8,6 +8,12 @@ import (
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
 )
 
+type CustomProfilingOperationStorageType string
+
+const (
+	Postgres CustomProfilingOperationStorageType = "postgres"
+)
+
 type Storage interface {
 	// Returns operation if it already exists, otherwise creates a new one.
 	InsertOperation(ctx context.Context, id OperationID, spec *cpo_proto.OperationSpec) (*cpo_proto.Operation, error)

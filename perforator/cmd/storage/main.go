@@ -11,12 +11,12 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/log/zap"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/maxprocs"
 	"github.com/yandex/perforator/perforator/pkg/mlock"
 	"github.com/yandex/perforator/perforator/pkg/must"
-	storageserver "github.com/yandex/perforator/perforator/pkg/storage/server"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/pkg/xlog/logmetrics"
 )
@@ -61,7 +61,7 @@ var (
 				logger.Error(ctx, "Failed to lock self executable", log.Error(err))
 			}
 
-			conf, err := storageserver.ParseConfig(storageConfigPath, false /* strict */)
+			conf, err := agent_gateway.ParseConfig(storageConfigPath, false /* strict */)
 			if err != nil {
 				logger.Fatal(ctx, "Failed to parse config", log.Error(err))
 			}
@@ -79,18 +79,16 @@ var (
 				samplingModuloByEvent[event] = uint64(modulo)
 			}
 
-			server, err := storageserver.NewStorageServer(
+			server, err := agent_gateway.NewServer(
 				conf,
 				logger,
 				registry,
-				&storageserver.StorageOptions{
-					ClusterName:            clusterName,
-					MaxBuildIDCacheEntries: maxBuildIDCacheEntries,
-					PushProfileTimeout:     pushProfileTimeout,
-					SamplingModulo:         uint64(profileSamplingModulo),
-					SamplingModuloByEvent:  samplingModuloByEvent,
-					PushBinaryWriteAbility: calcProbableOutcome(uint32(writeReplicaPushBinaryProbability)),
-				},
+				agent_gateway.WithClusterName(clusterName),
+				agent_gateway.WithMaxBuildIDCacheEntries(maxBuildIDCacheEntries),
+				agent_gateway.WithPushProfileTimeout(pushProfileTimeout),
+				agent_gateway.WithSamplingModulo(uint64(profileSamplingModulo)),
+				agent_gateway.WithSamplingModuloByEvent(samplingModuloByEvent),
+				agent_gateway.WithPushBinaryWriteAbility(calcProbableOutcome(uint32(writeReplicaPushBinaryProbability))),
 			)
 			if err != nil {
 				return err

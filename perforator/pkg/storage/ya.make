@@ -9,7 +9,6 @@ RECURSE(
     gc
     microscope
     profile
-    server
     storage
     tvm
     util

@@ -1,4 +1,4 @@
-package server
+package agent_gateway
 
 import (
 	"sync/atomic"

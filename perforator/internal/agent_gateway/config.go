@@ -1,4 +1,4 @@
-package server
+package agent_gateway
 
 import (
 	"os"
@@ -16,13 +16,17 @@ type TvmAuth struct {
 	AllowedIDs    []uint32 `yaml:"allowed_ids"`
 }
 
+type StorageServiceConfig struct {
+	MicroscopePullerConfig *filter.Config `yaml:"microscope_puller"`
+}
+
 type Config struct {
-	Port                   uint32                  `yaml:"port"`
-	MetricsPort            uint32                  `yaml:"metrics_port"`
-	StorageConfig          bundle.Config           `yaml:"storage"`
-	TvmAuth                *TvmAuth                `yaml:"tvm"`
-	TLS                    certifi.ServerTLSConfig `yaml:"tls"`
-	MicroscopePullerConfig *filter.Config          `yaml:"microscope_puller"`
+	Port                 uint32                  `yaml:"port"`
+	MetricsPort          uint32                  `yaml:"metrics_port"`
+	StorageConfig        bundle.Config           `yaml:"storage"`
+	TvmAuth              *TvmAuth                `yaml:"tvm"`
+	TLS                  certifi.ServerTLSConfig `yaml:"tls"`
+	StorageServiceConfig `yaml:",inline"`
 }
 
 func ParseConfig(path string, strict bool) (conf *Config, err error) {

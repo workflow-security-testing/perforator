@@ -1,4 +1,4 @@
-package server
+package agent_gateway
 
 import (
 	"bytes"
@@ -6,33 +6,24 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
-	"os"
 	"slices"
 	"time"
 
 	"github.com/karlseguin/ccache/v3"
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
-	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpcmetrics"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarymeta "github.com/yandex/perforator/perforator/pkg/storage/binary/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
-	"github.com/yandex/perforator/perforator/pkg/storage/creds"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope/filter"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	profilemeta "github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
-	storagetvm "github.com/yandex/perforator/perforator/pkg/storage/tvm"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/pprofprofile"
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
@@ -72,22 +63,22 @@ type storageMetrics struct {
 	announceBinariesCacheMiss metrics.Counter
 }
 
-type StorageOptions struct {
-	ClusterName            string
-	SamplingModulo         uint64
-	SamplingModuloByEvent  map[string]uint64
-	MaxBuildIDCacheEntries uint64
-	PushProfileTimeout     time.Duration
-	PushBinaryWriteAbility bool
+type storageOptions struct {
+	clusterName            string
+	samplingModulo         uint64
+	samplingModuloByEvent  map[string]uint64
+	maxBuildIDCacheEntries uint64
+	pushProfileTimeout     time.Duration
+	pushBinaryWriteAbility bool
 }
 
-type StorageServer struct {
-	conf       *Config
-	opts       *StorageOptions
-	reg        xmetrics.Registry
-	grpcServer *grpc.Server
-	metrics    *storageMetrics
-	logger     xlog.Logger
+type storageService struct {
+	conf *StorageServiceConfig
+	opts *storageOptions
+
+	reg     xmetrics.Registry
+	metrics *storageMetrics
+	logger  xlog.Logger
 
 	binaryUploadLimiter   *semaphore.Weighted
 	defaultProfileSampler *ModuloSampler
@@ -103,7 +94,92 @@ type StorageServer struct {
 	profileCommentProcessors map[string]func(string, *profilemeta.ProfileMetadata) error
 }
 
-func (s *StorageServer) initProfileCommentProcessors() {
+func newStorageService(
+	conf *StorageServiceConfig,
+	opts *storageOptions,
+	logger xlog.Logger,
+	reg xmetrics.Registry,
+	storageBundle *bundle.StorageBundle,
+) (*storageService, error) {
+	var microscopeFilter *filter.PullingFilter
+	var err error
+	if conf.MicroscopePullerConfig != nil {
+		if storageBundle.MicroscopeStorage == nil {
+			return nil, errors.New("microscope storage must be specified in config")
+		}
+
+		microscopeFilter, err = filter.NewPullingFilter(
+			logger,
+			reg,
+			*conf.MicroscopePullerConfig,
+			storageBundle.MicroscopeStorage,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cache := ccache.New[bool](ccache.Configure[bool]().MaxSize(int64(opts.maxBuildIDCacheEntries)))
+
+	service := &storageService{
+		logger: logger,
+		conf:   conf,
+		reg:    reg,
+		metrics: &storageMetrics{
+			pushProfileInProgress:   reg.IntGauge("push_profile.in_progress.gauge"),
+			successPushProfileTimer: reg.WithTags(map[string]string{"kind": "success"}).Timer("push_profile.timer"),
+			failPushProfileTimer:    reg.WithTags(map[string]string{"kind": "fail"}).Timer("push_profile.timer"),
+			receivedProfiles:        reg.Counter("profiles.received.count"),
+			droppedProfiles:         reg.WithTags(map[string]string{"kind": "dropped"}).Counter("profiles.count"),
+			sampledProfiles:         reg.WithTags(map[string]string{"kind": "sampled"}).Counter("profiles.count"),
+			storedProfiles:          reg.WithTags(map[string]string{"kind": "stored"}).Counter("profiles.count"),
+			microscopedProfiles:     reg.WithTags(map[string]string{"kind": "microscoped"}).Counter("profiles.count"),
+			storedProfilesErrors:    reg.WithTags(map[string]string{"kind": "failed_store"}).Counter("profiles.count"),
+			profilesBytesCount:      reg.WithTags(map[string]string{"kind": "profiles"}).Counter("bytes.uploaded"),
+			profilesBytesSizes: reg.WithTags(map[string]string{"kind": "profile"}).Histogram(
+				"size.bytes",
+				metrics.MakeLinearBuckets(0, 1024*100, 10),
+			),
+			storedBinaries:              reg.WithTags(map[string]string{"kind": "stored"}).Counter("binaries.count"),
+			storedBinariesErrors:        reg.WithTags(map[string]string{"kind": "failed_store"}).Counter("binaries.count"),
+			droppedBinaryUploads:        reg.Counter("binaries.dropped_uploads"),
+			binariesBytesCount:          reg.WithTags(map[string]string{"kind": "binaries"}).Counter("bytes.uploaded"),
+			binariesUploadTimer:         reg.Timer("binaries.upload_timer"),
+			failedAbortBinariesUploads:  reg.WithTags(map[string]string{"status": "failed"}).Counter("binary_upload_aborts.count"),
+			successAbortBinariesUploads: reg.WithTags(map[string]string{"status": "success"}).Counter("binary_upload_aborts.count"),
+			successAnnounceBinaries:     reg.WithTags(map[string]string{"kind": "success"}).Counter("announce_binaries.count"),
+			failedAnnounceBinaries:      reg.WithTags(map[string]string{"kind": "failed"}).Counter("announce_binaries.count"),
+			announceBinariesCacheHit:    reg.WithTags(map[string]string{"kind": "hit"}).Counter("announce_binaries.count"),
+			announceBinariesCacheMiss:   reg.WithTags(map[string]string{"kind": "miss"}).Counter("announce_binaries.count"),
+		},
+		defaultProfileSampler:    NewModuloSampler(opts.samplingModulo),
+		profileSamplerByEvent:    make(map[string]*ModuloSampler),
+		binaryUploadLimiter:      semaphore.NewWeighted(1),
+		profileStorage:           storageBundle.ProfileStorage,
+		binaryStorage:            storageBundle.BinaryStorage.Binary(),
+		microscopeFilter:         microscopeFilter,
+		buildIDCache:             cache,
+		profileCommentProcessors: make(map[string]func(string, *profilemeta.ProfileMetadata) error),
+	}
+
+	for typ, modulo := range opts.samplingModuloByEvent {
+		service.profileSamplerByEvent[typ] = NewModuloSampler(modulo)
+	}
+
+	service.initProfileCommentProcessors()
+	return service, nil
+}
+
+func (s *storageService) run(ctx context.Context) error {
+	if s.microscopeFilter != nil {
+		s.microscopeFilter.Run(ctx)
+		s.logger.Warn(ctx, "Stopped pulling microscopes")
+	}
+
+	return nil
+}
+
+func (s *storageService) initProfileCommentProcessors() {
 	s.profileCommentProcessors[profilestorage.ServiceLabel] = func(value string, metadata *profilemeta.ProfileMetadata) error {
 		metadata.Service = value
 		return nil
@@ -118,7 +194,7 @@ func (s *StorageServer) initProfileCommentProcessors() {
 	}
 }
 
-func (s *StorageServer) createProfileMetaFromLabels(ctx context.Context, labels map[string]string) (*profilemeta.ProfileMetadata, error) {
+func (s *storageService) createProfileMetaFromLabels(ctx context.Context, labels map[string]string) (*profilemeta.ProfileMetadata, error) {
 	result := profilemeta.ProfileMetadata{
 		Attributes: make(map[string]string),
 	}
@@ -148,7 +224,7 @@ func (s *StorageServer) createProfileMetaFromLabels(ctx context.Context, labels 
 	return &result, nil
 }
 
-func (s *StorageServer) getMetadataFromProfile(ctx context.Context, profile *pprofprofile.Profile) (*profilemeta.ProfileMetadata, error) {
+func (s *storageService) getMetadataFromProfile(ctx context.Context, profile *pprofprofile.Profile) (*profilemeta.ProfileMetadata, error) {
 	labels := map[string]string{}
 
 	for _, strID := range profile.Comment {
@@ -163,7 +239,7 @@ func (s *StorageServer) getMetadataFromProfile(ctx context.Context, profile *ppr
 	return s.createProfileMetaFromLabels(ctx, labels)
 }
 
-func (s *StorageServer) extractProfileBytesMeta(
+func (s *storageService) extractProfileBytesMeta(
 	ctx context.Context,
 	req *perforatorstorage.PushProfileRequest,
 ) (body []byte, meta *profilemeta.ProfileMetadata, err error) {
@@ -196,7 +272,7 @@ func (s *StorageServer) extractProfileBytesMeta(
 	return
 }
 
-func (s *StorageServer) fixupMissingMetadataFields(meta *profilemeta.ProfileMetadata) {
+func (s *storageService) fixupMissingMetadataFields(meta *profilemeta.ProfileMetadata) {
 	if meta.System == "" {
 		meta.System = "perforator"
 	}
@@ -205,8 +281,8 @@ func (s *StorageServer) fixupMissingMetadataFields(meta *profilemeta.ProfileMeta
 		// If it is empty, we fall back to user-provided cluster name on storage side
 		if val := meta.Attributes["cluster"]; val != "" {
 			meta.Cluster = val
-		} else if s.opts.ClusterName != "" {
-			meta.Cluster = s.opts.ClusterName
+		} else if s.opts.clusterName != "" {
+			meta.Cluster = s.opts.clusterName
 		}
 	}
 	if meta.NodeID == "" {
@@ -225,7 +301,7 @@ const (
 	PassedMicroscopes
 )
 
-func (s *StorageServer) sampleProfile(meta *profilemeta.ProfileMetadata) (PushProfileAdmitResult, uint64) {
+func (s *storageService) sampleProfile(meta *profilemeta.ProfileMetadata) (PushProfileAdmitResult, uint64) {
 	sampler := s.profileSamplerByEvent[meta.MainEventType]
 	if sampler == nil {
 		sampler = s.defaultProfileSampler
@@ -262,7 +338,7 @@ func createMetasWithEventType(commonMeta *profilemeta.ProfileMetadata, eventType
 }
 
 // implements storage.PerforatorStorage/PushProfile
-func (s *StorageServer) PushProfile(ctx context.Context, req *perforatorstorage.PushProfileRequest) (*perforatorstorage.PushProfileResponse, error) {
+func (s *storageService) PushProfile(ctx context.Context, req *perforatorstorage.PushProfileRequest) (*perforatorstorage.PushProfileResponse, error) {
 	s.metrics.pushProfileInProgress.Add(1)
 	defer func() {
 		s.metrics.pushProfileInProgress.Add(-1)
@@ -309,8 +385,8 @@ func (s *StorageServer) PushProfile(ctx context.Context, req *perforatorstorage.
 
 	storeProfileCtx := ctx
 	var cancel context.CancelFunc
-	if s.opts.PushProfileTimeout != time.Duration(0) {
-		storeProfileCtx, cancel = context.WithTimeout(ctx, s.opts.PushProfileTimeout)
+	if s.opts.pushProfileTimeout != time.Duration(0) {
+		storeProfileCtx, cancel = context.WithTimeout(ctx, s.opts.pushProfileTimeout)
 		defer cancel()
 	}
 
@@ -342,7 +418,7 @@ func (s *StorageServer) PushProfile(ctx context.Context, req *perforatorstorage.
 	return &perforatorstorage.PushProfileResponse{ID: profileID}, nil
 }
 
-func (s *StorageServer) sampleProfiles(
+func (s *storageService) sampleProfiles(
 	ctx context.Context,
 	l xlog.Logger,
 	metas []*profilemeta.ProfileMetadata,
@@ -373,7 +449,7 @@ func (s *StorageServer) sampleProfiles(
 	return metas[:count]
 }
 
-func (s *StorageServer) doAnnounceBinaries(
+func (s *storageService) doAnnounceBinaries(
 	ctx context.Context,
 	lookupBinaries []string,
 ) ([]string, error) {
@@ -413,7 +489,7 @@ func (s *StorageServer) doAnnounceBinaries(
 }
 
 // implements storage.PerforatorStorage/AnnounceBinaries
-func (s *StorageServer) AnnounceBinaries(
+func (s *storageService) AnnounceBinaries(
 	ctx context.Context,
 	req *perforatorstorage.AnnounceBinariesRequest,
 ) (*perforatorstorage.AnnounceBinariesResponse, error) {
@@ -456,7 +532,7 @@ func (s *StorageServer) AnnounceBinaries(
 	}, nil
 }
 
-func (s *StorageServer) pushBinaryPreamble(reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (buildID string, err error) {
+func (s *storageService) pushBinaryPreamble(reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (buildID string, err error) {
 	firstChunk, err := reqStream.Recv()
 	if err != nil {
 		return "", err
@@ -473,7 +549,7 @@ func (s *StorageServer) pushBinaryPreamble(reqStream perforatorstorage.Perforato
 	return reqHead.HeadChunk.BuildID, nil
 }
 
-func (s *StorageServer) pushBinaryProcessStream(writer binarystorage.TransactionalWriter, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (bytesTransmitted uint64, err error) {
+func (s *storageService) pushBinaryProcessStream(writer binarystorage.TransactionalWriter, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (bytesTransmitted uint64, err error) {
 	bytesTransmitted = 0
 
 	for {
@@ -503,7 +579,7 @@ func (s *StorageServer) pushBinaryProcessStream(writer binarystorage.Transaction
 	return bytesTransmitted, nil
 }
 
-func (s *StorageServer) pushBinaryPerformUpload(buildID string, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) error {
+func (s *storageService) pushBinaryPerformUpload(buildID string, reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) error {
 	start := time.Now()
 
 	writer, err := s.binaryStorage.StoreBinary(
@@ -555,7 +631,7 @@ func (s *StorageServer) pushBinaryPerformUpload(buildID string, reqStream perfor
 	return nil
 }
 
-func (s *StorageServer) pushBinaryImpl(reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (buildID string, err error) {
+func (s *storageService) pushBinaryImpl(reqStream perforatorstorage.PerforatorStorage_PushBinaryServer) (buildID string, err error) {
 	if !s.binaryUploadLimiter.TryAcquire(1) {
 		return "", errors.New("failed to acquire binary upload semaphore")
 	}
@@ -580,10 +656,10 @@ func (s *StorageServer) pushBinaryImpl(reqStream perforatorstorage.PerforatorSto
 }
 
 // implements storage.PerforatorStorage/PushBinary
-func (s *StorageServer) PushBinary(
+func (s *storageService) PushBinary(
 	reqStream perforatorstorage.PerforatorStorage_PushBinaryServer,
 ) error {
-	if !s.opts.PushBinaryWriteAbility {
+	if !s.opts.pushBinaryWriteAbility {
 		s.metrics.droppedBinaryUploads.Inc()
 		return errors.New("this replica is not allowed to upload binaries")
 	}
@@ -593,196 +669,4 @@ func (s *StorageServer) PushBinary(
 		s.logger.Warn(reqStream.Context(), "Failed to push binary", log.String("build_id", buildID), log.Error(err))
 	}
 	return err
-}
-
-func (s *StorageServer) runGrpcServer(ctx context.Context) error {
-	s.logger.Info(ctx, "Starting profile storage server", log.UInt32("port", s.conf.Port))
-
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", s.conf.Port))
-	if err != nil {
-		return err
-	}
-
-	if err = s.grpcServer.Serve(lis); err != nil {
-		s.logger.Error(ctx, "Failed to grpc server", log.Error(err))
-	}
-
-	return err
-}
-
-func (s *StorageServer) runMetricsServer(ctx context.Context) error {
-	http.Handle("/metrics", s.reg.HTTPHandler(ctx, s.logger))
-	port := s.conf.MetricsPort
-	if port == 0 {
-		port = 85
-	}
-	s.logger.Info(ctx, "Starting metrics server", log.UInt32("port", port))
-
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
-}
-
-func (s *StorageServer) Run(ctx context.Context) error {
-	g, ctx := errgroup.WithContext(ctx)
-
-	g.Go(func() error {
-		return s.runGrpcServer(ctx)
-	})
-
-	if s.microscopeFilter != nil {
-		g.Go(func() error {
-			s.microscopeFilter.Run(ctx)
-			s.logger.Warn(ctx, "Stopped pulling microscopes")
-			return nil
-		})
-	}
-
-	g.Go(func() error {
-		return s.runMetricsServer(ctx)
-	})
-
-	return g.Wait()
-}
-
-func NewStorageServer(
-	conf *Config,
-	logger xlog.Logger,
-	registry xmetrics.Registry,
-	opts *StorageOptions,
-) (*StorageServer, error) {
-	conf.FillDefault()
-
-	if opts == nil {
-		opts = &StorageOptions{
-			ClusterName:            os.Getenv("DEPLOY_NODE_DC"),
-			SamplingModulo:         1,
-			MaxBuildIDCacheEntries: 14000000,
-			PushProfileTimeout:     10 * time.Second,
-			PushBinaryWriteAbility: true,
-		}
-	}
-
-	initCtx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
-	defer cancel()
-
-	// TODO: this context should be tied to e.g. Run() duration.
-	bgCtx := context.TODO()
-
-	storageBundle, err := bundle.NewStorageBundle(initCtx, bgCtx, logger, "storage", registry, &conf.StorageConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create storage bundle: %w", err)
-	}
-
-	var microscopeFilter *filter.PullingFilter
-	if conf.MicroscopePullerConfig != nil {
-		if storageBundle.MicroscopeStorage == nil {
-			return nil, errors.New("microscope storage must be specified in config")
-		}
-
-		microscopeFilter, err = filter.NewPullingFilter(
-			logger,
-			registry,
-			*conf.MicroscopePullerConfig,
-			storageBundle.MicroscopeStorage,
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	cache := ccache.New[bool](ccache.Configure[bool]().MaxSize(int64(opts.MaxBuildIDCacheEntries)))
-
-	server := &StorageServer{
-		logger: logger,
-		conf:   conf,
-		opts:   opts,
-		reg:    registry,
-		metrics: &storageMetrics{
-			pushProfileInProgress:   registry.IntGauge("push_profile.in_progress.gauge"),
-			successPushProfileTimer: registry.WithTags(map[string]string{"kind": "success"}).Timer("push_profile.timer"),
-			failPushProfileTimer:    registry.WithTags(map[string]string{"kind": "fail"}).Timer("push_profile.timer"),
-			receivedProfiles:        registry.Counter("profiles.received.count"),
-			droppedProfiles:         registry.WithTags(map[string]string{"kind": "dropped"}).Counter("profiles.count"),
-			sampledProfiles:         registry.WithTags(map[string]string{"kind": "sampled"}).Counter("profiles.count"),
-			storedProfiles:          registry.WithTags(map[string]string{"kind": "stored"}).Counter("profiles.count"),
-			microscopedProfiles:     registry.WithTags(map[string]string{"kind": "microscoped"}).Counter("profiles.count"),
-			storedProfilesErrors:    registry.WithTags(map[string]string{"kind": "failed_store"}).Counter("profiles.count"),
-			profilesBytesCount:      registry.WithTags(map[string]string{"kind": "profiles"}).Counter("bytes.uploaded"),
-			profilesBytesSizes: registry.WithTags(map[string]string{"kind": "profile"}).Histogram(
-				"size.bytes",
-				metrics.MakeLinearBuckets(0, 1024*100, 10),
-			),
-			storedBinaries:              registry.WithTags(map[string]string{"kind": "stored"}).Counter("binaries.count"),
-			storedBinariesErrors:        registry.WithTags(map[string]string{"kind": "failed_store"}).Counter("binaries.count"),
-			droppedBinaryUploads:        registry.Counter("binaries.dropped_uploads"),
-			binariesBytesCount:          registry.WithTags(map[string]string{"kind": "binaries"}).Counter("bytes.uploaded"),
-			binariesUploadTimer:         registry.Timer("binaries.upload_timer"),
-			failedAbortBinariesUploads:  registry.WithTags(map[string]string{"status": "failed"}).Counter("binary_upload_aborts.count"),
-			successAbortBinariesUploads: registry.WithTags(map[string]string{"status": "success"}).Counter("binary_upload_aborts.count"),
-			successAnnounceBinaries:     registry.WithTags(map[string]string{"kind": "success"}).Counter("announce_binaries.count"),
-			failedAnnounceBinaries:      registry.WithTags(map[string]string{"kind": "failed"}).Counter("announce_binaries.count"),
-			announceBinariesCacheHit:    registry.WithTags(map[string]string{"kind": "hit"}).Counter("announce_binaries.count"),
-			announceBinariesCacheMiss:   registry.WithTags(map[string]string{"kind": "miss"}).Counter("announce_binaries.count"),
-		},
-		defaultProfileSampler:    NewModuloSampler(opts.SamplingModulo),
-		profileSamplerByEvent:    make(map[string]*ModuloSampler),
-		binaryUploadLimiter:      semaphore.NewWeighted(1),
-		profileStorage:           storageBundle.ProfileStorage,
-		binaryStorage:            storageBundle.BinaryStorage.Binary(),
-		microscopeFilter:         microscopeFilter,
-		buildIDCache:             cache,
-		profileCommentProcessors: make(map[string]func(string, *profilemeta.ProfileMetadata) error),
-	}
-
-	for typ, modulo := range opts.SamplingModuloByEvent {
-		server.profileSamplerByEvent[typ] = NewModuloSampler(modulo)
-	}
-
-	var grpcOpts []grpc.ServerOption
-
-	tlsOpts, err := conf.TLS.GRPCServerOptions()
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure TLS: %w", err)
-	}
-	grpcOpts = append(grpcOpts, tlsOpts...)
-
-	var unaryServerInterceptors []grpc.UnaryServerInterceptor
-	var streamServerInterceptors []grpc.StreamServerInterceptor
-
-	credsInterceptor, err := getInterceptor(conf, logger)
-	if err != nil {
-		return nil, err
-	}
-	if credsInterceptor != nil {
-		unaryServerInterceptors = append(unaryServerInterceptors, credsInterceptor.Unary())
-		streamServerInterceptors = append(streamServerInterceptors, credsInterceptor.Stream())
-	}
-
-	metricsInterceptor := grpcmetrics.NewMetricsInterceptor(registry)
-	unaryServerInterceptors = append(unaryServerInterceptors, metricsInterceptor.UnaryServer())
-	streamServerInterceptors = append(streamServerInterceptors, metricsInterceptor.StreamServer())
-
-	grpcOpts = append(grpcOpts, grpc.ChainUnaryInterceptor(unaryServerInterceptors...))
-	grpcOpts = append(grpcOpts, grpc.ChainStreamInterceptor(streamServerInterceptors...))
-
-	grpcOpts = append(grpcOpts, grpc.MaxRecvMsgSize(1024*1024*1024 /* 1 GB */))
-
-	server.grpcServer = grpc.NewServer(grpcOpts...)
-	perforatorstorage.RegisterPerforatorStorageServer(server.grpcServer, server)
-	reflection.Register(server.grpcServer)
-
-	server.initProfileCommentProcessors()
-
-	return server, nil
-}
-
-func getInterceptor(conf *Config, logger xlog.Logger) (creds.ServerInterceptor, error) {
-	if conf.TvmAuth != nil {
-		return storagetvm.NewTVMServerInterceptor(
-			conf.TvmAuth.ID,
-			os.Getenv(conf.TvmAuth.SecretEnvName),
-			conf.TvmAuth.AllowedIDs,
-			logger,
-		)
-	}
-	return nil, nil
 }
