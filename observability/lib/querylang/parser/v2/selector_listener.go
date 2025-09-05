@@ -14,7 +14,7 @@ import (
 	parser "github.com/yandex/perforator/observability/lib/querylang/parser/v2/generated"
 )
 
-type listener struct {
+type selectorListener struct {
 	parser.BaseSolomonSelectorParserListener
 	antlr.DefaultErrorListener
 
@@ -23,45 +23,45 @@ type listener struct {
 	semanticErrors []error
 }
 
-func newListener() *listener {
+func newSelectorListener() *selectorListener {
 	var root querylang.Selector
-	l := &listener{
+	l := &selectorListener{
 		root: &root,
 	}
 	return l
 }
 
-var _ parser.SolomonSelectorParserListener = (*listener)(nil)
+var _ parser.SolomonSelectorParserListener = (*selectorListener)(nil)
 
-func (l *listener) hasErrors() bool {
+func (l *selectorListener) hasErrors() bool {
 	return len(l.syntaxErrors)+len(l.semanticErrors) > 0
 }
 
-func (l *listener) Err() error {
+func (l *selectorListener) Err() error {
 	return NewParseError(l.syntaxErrors, l.semanticErrors)
 }
 
-func (l *listener) onSyntaxError(err error) {
+func (l *selectorListener) onSyntaxError(err error) {
 	l.syntaxErrors = append(l.syntaxErrors, err)
 }
 
-func (l *listener) onSemanticError(err error) {
+func (l *selectorListener) onSemanticError(err error) {
 	l.semanticErrors = append(l.semanticErrors, err)
 }
 
-func (l *listener) currentMatcher() *querylang.Matcher {
+func (l *selectorListener) currentMatcher() *querylang.Matcher {
 	return l.root.Matchers[len(l.root.Matchers)-1]
 }
 
-func (l *listener) appendCondition(cond *querylang.Condition) {
+func (l *selectorListener) appendCondition(cond *querylang.Condition) {
 	l.currentMatcher().Conditions = append(l.currentMatcher().Conditions, cond)
 }
 
-func (l *listener) SyntaxError(_ antlr.Recognizer, _ interface{}, line, column int, msg string, _ antlr.RecognitionException) {
+func (l *selectorListener) SyntaxError(_ antlr.Recognizer, _ interface{}, line, column int, msg string, _ antlr.RecognitionException) {
 	l.onSyntaxError(fmt.Errorf("%s (at line %d, column %d)", msg, line, column))
 }
 
-func (l *listener) VisitErrorNode(node antlr.ErrorNode) {
+func (l *selectorListener) VisitErrorNode(node antlr.ErrorNode) {
 	if l.hasErrors() {
 		return
 	}
@@ -79,7 +79,7 @@ func (l *listener) VisitErrorNode(node antlr.ErrorNode) {
 	}
 }
 
-func (l *listener) EnterSelector(c *parser.SelectorContext) {
+func (l *selectorListener) EnterSelector(c *parser.SelectorContext) {
 	if l.hasErrors() {
 		return
 	}
@@ -176,7 +176,7 @@ func convertNumber(v string) (querylang.Value, error) {
 	return querylang.Float{Value: f}, nil
 }
 
-func (l *listener) handleStringSelector(opCtx parser.ISelectorOpStringContext, right string) {
+func (l *selectorListener) handleStringSelector(opCtx parser.ISelectorOpStringContext, right string) {
 	if opCtx.EQ() != nil || opCtx.NOT_EQUIV() != nil {
 		l.handleStringExactSelector(opCtx, right)
 		return
@@ -224,7 +224,7 @@ func (l *listener) handleStringSelector(opCtx parser.ISelectorOpStringContext, r
 	}
 }
 
-func (l *listener) handleStringExactSelector(opCtx parser.ISelectorOpStringContext, right string) {
+func (l *selectorListener) handleStringExactSelector(opCtx parser.ISelectorOpStringContext, right string) {
 	l.appendCondition(&querylang.Condition{
 		Operator: operator.Eq,
 		Inverse:  opCtx.NOT_EQUIV() != nil,
@@ -232,7 +232,7 @@ func (l *listener) handleStringExactSelector(opCtx parser.ISelectorOpStringConte
 	})
 }
 
-func (l *listener) handleStringRegexSelector(opCtx parser.ISelectorOpStringContext, right string) {
+func (l *selectorListener) handleStringRegexSelector(opCtx parser.ISelectorOpStringContext, right string) {
 	l.appendCondition(&querylang.Condition{
 		Operator: operator.Regex,
 		Inverse:  opCtx.NOT_REGEX() != nil,
@@ -240,7 +240,7 @@ func (l *listener) handleStringRegexSelector(opCtx parser.ISelectorOpStringConte
 	})
 }
 
-func (l *listener) handleNumericSelector(opCtx parser.ISelectorOpNumberContext, right string) {
+func (l *selectorListener) handleNumericSelector(opCtx parser.ISelectorOpNumberContext, right string) {
 	op, err := convertNumericOperator(opCtx)
 	if err != nil {
 		l.onSemanticError(err)
@@ -260,7 +260,7 @@ func (l *listener) handleNumericSelector(opCtx parser.ISelectorOpNumberContext, 
 	})
 }
 
-func (l *listener) handleNotExists() {
+func (l *selectorListener) handleNotExists() {
 	l.appendCondition(&querylang.Condition{
 		Operator: operator.Exists,
 		Inverse:  true,
@@ -268,7 +268,7 @@ func (l *listener) handleNotExists() {
 	})
 }
 
-func (l *listener) handleDurationSelector(opCtx parser.ISelectorOpDurationContext, right string) {
+func (l *selectorListener) handleDurationSelector(opCtx parser.ISelectorOpDurationContext, right string) {
 	op, err := convertDurationOperator(opCtx)
 	if err != nil {
 		l.onSemanticError(err)

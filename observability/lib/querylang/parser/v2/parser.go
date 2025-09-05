@@ -14,7 +14,7 @@ func NewParser() querylang.Parser {
 }
 
 func (p *parserImpl) ParseSelector(query string) (*querylang.Selector, error) {
-	l := newListener()
+	l := newSelectorListener()
 
 	is := antlr.NewInputStream(query)
 	lexer := parser.NewSolomonLexer(is)
