@@ -28,7 +28,7 @@ func (p *parserImpl) ParseSelector(query string) (*querylang.Selector, error) {
 
 	antlr.ParseTreeWalkerDefault.Walk(l, ssp.Selectors())
 
-	return l.root, l.Err()
+	return l.root, l.getError()
 }
 
 var _ querylang.Parser = (*parserImpl)(nil)

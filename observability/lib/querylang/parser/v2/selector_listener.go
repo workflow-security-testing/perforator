@@ -1,7 +1,6 @@
 package parserv2
 
 import (
-	"fmt"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -15,12 +14,10 @@ import (
 )
 
 type selectorListener struct {
+	errorListener
 	parser.BaseSolomonSelectorParserListener
-	antlr.DefaultErrorListener
 
-	root           *querylang.Selector
-	syntaxErrors   []error
-	semanticErrors []error
+	root *querylang.Selector
 }
 
 func newSelectorListener() *selectorListener {
@@ -33,22 +30,6 @@ func newSelectorListener() *selectorListener {
 
 var _ parser.SolomonSelectorParserListener = (*selectorListener)(nil)
 
-func (l *selectorListener) hasErrors() bool {
-	return len(l.syntaxErrors)+len(l.semanticErrors) > 0
-}
-
-func (l *selectorListener) Err() error {
-	return NewParseError(l.syntaxErrors, l.semanticErrors)
-}
-
-func (l *selectorListener) onSyntaxError(err error) {
-	l.syntaxErrors = append(l.syntaxErrors, err)
-}
-
-func (l *selectorListener) onSemanticError(err error) {
-	l.semanticErrors = append(l.semanticErrors, err)
-}
-
 func (l *selectorListener) currentMatcher() *querylang.Matcher {
 	return l.root.Matchers[len(l.root.Matchers)-1]
 }
@@ -57,26 +38,8 @@ func (l *selectorListener) appendCondition(cond *querylang.Condition) {
 	l.currentMatcher().Conditions = append(l.currentMatcher().Conditions, cond)
 }
 
-func (l *selectorListener) SyntaxError(_ antlr.Recognizer, _ interface{}, line, column int, msg string, _ antlr.RecognitionException) {
-	l.onSyntaxError(fmt.Errorf("%s (at line %d, column %d)", msg, line, column))
-}
-
 func (l *selectorListener) VisitErrorNode(node antlr.ErrorNode) {
-	if l.hasErrors() {
-		return
-	}
-	if parent, ok := node.GetParent().GetPayload().(antlr.ParseTree); ok {
-		l.onSyntaxError(fmt.Errorf(
-			"syntax error at '%s', in token '%s'",
-			parent.GetText(),
-			node.GetText(),
-		))
-	} else {
-		l.onSyntaxError(fmt.Errorf(
-			"syntax error at '%s'",
-			node.GetText(),
-		))
-	}
+	l.errorListener.VisitErrorNode(node)
 }
 
 func (l *selectorListener) EnterSelector(c *parser.SelectorContext) {

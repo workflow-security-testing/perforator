@@ -1,6 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
+    error_listener.go
     operators.go
     parse_error.go
     parser.go
