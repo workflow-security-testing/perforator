@@ -15,7 +15,7 @@ import (
 
 type selectorListener struct {
 	errorListener
-	parser.BaseSolomonSelectorParserListener
+	parser.BaseSolomonParserListener
 
 	root *querylang.Selector
 }
@@ -28,7 +28,7 @@ func newSelectorListener() *selectorListener {
 	return l
 }
 
-var _ parser.SolomonSelectorParserListener = (*selectorListener)(nil)
+var _ parser.SolomonParserListener = (*selectorListener)(nil)
 
 func (l *selectorListener) currentMatcher() *querylang.Matcher {
 	return l.root.Matchers[len(l.root.Matchers)-1]

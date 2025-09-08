@@ -15,7 +15,7 @@ type testCase struct {
 	ExpectedError string
 }
 
-func TestParser(t *testing.T) {
+func TestParseSelector(t *testing.T) {
 	for _, tc := range []testCase{
 		{
 			Query:        `{"project"="a", service="b", "cluster"=c, other==d}`,
@@ -135,6 +135,15 @@ func TestParser(t *testing.T) {
 			ExpectedRepr: `"x" <= "1s"`,
 		},
 		{
+			Query:        `{a =~ "1|2"}`,
+			ExpectedRepr: `"a" regex "1|2"`,
+		},
+		{
+			Query:        `{x !~ "a|b"}`,
+			ExpectedRepr: `"x" !regex "a|b"`,
+		},
+
+		{
 			Query:         `{x > 1p}`,
 			ExpectedError: `syntax error`,
 		},
@@ -183,13 +192,14 @@ func TestParser(t *testing.T) {
 			Query:         `{x = 1EE}`,
 			ExpectedError: `syntax error`,
 		},
+
 		{
-			Query:        `{a =~ "1|2"}`,
-			ExpectedRepr: `"a" regex "1|2"`,
+			Query:         `({x = 123})`,
+			ExpectedError: "syntax error",
 		},
 		{
-			Query:        `{x !~ "a|b"}`,
-			ExpectedRepr: `"x" !regex "a|b"`,
+			Query:         `function({x = 123})`,
+			ExpectedError: "syntax error",
 		},
 	} {
 		t.Run(tc.Query, func(t *testing.T) {

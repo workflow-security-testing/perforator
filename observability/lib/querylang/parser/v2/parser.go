@@ -22,7 +22,7 @@ func (p *parserImpl) ParseSelector(query string) (*querylang.Selector, error) {
 	lexer.AddErrorListener(l)
 
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-	ssp := parser.NewSolomonSelectorParser(stream)
+	ssp := parser.NewSolomonParser(stream)
 	ssp.RemoveErrorListeners()
 	ssp.AddErrorListener(l)
 
