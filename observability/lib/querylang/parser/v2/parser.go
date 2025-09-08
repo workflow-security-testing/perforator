@@ -31,4 +31,22 @@ func (p *parserImpl) ParseSelector(query string) (*querylang.Selector, error) {
 	return l.root, l.getError()
 }
 
+func (p *parserImpl) ParseExpression(query string) (*querylang.Expression, error) {
+	l := newExpressionListener()
+
+	is := antlr.NewInputStream(query)
+	lexer := parser.NewSolomonLexer(is)
+	lexer.RemoveErrorListeners()
+	lexer.AddErrorListener(l)
+
+	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+	ssp := parser.NewSolomonParser(stream)
+	ssp.RemoveErrorListeners()
+	ssp.AddErrorListener(l)
+
+	antlr.ParseTreeWalkerDefault.Walk(l, ssp.Expression())
+
+	return l.getRoot(), l.getError()
+}
+
 var _ querylang.Parser = (*parserImpl)(nil)

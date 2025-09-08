@@ -4,6 +4,7 @@ SRCS(
     ast_repr.go
     ast.go
     ast_iter.go
+    expression_ast.go
     helpers.go
     parser.go
     tools.go
