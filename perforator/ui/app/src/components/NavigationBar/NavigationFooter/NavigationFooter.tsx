@@ -4,7 +4,7 @@ import {
     CircleQuestion,
     Gear,
     LogoTelegram,
-    Thunderbolt,
+    Snail,
 } from '@gravity-ui/icons';
 
 import { uiFactory } from 'src/factory';
@@ -41,7 +41,7 @@ export const NavigationFooter: React.FC<NavigationFooterProps> = props => {
             {!uiFactory().clientSpeedDebugLink() ? null : <NavigationFooterLink
                 text="Client speed debug"
                 url={uiFactory().clientSpeedDebugLink()}
-                icon={Thunderbolt}
+                icon={Snail}
                 compact={compact}
             />}
             <NavigationFooterLink
