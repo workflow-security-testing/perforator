@@ -12,6 +12,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/storage"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/maxprocs"
@@ -83,12 +84,12 @@ var (
 				conf,
 				logger,
 				registry,
-				agent_gateway.WithClusterName(clusterName),
-				agent_gateway.WithMaxBuildIDCacheEntries(maxBuildIDCacheEntries),
-				agent_gateway.WithPushProfileTimeout(pushProfileTimeout),
-				agent_gateway.WithSamplingModulo(uint64(profileSamplingModulo)),
-				agent_gateway.WithSamplingModuloByEvent(samplingModuloByEvent),
-				agent_gateway.WithPushBinaryWriteAbility(calcProbableOutcome(uint32(writeReplicaPushBinaryProbability))),
+				storage.WithClusterName(clusterName),
+				storage.WithMaxBuildIDCacheEntries(maxBuildIDCacheEntries),
+				storage.WithPushProfileTimeout(pushProfileTimeout),
+				storage.WithSamplingModulo(uint64(profileSamplingModulo)),
+				storage.WithSamplingModuloByEvent(samplingModuloByEvent),
+				storage.WithPushBinaryWriteAbility(calcProbableOutcome(uint32(writeReplicaPushBinaryProbability))),
 			)
 			if err != nil {
 				return err

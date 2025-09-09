@@ -11,7 +11,7 @@ option go_package = "github.com/yandex/perforator/perforator/proto/custom_profil
 
 service CustomProfilingOperationService {
     rpc PollOperations(PollOperationsRequest) returns (PollOperationsResponse) {}
-    rpc UpdateOperationExecutionInfo(UpdateOperationExecutionInfoRequest) returns (UpdateOperationExecutionInfoResponse) {}
+    rpc UpdateOperationStatus(UpdateOperationStatusRequest) returns (UpdateOperationStatusResponse) {}
 }
 
 message PollOperationsFilter {
@@ -188,12 +188,11 @@ message PollOperationsResponse {
     LongPollingData NextLongPollingData = 2;
 }
 
-message UpdateOperationExecutionInfoRequest {
+message UpdateOperationStatusRequest {
     reserved 1;
     string ID = 2;
     // Status->Timestamp helps to prevent incorrect updates order
     OperationStatus Status = 3;
-    optional OperationStats Stats = 4;
 }
 
-message UpdateOperationExecutionInfoResponse {}
+message UpdateOperationStatusResponse {}

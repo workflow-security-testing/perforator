@@ -7,5 +7,6 @@ SRCS(
 END()
 
 RECURSE(
+    mocks
     postgres
 )

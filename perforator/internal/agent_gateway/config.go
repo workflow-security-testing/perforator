@@ -1,13 +1,15 @@
 package agent_gateway
 
 import (
+	"errors"
 	"os"
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/custom_profiling_operation"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/storage"
 	"github.com/yandex/perforator/perforator/pkg/certifi"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
-	"github.com/yandex/perforator/perforator/pkg/storage/microscope/filter"
 )
 
 type TvmAuth struct {
@@ -16,17 +18,15 @@ type TvmAuth struct {
 	AllowedIDs    []uint32 `yaml:"allowed_ids"`
 }
 
-type StorageServiceConfig struct {
-	MicroscopePullerConfig *filter.Config `yaml:"microscope_puller"`
-}
-
 type Config struct {
-	Port                 uint32                  `yaml:"port"`
-	MetricsPort          uint32                  `yaml:"metrics_port"`
-	StorageConfig        bundle.Config           `yaml:"storage"`
-	TvmAuth              *TvmAuth                `yaml:"tvm"`
-	TLS                  certifi.ServerTLSConfig `yaml:"tls"`
-	StorageServiceConfig `yaml:",inline"`
+	Port                                  uint32                                    `yaml:"port"`
+	MetricsPort                           uint32                                    `yaml:"metrics_port"`
+	StorageConfig                         bundle.Config                             `yaml:"storage"`
+	TvmAuth                               *TvmAuth                                  `yaml:"tvm"`
+	TLS                                   certifi.ServerTLSConfig                   `yaml:"tls"`
+	StorageServiceConfigDeprecated        *storage.ServiceConfig                    `yaml:",inline"`
+	CustomProfilingOperationServiceConfig *custom_profiling_operation.ServiceConfig `yaml:"custom_profiling_operation_service"`
+	StorageServiceConfig                  *storage.ServiceConfig                    `yaml:"storage_service"`
 }
 
 func ParseConfig(path string, strict bool) (conf *Config, err error) {
@@ -57,4 +57,20 @@ func (c *Config) FillDefault() {
 		c.TLS.Enabled = true
 		c.TLS.KeyFile = c.TLS.KeyFileDeprecated
 	}
+
+	if c.CustomProfilingOperationServiceConfig != nil {
+		c.CustomProfilingOperationServiceConfig.FillDefault()
+	}
+}
+
+func ValidateConfig(conf *Config) error {
+	if conf == nil {
+		return nil
+	}
+
+	if conf.StorageServiceConfigDeprecated != nil && conf.StorageServiceConfig != nil {
+		return errors.New("use new storage_service config layout instead of deprecated one")
+	}
+
+	return nil
 }

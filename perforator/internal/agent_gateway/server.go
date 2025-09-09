@@ -13,6 +13,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/custom_profiling_operation"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/storage"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpcmetrics"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
@@ -24,13 +26,12 @@ import (
 )
 
 type Server struct {
-	storageService                  *storageService
-	customProfilingOperationService *customProfilingOperationService
+	storageService                  *storage.Service
+	customProfilingOperationService *custom_profiling_operation.Service
 
 	logger xlog.Logger
 	reg    xmetrics.Registry
 	conf   *Config
-	opts   *options
 
 	grpcServer *grpc.Server
 }
@@ -69,8 +70,14 @@ func (s *Server) Run(ctx context.Context) error {
 	})
 
 	g.Go(func() error {
-		return s.storageService.run(ctx)
+		return s.storageService.Run(ctx)
 	})
+
+	if s.customProfilingOperationService != nil {
+		g.Go(func() error {
+			return s.customProfilingOperationService.Run(ctx)
+		})
+	}
 
 	g.Go(func() error {
 		return s.runMetricsServer(ctx)
@@ -83,14 +90,12 @@ func NewServer(
 	conf *Config,
 	logger xlog.Logger,
 	registry xmetrics.Registry,
-	optsAppliers ...Option,
+	storageServiceOptions ...storage.Option,
 ) (*Server, error) {
-	conf.FillDefault()
-
-	opts := defaultOpts()
-	for _, optApplier := range optsAppliers {
-		optApplier(opts)
+	if err := ValidateConfig(conf); err != nil {
+		return nil, fmt.Errorf("failed to validate config: %w", err)
 	}
+	conf.FillDefault()
 
 	initCtx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 	defer cancel()
@@ -103,26 +108,33 @@ func NewServer(
 		return nil, fmt.Errorf("failed to create storage bundle: %w", err)
 	}
 
-	storageService, err := newStorageService(
-		&conf.StorageServiceConfig,
-		&opts.storage,
+	storageService, err := storage.NewService(
+		conf.StorageServiceConfig,
 		logger,
 		registry,
 		storageBundle,
+		storageServiceOptions...,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create storage service: %w", err)
 	}
 
-	customProfilingOperationService, err := newCustomProfilingOperationService()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create custom profiling operation service: %w", err)
+	var customProfilingOperationService *custom_profiling_operation.Service
+	if conf.CustomProfilingOperationServiceConfig != nil {
+		customProfilingOperationService, err = custom_profiling_operation.NewService(
+			logger,
+			registry,
+			conf.CustomProfilingOperationServiceConfig,
+			storageBundle.CustomProfilingOperationStorage,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create custom profiling operation service: %w", err)
+		}
 	}
 
 	server := &Server{
 		logger:                          logger,
 		conf:                            conf,
-		opts:                            opts,
 		reg:                             registry,
 		storageService:                  storageService,
 		customProfilingOperationService: customProfilingOperationService,
@@ -159,7 +171,9 @@ func NewServer(
 
 	server.grpcServer = grpc.NewServer(grpcOpts...)
 	perforatorstorage.RegisterPerforatorStorageServer(server.grpcServer, server.storageService)
-	custom_profiling_operation_proto.RegisterCustomProfilingOperationServiceServer(server.grpcServer, server.customProfilingOperationService)
+	if server.customProfilingOperationService != nil {
+		custom_profiling_operation_proto.RegisterCustomProfilingOperationServiceServer(server.grpcServer, server.customProfilingOperationService)
+	}
 	reflection.Register(server.grpcServer)
 
 	return server, nil
