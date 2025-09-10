@@ -4,6 +4,7 @@ RECURSE(
     bundle
     client
     creds
+    custom_profiles
     custom_profiling_operation
     databases
     gc

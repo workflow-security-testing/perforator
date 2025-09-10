@@ -10,6 +10,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/perforator/pkg/clickhouse"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/sqlbuilder"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
@@ -27,7 +28,7 @@ var _ meta.Storage = (*Storage)(nil)
 type Storage struct {
 	l    xlog.Logger
 	conf *Config
-	conn driver.Conn
+	conn *clickhouse.Connection
 
 	batchsize     int
 	batchinterval time.Duration
@@ -44,7 +45,7 @@ type Storage struct {
 func NewStorage(
 	l xlog.Logger,
 	metrics metrics.Registry,
-	conn driver.Conn,
+	conn *clickhouse.Connection,
 	conf *Config,
 ) (*Storage, error) {
 	l = l.WithName("clickhouse")
@@ -64,33 +65,12 @@ func NewStorage(
 	}, nil
 }
 
-func scanServices(rows driver.Rows) ([]*meta.ServiceMetadata, error) {
-	result := []*meta.ServiceMetadata{}
+func scanServiceRow(rows driver.Rows) (*meta.ServiceMetadata, error) {
 	row := ServiceRow{}
-
-	for rows.Next() {
-		if err := rows.ScanStruct(&row); err != nil {
-			return nil, fmt.Errorf("failed to scan struct from row: %w", err)
-		}
-		result = append(result, serviceMetaFromModel(&row))
+	if err := rows.ScanStruct(&row); err != nil {
+		return nil, fmt.Errorf("failed to scan struct from row: %w", err)
 	}
-
-	return result, rows.Err()
-}
-
-func Retry[T any](f func() (T, error), retries uint32) (val T, err error) {
-	if retries == 0 {
-		retries = 1
-	}
-
-	for i := uint32(0); i < retries; i++ {
-		val, err = f()
-		if err == nil {
-			return
-		}
-	}
-
-	return
+	return serviceMetaFromModel(&row), nil
 }
 
 // ListServices implements meta.Storage.
@@ -122,34 +102,20 @@ func (s *Storage) ListServices(
 		return nil, err
 	}
 
-	return Retry(func() ([]*meta.ServiceMetadata, error) {
-		s.l.Debug(ctx, "Selecting services from clickhouse", log.String("sql", sql))
-		rows, err := s.conn.Query(ctx, sql)
-		if err != nil {
-			return nil, err
-		}
-		defer rows.Close()
-
-		return scanServices(rows)
-	}, s.conf.ReadRequestRetries)
+	s.l.Debug(ctx, "Selecting services from clickhouse", log.String("sql", sql))
+	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanServiceRow)
 }
 
 func suggestSupported(column string) bool {
 	return !nonStringColumns[column]
 }
 
-func scanSuggestions(rows driver.Rows) ([]*meta.Suggestion, error) {
-	result := []*meta.Suggestion{}
+func scanSuggestionRow(rows driver.Rows) (*meta.Suggestion, error) {
 	var value string
-
-	for rows.Next() {
-		if err := rows.Scan(&value); err != nil {
-			return nil, fmt.Errorf("failed to scan string from row: %w", err)
-		}
-		result = append(result, &meta.Suggestion{Value: value})
+	if err := rows.Scan(&value); err != nil {
+		return nil, fmt.Errorf("failed to scan string from row: %w", err)
 	}
-
-	return result, rows.Err()
+	return &meta.Suggestion{Value: value}, nil
 }
 
 // ListSuggestions implements meta.Storage.
@@ -239,16 +205,8 @@ func (s *Storage) ListSuggestions(
 		return nil, err
 	}
 
-	return Retry(func() ([]*meta.Suggestion, error) {
-		s.l.Debug(ctx, "Searching for suggestions in clickhouse", log.String("sql", sql))
-		rows, err := s.conn.Query(ctx, sql)
-		if err != nil {
-			return nil, err
-		}
-		defer rows.Close()
-
-		return scanSuggestions(rows)
-	}, s.conf.ReadRequestRetries)
+	s.l.Debug(ctx, "Searching for suggestions in clickhouse", log.String("sql", sql))
+	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanSuggestionRow)
 }
 
 // StoreProfile implements meta.Storage.
@@ -270,18 +228,12 @@ func (s *Storage) StoreProfile(
 	}
 }
 
-func scanProfiles(rows driver.Rows) ([]*meta.ProfileMetadata, error) {
-	result := []*meta.ProfileMetadata{}
+func scanProfileRow(rows driver.Rows) (*meta.ProfileMetadata, error) {
 	row := ProfileRow{}
-
-	for rows.Next() {
-		if err := rows.ScanStruct(&row); err != nil {
-			return nil, fmt.Errorf("failed to scan struct from row: %w", err)
-		}
-		result = append(result, profileMetaFromModel(&row))
+	if err := rows.ScanStruct(&row); err != nil {
+		return nil, fmt.Errorf("failed to scan struct from row: %w", err)
 	}
-
-	return result, rows.Err()
+	return profileMetaFromModel(&row), nil
 }
 
 // SelectProfiles implements meta.Storage.
@@ -296,16 +248,7 @@ func (s *Storage) SelectProfiles(
 
 	s.l.Debug(ctx, "Select profiles", log.String("sql", sql))
 
-	return Retry(func() ([]*meta.ProfileMetadata, error) {
-		s.l.Debug(ctx, "Selecting profiles from clickhouse", log.String("sql", sql))
-		rows, err := s.conn.Query(ctx, sql)
-		if err != nil {
-			return nil, fmt.Errorf("failed query: %w", err)
-		}
-		defer rows.Close()
-
-		return scanProfiles(rows)
-	}, s.conf.ReadRequestRetries)
+	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanProfileRow)
 }
 
 // GetProfiles implements meta.Storage.
@@ -324,16 +267,8 @@ func (s *Storage) GetProfiles(
 		return nil, err
 	}
 
-	return Retry(func() ([]*meta.ProfileMetadata, error) {
-		s.l.Debug(ctx, "Get profiles from clickhouse", log.String("sql", query))
-		rows, err := s.conn.Query(ctx, query)
-		if err != nil {
-			return nil, fmt.Errorf("failed query: %w", err)
-		}
-		defer rows.Close()
-
-		return scanProfiles(rows)
-	}, s.conf.ReadRequestRetries)
+	s.l.Debug(ctx, "Get profiles from clickhouse", log.String("sql", query))
+	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, query, scanProfileRow)
 }
 
 // RemoveProfiles implements meta.Storage.

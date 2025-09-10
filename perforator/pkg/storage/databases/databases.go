@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/aws/aws-sdk-go/service/s3"
 	hasql "golang.yandex/hasql/sqlx"
 
@@ -18,7 +17,7 @@ import (
 type Databases struct {
 	PostgresCluster *hasql.Cluster
 
-	ClickhouseConn driver.Conn
+	ClickhouseConn *clickhouse.Connection
 
 	S3Client *s3.S3
 }
