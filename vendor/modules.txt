@@ -12458,7 +12458,7 @@ github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumul
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor/internal/testing/sdktest
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor/internal/testing/testar
 github.com/open-telemetry/opentelemetry-collector-contrib/processor/deltatocumulativeprocessor/internal/testing/testar/crlf
-# github.com/openai/openai-go v1.11.0
+# github.com/openai/openai-go v1.12.0
 ## explicit; go 1.21
 github.com/openai/openai-go
 github.com/openai/openai-go/azure

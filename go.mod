@@ -617,7 +617,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.22.1
 	github.com/onsi/gomega v1.36.2
 	github.com/open-policy-agent/opa v1.1.0
-	github.com/openai/openai-go v1.11.0
+	github.com/openai/openai-go v1.12.0
 	github.com/openconfig/gnmi v0.10.0
 	github.com/openconfig/goyang v1.4.3
 	github.com/openconfig/ygot v0.29.15
