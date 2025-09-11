@@ -322,7 +322,7 @@ require (
 	github.com/digitalocean/go-libvirt v0.0.0-20190715144809-7b622097a793
 	github.com/disintegration/imaging v1.6.2
 	github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2
-	github.com/dlclark/regexp2 v1.11.4
+	github.com/dlclark/regexp2 v1.11.5
 	github.com/dnaeon/go-vcr v1.2.0
 	github.com/dnstap/golang-dnstap v0.4.0
 	github.com/docker/distribution v2.8.3+incompatible
@@ -758,6 +758,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.33.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
+	github.com/tiktoken-go/tokenizer v0.7.0
 	github.com/timakin/bodyclose v0.0.0-20230421092635-574207250966
 	github.com/tink-crypto/tink-go/v2 v2.2.0
 	github.com/tinylib/msgp v1.1.8
@@ -1395,6 +1396,7 @@ require (
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/djherbis/atime v1.1.0 // indirect
+	github.com/dlclark/regexp2cg v0.2.0 // indirect
 	github.com/dnsimple/dnsimple-go v1.0.0 // indirect
 	github.com/docker/cli v25.0.4+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
