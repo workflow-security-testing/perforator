@@ -2258,7 +2258,7 @@ require (
 	go.opentelemetry.io/contrib/zpages v0.59.0 // indirect
 	go.step.sm/linkedca v0.20.1 // indirect
 	go.temporal.io/version v0.3.0 // indirect
-	go.uber.org/dig v1.18.1 // indirect
+	go.uber.org/dig v1.19.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
 	go4.org/intern v0.0.0-20220617035311-6925f38cc365 // indirect
