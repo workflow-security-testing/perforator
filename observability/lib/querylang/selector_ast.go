@@ -40,7 +40,7 @@ type Condition struct {
 
 type Value interface {
 	Repr() string
-	ToSelector() (string, error)
+	ToString() (string, error)
 
 	raw() string
 	clone() Value
@@ -69,7 +69,7 @@ func (v Empty) Repr() string {
 	return "empty_value"
 }
 
-func (v Empty) ToSelector() (string, error) {
+func (v Empty) ToString() (string, error) {
 	return v.raw(), nil
 }
 
@@ -85,7 +85,7 @@ func (v String) Repr() string {
 	return strconv.Quote(v.raw())
 }
 
-func (v String) ToSelector() (string, error) {
+func (v String) ToString() (string, error) {
 	return smartquote(v.raw())
 }
 
@@ -101,7 +101,7 @@ func (v Int) Repr() string {
 	return v.raw()
 }
 
-func (v Int) ToSelector() (string, error) {
+func (v Int) ToString() (string, error) {
 	return v.raw(), nil
 }
 
@@ -117,7 +117,7 @@ func (v Float) Repr() string {
 	return v.raw()
 }
 
-func (v Float) ToSelector() (string, error) {
+func (v Float) ToString() (string, error) {
 	return v.raw(), nil
 }
 
@@ -134,7 +134,7 @@ func (v Duration) Repr() string {
 	return v.raw()
 }
 
-func (v Duration) ToSelector() (string, error) {
+func (v Duration) ToString() (string, error) {
 	return v.raw(), nil
 }
 

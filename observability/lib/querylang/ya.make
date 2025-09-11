@@ -1,9 +1,9 @@
 GO_LIBRARY()
 
 SRCS(
-    ast_repr.go
-    ast.go
-    ast_iter.go
+    selector_ast.go
+    selector_iter.go
+    selector_repr.go
     expression_ast.go
     helpers.go
     parser.go
@@ -11,7 +11,7 @@ SRCS(
 )
 
 GO_XTEST_SRCS(
-    ast_iter_test.go
+    selector_iter_test.go
 )
 
 END()
