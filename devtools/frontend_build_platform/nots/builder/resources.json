@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-12T17:00:46Z",
+    "created": "2025-09-12T20:06:37.034Z",
     "pr": {
-      "id": 9975072,
+      "id": 9992107,
       "author": "baymer",
-      "summary": "FBP-2515: другое: Перенести ca-store в из .cache/pnpm-9-store в .nots/pnpm-store"
+      "summary": "feat(nots-builder): take v26 build resources into use"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9709107066"
+      "uri": "sbr:9710003381"
     },
     "darwin-arm64": {
-      "uri": "sbr:9709105803"
+      "uri": "sbr:9710002501"
     },
     "linux": {
-      "uri": "sbr:9709109576"
+      "uri": "sbr:9710004656"
     },
     "linux-aarch64": {
-      "uri": "sbr:9709108301"
+      "uri": "sbr:9710003990"
     }
   }
 }
