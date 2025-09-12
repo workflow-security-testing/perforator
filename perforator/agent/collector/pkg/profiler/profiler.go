@@ -39,6 +39,23 @@ const (
 	PerfReaderTimeout = 5 * time.Second
 )
 
+type initialTargets struct {
+	selfTargetLabels map[string]string
+	cgroupTargets    []*CgroupConfig
+	processTargets   []processTarget
+	threadTargets    []threadTarget
+}
+
+type processTarget struct {
+	pid    int
+	labels map[string]string
+}
+
+type threadTarget struct {
+	tid    int
+	labels map[string]string
+}
+
 type Profiler struct {
 	log log.Logger
 
@@ -48,6 +65,7 @@ type Profiler struct {
 	processScanner process.ProcessScanner
 	sampleCallback machine.RawSampleCallback
 	eventListener  EventListener
+	initialTargets *initialTargets
 
 	bpf          *machine.BPF
 	eventmanager *perfevent.EventManager
@@ -113,9 +131,9 @@ type profilerMetrics struct {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type option func(p *Profiler) error
+type Option func(p *Profiler) error
 
-func WithStorage(storage client.Storage) option {
+func WithStorage(storage client.Storage) Option {
 	return func(p *Profiler) error {
 		if p.storage != nil {
 			return fmt.Errorf("refusing to overwrite profiler storage")
@@ -125,7 +143,7 @@ func WithStorage(storage client.Storage) option {
 	}
 }
 
-func WithRawSampleCallback(sampleCallback machine.RawSampleCallback) option {
+func WithRawSampleCallback(sampleCallback machine.RawSampleCallback) Option {
 	return func(p *Profiler) error {
 		if p.sampleCallback != nil {
 			return fmt.Errorf("refusing to overwrite profiler raw sample callback")
@@ -135,16 +153,50 @@ func WithRawSampleCallback(sampleCallback machine.RawSampleCallback) option {
 	}
 }
 
-func WithEventListener(listener EventListener) option {
+func WithEventListener(listener EventListener) Option {
 	return func(p *Profiler) error {
 		p.eventListener = listener
 		return nil
 	}
 }
 
+func WithSelfTarget(labels map[string]string) Option {
+	return func(p *Profiler) error {
+		p.initialTargets.selfTargetLabels = labels
+		return nil
+	}
+}
+
+func WithCgroupTarget(config *CgroupConfig) Option {
+	return func(p *Profiler) error {
+		p.initialTargets.cgroupTargets = append(p.initialTargets.cgroupTargets, config)
+		return nil
+	}
+}
+
+func WithProcessTarget(pid int, labels map[string]string) Option {
+	return func(p *Profiler) error {
+		p.initialTargets.processTargets = append(p.initialTargets.processTargets, processTarget{
+			pid:    pid,
+			labels: labels,
+		})
+		return nil
+	}
+}
+
+func WithThreadTarget(tid int, labels map[string]string) Option {
+	return func(p *Profiler) error {
+		p.initialTargets.threadTargets = append(p.initialTargets.threadTargets, threadTarget{
+			tid:    tid,
+			labels: labels,
+		})
+		return nil
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
-func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...option) (*Profiler, error) {
+func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Option) (*Profiler, error) {
 	c.FillDefault()
 	l = l.WithName("profiler")
 
@@ -154,14 +206,15 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...opt
 	}
 
 	profiler := &Profiler{
-		conf:         c,
-		log:          l,
-		mounts:       mountinfo.NewWatcher(l, r),
-		events:       make(map[perfevent.Type]*perfevent.EventBundle),
-		pids:         make(map[linux.ProcessID]*trackedProcess),
-		profileChan:  make(chan client.LabeledProfile, 64),
-		debugmode:    c.Debug,
-		envWhitelist: envWhitelist,
+		conf:           c,
+		log:            l,
+		mounts:         mountinfo.NewWatcher(l, r),
+		events:         make(map[perfevent.Type]*perfevent.EventBundle),
+		pids:           make(map[linux.ProcessID]*trackedProcess),
+		profileChan:    make(chan client.LabeledProfile, 64),
+		debugmode:      c.Debug,
+		envWhitelist:   envWhitelist,
+		initialTargets: &initialTargets{},
 
 		sampleReaderShutdown:    graceful.NewShutdownCookie(),
 		profileUploaderShutdown: graceful.NewShutdownCookie(),
@@ -373,7 +426,47 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to register metrics: %w", err)
 	}
 
+	// Initialize targets
+	err = p.initializeTargets()
+	if err != nil {
+		return fmt.Errorf("failed to initialize targets: %w", err)
+	}
+
 	// We are done.
+	return nil
+}
+
+func (p *Profiler) initializeTargets() error {
+	if p.initialTargets.selfTargetLabels != nil {
+		err := p.TraceSelf(p.initialTargets.selfTargetLabels)
+		if err != nil {
+			return fmt.Errorf("failed to initialize self tracing: %w", err)
+		}
+	}
+
+	if len(p.initialTargets.cgroupTargets) > 0 {
+		err := p.TraceCgroups(p.initialTargets.cgroupTargets)
+		if err != nil {
+			return fmt.Errorf("failed to initialize cgroup tracing: %w", err)
+		}
+	}
+
+	for _, target := range p.initialTargets.processTargets {
+		p.log.Info("Registering process", log.Int("pid", target.pid))
+		err := p.TracePid(linux.ProcessID(target.pid), target.labels)
+		if err != nil {
+			return fmt.Errorf("failed to initialize pid %d tracing: %w", target.pid, err)
+		}
+	}
+
+	for _, target := range p.initialTargets.threadTargets {
+		p.log.Info("Registering thread", log.Int("tid", target.tid))
+		err := p.TracePid(linux.ProcessID(target.tid), target.labels)
+		if err != nil {
+			return fmt.Errorf("failed to initialize tid %d tracing: %w", target.tid, err)
+		}
+	}
+
 	return nil
 }
 
