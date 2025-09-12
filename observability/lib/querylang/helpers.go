@@ -7,6 +7,22 @@ import (
 	"github.com/yandex/perforator/observability/lib/querylang/operator"
 )
 
+type ToStringer interface {
+	ToString() (string, error)
+}
+
+func arrayToString[T ToStringer](arr []T) ([]string, error) {
+	var err error
+	arrStrings := make([]string, len(arr))
+	for i, item := range arr {
+		arrStrings[i], err = item.ToString()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return arrStrings, nil
+}
+
 func (c *Condition) IsStrictEq() bool {
 	return c.Operator == operator.Eq && !c.Inverse
 }

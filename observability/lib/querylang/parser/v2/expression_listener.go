@@ -49,7 +49,13 @@ func (l *expressionListener) EnterExpression(c *parser.ExpressionContext) {
 	}
 
 	arg := &querylang.Expression{}
-	l.top().FunctionCall.Arguments = append(l.top().FunctionCall.Arguments, arg)
+
+	if l.top().FunctionCall != nil {
+		l.top().FunctionCall.Arguments = append(l.top().FunctionCall.Arguments, arg)
+	} else if l.top().Lambda != nil {
+		l.top().Lambda.Expression = arg
+	}
+
 	l.push(arg)
 }
 
@@ -71,7 +77,7 @@ func (l *expressionListener) EnterCall(c *parser.CallContext) {
 	}
 
 	l.top().FunctionCall = &querylang.FunctionCall{
-		Identifier: c.IDENT().GetText(),
+		Identifier: querylang.Identifier(c.IDENT().GetText()),
 	}
 }
 
@@ -105,6 +111,21 @@ func (l *expressionListener) ExitSelectors(c *parser.SelectorsContext) {
 	l.selectorListener = nil
 }
 
+func (l *expressionListener) EnterLambda(c *parser.LambdaContext) {
+	if l.hasErrors() {
+		return
+	}
+
+	l.top().Lambda = &querylang.Lambda{}
+	if c.IDENT() != nil {
+		l.top().Lambda.Arguments = append(l.top().Lambda.Arguments, querylang.Identifier(c.IDENT().GetText()))
+	} else {
+		for _, id := range c.Arglist().AllIDENT() {
+			l.top().Lambda.Arguments = append(l.top().Lambda.Arguments, querylang.Identifier(id.GetText()))
+		}
+	}
+}
+
 func (l *expressionListener) EnterAtomNumber(c *parser.AtomNumberContext) {
 	if l.hasErrors() {
 		return
@@ -126,6 +147,14 @@ func (l *expressionListener) EnterAtomString(c *parser.AtomStringContext) {
 	l.top().Value = querylang.String{Value: unquote(c.STRING().GetText())}
 }
 
+func (l *expressionListener) EnterAtomIdent(c *parser.AtomIdentContext) {
+	if l.hasErrors() {
+		return
+	}
+
+	l.top().Identifier = querylang.Identifier(c.IDENT().GetText())
+}
+
 // --- Helpers ---
 
 func (l *expressionListener) pop() {
@@ -144,7 +173,10 @@ func (l *expressionListener) top() *querylang.Expression {
 }
 
 func isZeroExpression(e *querylang.Expression) bool {
-	return e == nil || e.FunctionCall == nil && e.Selector == nil && e.Value == nil
+	if e == nil {
+		return true
+	}
+	return e.FunctionCall == nil && e.Lambda == nil && e.Selector == nil && e.Identifier == "" && e.Value == nil
 }
 
 // --- Ensure no operators on expressions are used ---
@@ -201,10 +233,6 @@ func (l *expressionListener) EnterAtomDuration(c *parser.AtomDurationContext) {
 	l.onSemanticError(fmt.Errorf("unexpected duration value"))
 }
 
-func (l *expressionListener) EnterAtomIdent(c *parser.AtomIdentContext) {
-	l.onSemanticError(fmt.Errorf("unexpected identifier"))
-}
-
 func (l *expressionListener) EnterAtomCallByDuration(c *parser.AtomCallByDurationContext) {
 	l.onSemanticError(fmt.Errorf("unexpected call by duration"))
 }
@@ -215,8 +243,4 @@ func (l *expressionListener) EnterAtomCallByLabel(c *parser.AtomCallByLabelConte
 
 func (l *expressionListener) EnterAtomCallByLabels(c *parser.AtomCallByLabelsContext) {
 	l.onSemanticError(fmt.Errorf("unexpected call by labels"))
-}
-
-func (l *expressionListener) EnterLambda(c *parser.LambdaContext) {
-	l.onSemanticError(fmt.Errorf("unexpected lambda"))
 }

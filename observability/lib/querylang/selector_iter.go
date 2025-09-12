@@ -3,6 +3,7 @@ package querylang
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/yandex/perforator/observability/lib/querylang/operator"
 )
@@ -27,6 +28,22 @@ func (f *Selector) Clone() *Selector {
 	return &Selector{
 		Matchers: matchers,
 	}
+}
+
+func (f *Selector) SortMatchers(highPriorityFields ...string) {
+	slices.SortFunc(f.Matchers, func(a, b *Matcher) int {
+		ai := slices.Index(highPriorityFields, a.Field)
+		bi := slices.Index(highPriorityFields, b.Field)
+
+		if ai != -1 && bi != -1 {
+			return ai - bi
+		} else if ai != -1 {
+			return -1
+		} else if bi != -1 {
+			return 1
+		}
+		return strings.Compare(a.Field, b.Field)
+	})
 }
 
 func (f *Selector) IsEmpty() bool {

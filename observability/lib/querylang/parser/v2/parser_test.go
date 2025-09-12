@@ -12,6 +12,7 @@ import (
 type testCase struct {
 	Query         string
 	ExpectedRepr  string
+	ExpectedStr   string
 	ExpectedError string
 }
 
@@ -220,33 +221,60 @@ func TestParseExpression(t *testing.T) {
 	for _, tc := range []testCase{
 		{
 			Query:        `{}`,
-			ExpectedRepr: `empty_selector`,
+			ExpectedStr:  `{}`,
+			ExpectedRepr: `{}`,
 		},
 		{
 			Query:        `{a = b, c > 10, d = 'a|b'}`,
-			ExpectedRepr: `"a" = "b" AND "c" > 10 AND ("d" = "a" OR "d" = "b")`,
+			ExpectedStr:  `{"a" = "b", "c" > 10, "d" = "a|b"}`,
+			ExpectedRepr: `{"a" = "b" AND "c" > 10 AND ("d" = "a" OR "d" = "b")}`,
 		},
 		{
 			Query:        `some_func()`,
+			ExpectedStr:  `some_func()`,
 			ExpectedRepr: `some_func()`,
 		},
 		{
 			Query:        `some_func('a', 1, 2.5)`,
+			ExpectedStr:  `some_func("a", 1, 2.5)`,
 			ExpectedRepr: `some_func("a", 1, 2.5)`,
 		},
 		{
+			Query:        `some_func(a, 1, 2.5)`,
+			ExpectedStr:  `some_func(a, 1, 2.5)`,
+			ExpectedRepr: `some_func(a, 1, 2.5)`,
+		},
+		{
 			Query:        `filter({a = b}, all(eq('a', 'b')))`,
-			ExpectedRepr: `filter("a" = "b", all(eq("a", "b")))`,
+			ExpectedStr:  `filter({"a" = "b"}, all(eq("a", "b")))`,
+			ExpectedRepr: `filter({"a" = "b"}, all(eq("a", "b")))`,
 		},
 		{
 			Query:        `filter({a = 1}, any( all(eq('a', 'b'), eq('c', 'd')), eq('x', 'y') ))`,
-			ExpectedRepr: `filter("a" = 1, any(all(eq("a", "b"), eq("c", "d")), eq("x", "y")))`,
+			ExpectedStr:  `filter({"a" = 1}, any(all(eq("a", "b"), eq("c", "d")), eq("x", "y")))`,
+			ExpectedRepr: `filter({"a" = 1}, any(all(eq("a", "b"), eq("c", "d")), eq("x", "y")))`,
+		},
+		{
+			Query:        `filter({a = b}, x -> x)`,
+			ExpectedStr:  `filter({"a" = "b"}, x -> x)`,
+			ExpectedRepr: `filter({"a" = "b"}, (x) -> x)`,
+		},
+		{
+			Query:        `filter((x, y) -> x)`,
+			ExpectedStr:  `filter((x, y) -> x)`,
+			ExpectedRepr: `filter((x, y) -> x)`,
+		},
+		{
+			Query:        `filter(x -> eq(get(x, 'a'), 'x'))`,
+			ExpectedStr:  `filter(x -> eq(get(x, "a"), "x"))`,
+			ExpectedRepr: `filter((x) -> eq(get(x, "a"), "x"))`,
+		},
+		{
+			Query:        `filter({project="smth", service='wow'}, x -> all(eq(get(x, 'a'), 'x')))`,
+			ExpectedStr:  `filter({"project" = "smth", "service" = "wow"}, x -> all(eq(get(x, "a"), "x")))`,
+			ExpectedRepr: `filter({"project" = "smth" AND "service" = "wow"}, (x) -> all(eq(get(x, "a"), "x")))`,
 		},
 
-		{
-			Query:         `some_func(a, 1, 2.5)`,
-			ExpectedError: `semantic error`,
-		},
 		{
 			Query:         `filter({a = b}) by 'a'`,
 			ExpectedError: `semantic error`,
@@ -267,10 +295,6 @@ func TestParseExpression(t *testing.T) {
 			Query:         `filter({a = b}) || true`,
 			ExpectedError: `semantic error`,
 		},
-		{
-			Query:         `filter({a = b}, x -> x)`,
-			ExpectedError: `semantic error`,
-		},
 	} {
 		t.Run(tc.Query, func(t *testing.T) {
 			p := parserv2.NewParser()
@@ -281,6 +305,10 @@ func TestParseExpression(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				assert.Equal(t, tc.ExpectedRepr, e.Repr())
+
+				str, err := e.ToString()
+				require.NoError(t, err)
+				assert.Equal(t, tc.ExpectedStr, str)
 			}
 		})
 	}
