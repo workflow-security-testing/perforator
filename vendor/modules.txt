@@ -11719,6 +11719,9 @@ github.com/mgutz/logxi/v1
 ## explicit; go 1.19
 github.com/microcosm-cc/bluemonday
 github.com/microcosm-cc/bluemonday/css
+# github.com/micromdm/plist v0.2.1
+## explicit; go 1.14
+github.com/micromdm/plist
 # github.com/miekg/dns v1.1.66
 ## explicit; go 1.23.0
 github.com/miekg/dns

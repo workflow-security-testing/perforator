@@ -581,6 +581,7 @@ require (
 	github.com/mennanov/fieldmask-utils v0.7.0
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
+	github.com/micromdm/plist v0.2.1
 	github.com/miekg/dns v1.1.66
 	github.com/miekg/pkcs11 v1.1.1
 	github.com/mikespook/gorbac v2.3.0+incompatible
