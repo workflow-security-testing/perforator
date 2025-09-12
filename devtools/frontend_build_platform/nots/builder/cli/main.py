@@ -76,9 +76,10 @@ def main():
 
     if args.local_cli:
         dir_name = pm_utils.build_traces_store_path(args.moddir)
-        timeit_options.dump_trace(
-            os.path.join(dir_name, f'{args.command}.builder.trace.json'), otherData=dict(moddir=args.moddir)
-        )
+        trace_file = os.path.join(dir_name, f'{args.command}.builder.trace.json')
+        timeit_options.dump_trace(trace_file, otherData=dict(moddir=args.moddir))
+        if args.verbose:
+            sys.stderr.write(f"Trace file: {trace_file}\n")
 
 
 if __name__ == "__main__":
