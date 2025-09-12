@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-12T20:06:37.034Z",
+    "created": "2025-09-12T22:50:05Z",
     "pr": {
       "id": 9992107,
       "author": "baymer",
-      "summary": "feat(nots-builder): take v26 build resources into use"
+      "summary": "FBP-2518: nots/builder: убрать двойной pnpm install на модуль в ya.make"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9710003381"
+      "uri": "sbr:9710609229"
     },
     "darwin-arm64": {
-      "uri": "sbr:9710002501"
+      "uri": "sbr:9710608589"
     },
     "linux": {
-      "uri": "sbr:9710004656"
+      "uri": "sbr:9710610355"
     },
     "linux-aarch64": {
-      "uri": "sbr:9710003990"
+      "uri": "sbr:9710609892"
     }
   }
 }
