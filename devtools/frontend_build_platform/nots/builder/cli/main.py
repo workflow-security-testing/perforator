@@ -70,6 +70,8 @@ def main():
 
     init_logging(args.verbose)
 
+    pm_utils.init_nots_path(args.arcadia_build_root, args.local_cli)
+
     args.func(args)
 
     _postprocess_output(args)
