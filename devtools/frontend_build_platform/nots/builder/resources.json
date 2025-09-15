@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-12T22:50:05Z",
+    "created": "2025-09-15T17:00:36Z",
     "pr": {
-      "id": 9992107,
+      "id": 10007766,
       "author": "baymer",
-      "summary": "FBP-2518: nots/builder: убрать двойной pnpm install на модуль в ya.make"
+      "summary": "DEVTOOLSSUPPORT-69882: nots --clean-all завершается ошибкой"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9710609229"
+      "uri": "sbr:9726939493"
     },
     "darwin-arm64": {
-      "uri": "sbr:9710608589"
+      "uri": "sbr:9726937552"
     },
     "linux": {
-      "uri": "sbr:9710610355"
+      "uri": "sbr:9726943228"
     },
     "linux-aarch64": {
-      "uri": "sbr:9710609892"
+      "uri": "sbr:9726941345"
     }
   }
 }
