@@ -39,3 +39,19 @@ func (e *Expression) Repr() string {
 	}
 	return "invalid_expression"
 }
+
+func (e *Expression) Kind() string {
+	switch {
+	case e.FunctionCall != nil:
+		return "function_call"
+	case e.Lambda != nil:
+		return "lambda"
+	case e.Selector != nil:
+		return "selector"
+	case e.Identifier != "":
+		return "identifier"
+	case e.Value != nil:
+		return "scalar"
+	}
+	return "invalid_expression"
+}
