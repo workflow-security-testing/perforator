@@ -8,5 +8,7 @@ SRCS(
 END()
 
 RECURSE(
+    compound
     meta
+    mocks
 )

@@ -1,0 +1,1 @@
+ALTER TABLE custom_profiles RENAME COLUMN labels TO attributes;

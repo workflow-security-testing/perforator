@@ -11,7 +11,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	clickhouse_helper "github.com/yandex/perforator/perforator/pkg/clickhouse"
-	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiles/meta"
+	"github.com/yandex/perforator/perforator/pkg/storage/custom_profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -31,7 +31,7 @@ func NewStorage(
 	metrics metrics.Registry,
 	conn *clickhouse_helper.Connection,
 ) *Storage {
-	l = l.WithName("Clickhouse.CustomProfiles")
+	l = l.WithName("Clickhouse.CustomProfile")
 
 	metrics = metrics.WithPrefix("custom_profiles_clickhouse")
 	return &Storage{
@@ -73,8 +73,8 @@ func (s *Storage) asyncInsertProfile(ctx context.Context, profile *CustomProfile
 	}()
 
 	builder := squirrel.Insert("custom_profiles").
-		Columns("id", "operation_id", "from_timestamp", "to_timestamp", "build_ids", "attributes").
-		Values(profile.ID, profile.OperationID, profile.FromTimestamp, profile.ToTimestamp, profile.BuildIDs, profile.Attributes)
+		Columns("id", "operation_id", "from_timestamp", "to_timestamp", "build_ids", "labels").
+		Values(profile.ID, profile.OperationID, profile.FromTimestamp, profile.ToTimestamp, profile.BuildIDs, profile.Labels)
 
 	sql, args, err := builder.ToSql()
 	if err != nil {
@@ -105,7 +105,7 @@ func (s *Storage) GetOperationProfiles(
 	ctx context.Context,
 	operationID string,
 ) ([]*meta.CustomProfileMeta, error) {
-	builder := squirrel.Select("id", "operation_id", "from_timestamp", "to_timestamp", "build_ids", "attributes").
+	builder := squirrel.Select("id", "operation_id", "from_timestamp", "to_timestamp", "build_ids", "labels").
 		From("custom_profiles").
 		Where(squirrel.Eq{"operation_id": operationID}).
 		OrderBy("from_timestamp ASC")

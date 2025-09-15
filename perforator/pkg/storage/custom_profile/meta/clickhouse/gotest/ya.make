@@ -1,4 +1,4 @@
-GO_TEST_FOR(perforator/pkg/storage/custom_profiles/meta/clickhouse)
+GO_TEST_FOR(perforator/pkg/storage/custom_profile/meta/clickhouse)
 
 IF (NOT OPENSOURCE)
     SIZE(MEDIUM)

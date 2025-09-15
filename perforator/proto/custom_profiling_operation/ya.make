@@ -10,6 +10,7 @@ ENDIF()
 
 PEERDIR(
     perforator/proto/lib/time_interval
+    perforator/proto/profile
 )
 
 SRCS(

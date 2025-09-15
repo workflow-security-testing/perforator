@@ -5,7 +5,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiles/meta"
+	"github.com/yandex/perforator/perforator/pkg/storage/custom_profile/meta"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -16,7 +16,7 @@ type CustomProfileRow struct {
 	FromTimestamp time.Time         `ch:"from_timestamp"`
 	ToTimestamp   time.Time         `ch:"to_timestamp"`
 	BuildIDs      []string          `ch:"build_ids"`
-	Attributes    map[string]string `ch:"attributes"`
+	Labels        map[string]string `ch:"labels"`
 }
 
 func customProfileModelFromMeta(p *meta.CustomProfileMeta) *CustomProfileRow {
@@ -26,7 +26,7 @@ func customProfileModelFromMeta(p *meta.CustomProfileMeta) *CustomProfileRow {
 		FromTimestamp: p.FromTimestamp,
 		ToTimestamp:   p.ToTimestamp,
 		BuildIDs:      slices.Clone(p.BuildIDs),
-		Attributes:    maps.Clone(p.Attributes),
+		Labels:        maps.Clone(p.Labels),
 	}
 }
 
@@ -37,7 +37,7 @@ func customProfileMetaFromModel(p *CustomProfileRow) *meta.CustomProfileMeta {
 		FromTimestamp: p.FromTimestamp,
 		ToTimestamp:   p.ToTimestamp,
 		BuildIDs:      slices.Clone(p.BuildIDs),
-		Attributes:    maps.Clone(p.Attributes),
+		Labels:        maps.Clone(p.Labels),
 	}
 }
 

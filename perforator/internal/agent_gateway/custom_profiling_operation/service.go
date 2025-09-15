@@ -11,6 +11,8 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/library/go/ptr"
+	"github.com/yandex/perforator/perforator/pkg/storage/custom_profile"
+	custom_profiles_meta "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
@@ -21,7 +23,7 @@ type serviceMetrics struct {
 	failedCollections          metrics.Counter
 	podScopedOperationsNumber  metrics.IntGauge
 	nodeScopedOperationsNumber metrics.IntGauge
-	currentSnapshotAge         metrics.FuncIntGauge
+	latestSnapshotAge          metrics.FuncIntGauge
 }
 
 type Service struct {
@@ -30,16 +32,19 @@ type Service struct {
 	reg     metrics.Registry
 	metrics serviceMetrics
 
-	storage custom_profiling_operation.Storage
+	customProfilingOperationStorage custom_profiling_operation.Storage
+	customProfileStorage            custom_profile.Storage
 
-	currentSnapshotManager *operationsSnapshotManager
+	// This manager stores latest snapshot of custom profiling operations.
+	latestSnapshotManager *operationsSnapshotManager
 }
 
 func NewService(
 	l xlog.Logger,
 	reg metrics.Registry,
 	conf *ServiceConfig,
-	storage custom_profiling_operation.Storage,
+	customProfilingOperationStorage custom_profiling_operation.Storage,
+	customProfileStorage custom_profile.Storage,
 ) (*Service, error) {
 	reg = reg.WithPrefix("custom_profiling_operation_service")
 
@@ -54,12 +59,13 @@ func NewService(
 			failedCollections:          reg.Counter("background_collection.failed"),
 			podScopedOperationsNumber:  reg.WithTags(map[string]string{"scope": "pod"}).IntGauge("current_operations.gauge"),
 			nodeScopedOperationsNumber: reg.WithTags(map[string]string{"scope": "node"}).IntGauge("current_operations.gauge"),
-			currentSnapshotAge: reg.FuncIntGauge("current_snapshot_age", func() int64 {
+			latestSnapshotAge: reg.FuncIntGauge("latest_snapshot_age", func() int64 {
 				return int64(time.Since(snapshotManager.getSnapshotTimestamp()).Seconds())
 			}),
 		},
-		storage:                storage,
-		currentSnapshotManager: snapshotManager,
+		customProfilingOperationStorage: customProfilingOperationStorage,
+		customProfileStorage:            customProfileStorage,
+		latestSnapshotManager:           snapshotManager,
 	}, nil
 }
 
@@ -68,7 +74,7 @@ func (s *Service) collectOperations(ctx context.Context) ([]*cpo_proto.Operation
 	ctx, cancel = context.WithTimeout(ctx, s.conf.CollectOperationsTimeout)
 	defer cancel()
 
-	operations, err := s.storage.ListOperations(
+	operations, err := s.customProfilingOperationStorage.ListOperations(
 		ctx,
 		&custom_profiling_operation.OperationFilter{
 			StartsBefore: ptr.Time(time.Now().Add(s.conf.PrefetchInterval)),
@@ -98,7 +104,7 @@ func (s *Service) tryUpdateSnapshot(ctx context.Context) {
 	s.metrics.podScopedOperationsNumber.Set(int64(len(snapshot.podToOperations)))
 	s.metrics.nodeScopedOperationsNumber.Set(int64(len(snapshot.nodeToOperations)))
 
-	s.currentSnapshotManager.updateSnapshot(snapshot)
+	s.latestSnapshotManager.updateSnapshot(snapshot)
 
 	s.l.Info(ctx, "Updated current custom profiling operations snapshot", log.Int("podToOperations.size", len(snapshot.podToOperations)), log.Int("nodeToOperations.size", len(snapshot.nodeToOperations)))
 }
@@ -130,7 +136,7 @@ func (s *Service) longPollOperations(ctx context.Context, req *cpo_proto.PollOpe
 	ctx, cancel := context.WithTimeout(ctx, s.conf.LongPollingTimeout)
 	defer cancel()
 
-	watcher := newLongPollRequestSnapshotWatcher(s.currentSnapshotManager)
+	watcher := newLongPollRequestSnapshotWatcher(s.latestSnapshotManager)
 	return watcher.longPollOperations(ctx, req), nil
 }
 
@@ -140,7 +146,7 @@ func (s *Service) PollOperations(ctx context.Context, req *cpo_proto.PollOperati
 		return nil, status.Errorf(codes.InvalidArgument, "req is nil or req.Filter is nil")
 	}
 
-	if s.currentSnapshotManager.getSnapshot() == nil {
+	if s.latestSnapshotManager.getSnapshot() == nil {
 		return nil, status.Errorf(codes.Internal, "current operations snapshot is nil")
 	}
 
@@ -154,10 +160,48 @@ func (s *Service) UpdateOperationStatus(ctx context.Context, req *cpo_proto.Upda
 		return nil, status.Errorf(codes.InvalidArgument, "req is nil or req.ID is empty")
 	}
 
-	err := s.storage.UpdateOperationStatus(ctx, custom_profiling_operation.OperationID(req.ID), req.Status)
+	err := s.customProfilingOperationStorage.UpdateOperationStatus(ctx, custom_profiling_operation.OperationID(req.ID), req.Status)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to update operation status: %v", err)
 	}
 
 	return &cpo_proto.UpdateOperationStatusResponse{}, nil
+}
+
+// implements CustomProfilingOperationService/PushOperationProfile
+func (s *Service) PushOperationProfile(ctx context.Context, req *cpo_proto.PushOperationProfileRequest) (*cpo_proto.PushOperationProfileResponse, error) {
+	if req == nil || req.Profile == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "req is nil or req.Profile is nil")
+	}
+
+	if req.OperationID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "req.OperationID is empty")
+	}
+
+	if req.StartTime == nil || req.FinishTime == nil || req.StartTime.AsTime().IsZero() || req.FinishTime.AsTime().IsZero() {
+		return nil, status.Errorf(codes.InvalidArgument, "profile interval is not set")
+	}
+
+	if req.StartTime.AsTime().After(req.FinishTime.AsTime()) {
+		return nil, status.Errorf(codes.InvalidArgument, "profile interval is invalid")
+	}
+
+	profileID, err := s.customProfileStorage.StoreCustomProfile(
+		ctx,
+		&custom_profiles_meta.CustomProfileMeta{
+			OperationID:   req.OperationID,
+			FromTimestamp: req.StartTime.AsTime(),
+			ToTimestamp:   req.FinishTime.AsTime(),
+			BuildIDs:      req.BuildIDs,
+			Labels:        req.Labels,
+		},
+		req.Profile,
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to store custom profile: %v", err)
+	}
+
+	s.l.Info(ctx, "Stored custom profile", log.String("operation_id", req.OperationID), log.String("profile_id", profileID))
+
+	return &cpo_proto.PushOperationProfileResponse{}, nil
 }

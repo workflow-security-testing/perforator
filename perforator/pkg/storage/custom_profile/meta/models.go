@@ -5,13 +5,19 @@ import (
 	"time"
 )
 
+type CustomProfileStorageType = string
+
+const (
+	Clickhouse CustomProfileStorageType = "clickhouse"
+)
+
 type CustomProfileMeta struct {
 	ID            string
 	OperationID   string
 	FromTimestamp time.Time
 	ToTimestamp   time.Time
 	BuildIDs      []string
-	Attributes    map[string]string
+	Labels        map[string]string
 }
 
 type Storage interface {

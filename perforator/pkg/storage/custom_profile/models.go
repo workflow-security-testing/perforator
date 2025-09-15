@@ -1,9 +1,9 @@
-package custom_profiles
+package custom_profile
 
 import (
 	"context"
 
-	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiles/meta"
+	"github.com/yandex/perforator/perforator/pkg/storage/custom_profile/meta"
 	"github.com/yandex/perforator/perforator/proto/profile"
 )
 
