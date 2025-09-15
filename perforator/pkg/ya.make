@@ -12,6 +12,7 @@ RECURSE(
     graceful
     grpcutil
     humantime
+    kafka
     linux
     maxprocs
     mlock
@@ -19,6 +20,7 @@ RECURSE(
     polyheapprof
     postgres
     profile
+    profile_event
     profilequerylang
     prototext
     pubsub

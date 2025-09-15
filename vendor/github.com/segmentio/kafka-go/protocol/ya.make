@@ -1,0 +1,79 @@
+GO_LIBRARY()
+
+LICENSE(MIT)
+
+VERSION(v0.4.48)
+
+SRCS(
+    buffer.go
+    cluster.go
+    conn.go
+    decode.go
+    encode.go
+    error.go
+    protocol.go
+    record.go
+    record_batch.go
+    record_v1.go
+    record_v2.go
+    reflect.go
+    request.go
+    response.go
+    roundtrip.go
+    size.go
+)
+
+GO_TEST_SRCS(
+    buffer_test.go
+    protocol_test.go
+    record_batch_test.go
+    response_test.go
+)
+
+END()
+
+RECURSE(
+    addoffsetstotxn
+    addpartitionstotxn
+    alterclientquotas
+    alterconfigs
+    alterpartitionreassignments
+    alteruserscramcredentials
+    apiversions
+    consumer
+    createacls
+    createpartitions
+    createtopics
+    deleteacls
+    deletegroups
+    deletetopics
+    describeacls
+    describeclientquotas
+    describeconfigs
+    describegroups
+    describeuserscramcredentials
+    electleaders
+    endtxn
+    fetch
+    findcoordinator
+    gotest
+    heartbeat
+    incrementalalterconfigs
+    initproducerid
+    joingroup
+    leavegroup
+    listgroups
+    listoffsets
+    listpartitionreassignments
+    metadata
+    offsetcommit
+    offsetdelete
+    offsetfetch
+    produce
+    prototest
+    rawproduce
+    saslauthenticate
+    saslhandshake
+    syncgroup
+    txnoffsetcommit
+)

@@ -10,12 +10,15 @@ import (
 	"time"
 
 	"github.com/karlseguin/ccache/v3"
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
+	"github.com/yandex/perforator/perforator/pkg/kafka/producer"
+	"github.com/yandex/perforator/perforator/pkg/profile_event"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
@@ -83,6 +86,9 @@ type Service struct {
 	buildIDCache *ccache.Cache[bool]
 
 	profileCommentProcessors map[string]func(string, *profilemeta.ProfileMetadata) error
+
+	signalPublisher *profile_event.AsyncSignalProfileEventPublisher
+	signalAllow     map[string]struct{}
 }
 
 func NewService(
@@ -113,6 +119,23 @@ func NewService(
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	var (
+		asyncPublisher *profile_event.AsyncSignalProfileEventPublisher
+		signalAllow    map[string]struct{}
+	)
+	if conf.ProfileSignalEvents != nil && conf.ProfileSignalEvents.Kafka != nil {
+		if len(conf.ProfileSignalEvents.AllowedSignals) == 0 {
+			return nil, errors.New("init kafka publisher: there should be at least one signal in \"allowed_signals\"")
+		}
+		signalAllow = makeStringSet(conf.ProfileSignalEvents.AllowedSignals)
+
+		kp, err := producer.NewKafkaProducer(logger, conf.ProfileSignalEvents.Kafka)
+		if err != nil {
+			return nil, fmt.Errorf("init kafka producer: %w", err)
+		}
+		asyncPublisher = profile_event.NewAsyncSignalProfileEventPublisher(kp, logger, reg, conf.ProfileSignalEvents.Config)
 	}
 
 	cache := ccache.New[bool](ccache.Configure[bool]().MaxSize(int64(opts.maxBuildIDCacheEntries)))
@@ -156,6 +179,8 @@ func NewService(
 		microscopeFilter:         microscopeFilter,
 		buildIDCache:             cache,
 		profileCommentProcessors: make(map[string]func(string, *profilemeta.ProfileMetadata) error),
+		signalPublisher:          asyncPublisher,
+		signalAllow:              signalAllow,
 	}
 
 	for typ, modulo := range opts.samplingModuloByEvent {
@@ -167,12 +192,23 @@ func NewService(
 }
 
 func (s *Service) Run(ctx context.Context) error {
+	g, ctx := errgroup.WithContext(ctx)
+
 	if s.microscopeFilter != nil {
-		s.microscopeFilter.Run(ctx)
-		s.logger.Warn(ctx, "Stopped pulling microscopes")
+		g.Go(func() error {
+			s.microscopeFilter.Run(ctx)
+			s.logger.Warn(ctx, "Stopped pulling microscopes")
+			return nil
+		})
 	}
 
-	return nil
+	if s.signalPublisher != nil {
+		g.Go(func() error {
+			return s.signalPublisher.Run(ctx)
+		})
+	}
+
+	return g.Wait()
 }
 
 func (s *Service) initProfileCommentProcessors() {
@@ -410,6 +446,22 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 		log.Time("timestamp", meta.Timestamp),
 		log.String("profile_id", profileID),
 	)
+
+	if s.signalPublisher != nil && s.shouldPublishSignals(req.GetSignalTypes()) {
+		ev := &profile_event.SignalProfileEvent{
+			ProfileID:   profileID,
+			Service:     meta.Service,
+			Cluster:     meta.Cluster,
+			NodeID:      meta.NodeID,
+			PodID:       meta.PodID,
+			Timestamp:   meta.Timestamp.UTC(),
+			BuildIDs:    meta.BuildIDs,
+			MainEvent:   meta.MainEventType,
+			SignalTypes: req.GetSignalTypes(),
+		}
+
+		s.signalPublisher.TryEnqueueForPublish(ctx, ev)
+	}
 
 	return &perforatorstorage.PushProfileResponse{ID: profileID}, nil
 }
@@ -665,4 +717,26 @@ func (s *Service) PushBinary(
 		s.logger.Warn(reqStream.Context(), "Failed to push binary", log.String("build_id", buildID), log.Error(err))
 	}
 	return err
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////////////
+func makeStringSet(strs []string) map[string]struct{} {
+	m := make(map[string]struct{}, len(strs))
+	for _, x := range strs {
+		m[x] = struct{}{}
+	}
+	return m
+}
+
+func (s *Service) shouldPublishSignals(signalTypes []string) bool {
+	if len(signalTypes) == 0 || s.signalAllow == nil {
+		return false
+	}
+
+	for _, sig := range signalTypes {
+		if _, ok := s.signalAllow[sig]; ok {
+			return true
+		}
+	}
+	return false
 }
