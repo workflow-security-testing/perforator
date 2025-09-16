@@ -273,7 +273,7 @@ func TestManyConcurrentTryEnqueue(t *testing.T) {
 
 	// Start all.
 	close(start)
-	time.Sleep(1 * time.Microsecond)
+	time.Sleep(300 * time.Microsecond)
 	// Some TryEnqueue calls may still be in progress.
 	cancel()
 
