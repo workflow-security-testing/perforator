@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-15T17:00:36Z",
+    "created": "2025-09-16T17:46:50.557Z",
     "pr": {
-      "id": 10007766,
+      "id": 10025722,
       "author": "baymer",
-      "summary": "DEVTOOLSSUPPORT-69882: nots --clean-all завершается ошибкой"
+      "summary": "revert: FBP-2518: возвращаем двойной инсталл"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9726939493"
+      "uri": "sbr:9738728332"
     },
     "darwin-arm64": {
-      "uri": "sbr:9726937552"
+      "uri": "sbr:9738727255"
     },
     "linux": {
-      "uri": "sbr:9726943228"
+      "uri": "sbr:9738730641"
     },
     "linux-aarch64": {
-      "uri": "sbr:9726941345"
+      "uri": "sbr:9738729318"
     }
   }
 }
