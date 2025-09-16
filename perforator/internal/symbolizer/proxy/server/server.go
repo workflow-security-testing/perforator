@@ -833,7 +833,7 @@ func (s *PerforatorServer) generateAutofdoInput(
 	query *meta.ProfileQuery,
 	profilesToProcessTotalSizeLimit uint64,
 ) (autofdoInput, error) {
-	rawProfiles, err := s.selectProfiles(ctx, query, &profilesToProcessTotalSizeLimit, false)
+	rawProfiles, err := s.selectProfiles(ctx, query, &profilesToProcessTotalSizeLimit, nil)
 	if err != nil {
 		return autofdoInput{}, err
 	}
@@ -916,8 +916,7 @@ func (s *PerforatorServer) fetchProfiles(
 	targetEventType string,
 	performSampling bool,
 ) (*pprof.Profile, []richProfile, error) {
-	var rawProfiles []richProfile
-	rawProfiles, err := s.selectProfiles(ctx, query, nil, performSampling)
+	rawProfiles, err := s.selectProfiles(ctx, query, nil, makeSamplingOptions(performSampling))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1530,11 +1529,54 @@ type richProfile struct {
 	data profilestorage.ProfileData
 }
 
+type samplingOptions struct {
+	// Downsample to ~this amount of profiles
+	samplingTarget uint64
+	// Run sampling in this number of threads
+	degreeOfParallelism uint16
+}
+
+func calculateSamplingRatio(profilesCount uint64, samplingTarget uint64) uint64 {
+	if samplingTarget == 0 {
+		return 0
+	}
+
+	samplingRatio := profilesCount / samplingTarget
+	if samplingRatio <= 2 {
+		// No point in performing sampling, can just merge as is.
+		return 0
+	}
+
+	if samplingRatio%2 == 0 {
+		// Make samplingRatio odd to avoid potential biases:
+		// we collect stacks from every core, there's usually an even number of cores,
+		// theoretically with an even ratio we could end up only processing stacks
+		// from cores with an even index.
+		samplingRatio += 1
+	}
+
+	return samplingRatio
+}
+
+func makeSamplingOptions(performSampling bool) *samplingOptions {
+	if !performSampling {
+		return nil
+	}
+
+	const kDefaultSamplingTarget = 23
+	const kDefaultDegreeOfSamplingParallelism = 16
+
+	return &samplingOptions{
+		samplingTarget:      kDefaultSamplingTarget,
+		degreeOfParallelism: kDefaultDegreeOfSamplingParallelism,
+	}
+}
+
 func (s *PerforatorServer) selectProfiles(
 	ctx context.Context,
 	filters *meta.ProfileQuery,
 	batchDownloadTotalSizeSoftLimit *uint64,
-	performSampling bool,
+	samplingOptions *samplingOptions,
 ) (profiles []richProfile, err error) {
 	ctx, span := otel.Tracer("APIProxy").Start(ctx, "PerforatorServer.selectProfiles")
 	defer span.End()
@@ -1562,9 +1604,15 @@ func (s *PerforatorServer) selectProfiles(
 		profiles[i].meta = metas[i]
 	}
 
-	if performSampling {
-		const kParallelism = 16
-		sampledProfiles := make([]richProfile, kParallelism)
+	samplingRatio := 0
+	samplingParallelism := 0
+	if samplingOptions != nil {
+		samplingRatio = int(calculateSamplingRatio(uint64(len(profiles)), samplingOptions.samplingTarget))
+		samplingParallelism = int(samplingOptions.degreeOfParallelism)
+	}
+
+	if samplingRatio != 0 {
+		sampledProfiles := make([]richProfile, samplingParallelism)
 
 		const kBatchSize = 20
 		batches := make(
@@ -1577,11 +1625,9 @@ func (s *PerforatorServer) selectProfiles(
 		close(batches)
 
 		g, ctx := errgroup.WithContext(ctx)
-		for i := range kParallelism {
+		for i := range samplingParallelism {
 			g.Go(func() error {
-				// Yes, this 2003 is a magic number.
-				// No, no explanation for now.
-				sampler, err := symbolize.NewStacksSampler(2003)
+				sampler, err := symbolize.NewStacksSampler(uint64(samplingRatio))
 				if err != nil {
 					return err
 				}
