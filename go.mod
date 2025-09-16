@@ -378,7 +378,7 @@ require (
 	github.com/go-cmd/cmd v1.4.2
 	github.com/go-co-op/gocron/v2 v2.2.10
 	github.com/go-critic/go-critic v0.9.0
-	github.com/go-delve/delve v1.24.1
+	github.com/go-delve/delve v1.25.2
 	github.com/go-faster/city v1.0.1
 	github.com/go-git/go-billy/v5 v5.6.2
 	github.com/go-git/go-git/v5 v5.14.0

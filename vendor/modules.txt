@@ -7607,8 +7607,8 @@ github.com/go-critic/go-critic/cmd/makedocs
 github.com/go-critic/go-critic/framework/linter
 github.com/go-critic/go-critic/linter
 github.com/go-critic/go-critic/rulestest
-# github.com/go-delve/delve v1.24.1
-## explicit; go 1.21
+# github.com/go-delve/delve v1.25.2
+## explicit; go 1.22.0
 github.com/go-delve/delve/cmd/dlv
 github.com/go-delve/delve/cmd/dlv/cmds
 github.com/go-delve/delve/cmd/dlv/cmds/helphelpers
