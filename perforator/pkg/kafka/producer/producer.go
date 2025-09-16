@@ -58,7 +58,7 @@ func NewJSONProducer[T any](base Producer) *JSONProducer[T] {
 func (j *JSONProducer[T]) Publish(ctx context.Context, partitionKey []byte, msg *T, headers ...Header) error {
 	b, err := json.Marshal(msg)
 	if err != nil {
-		return fmt.Errorf("marshal json before kafka publish: %w", err)
+		return fmt.Errorf("marshal json before publish: %w", err)
 	}
 	return j.base.Produce(ctx, partitionKey, b, headers...)
 }
