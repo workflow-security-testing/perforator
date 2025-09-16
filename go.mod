@@ -494,6 +494,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/hashicorp/hcl/v2 v2.23.0
 	github.com/hashicorp/memberlist v0.5.1
+	github.com/hashicorp/terraform-exec v0.23.1
 	github.com/hashicorp/terraform-plugin-docs v0.15.0
 	github.com/hashicorp/terraform-plugin-framework v1.14.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.18.0
@@ -825,7 +826,7 @@ require (
 	github.com/yuin/goldmark v1.7.8
 	github.com/yuin/gopher-lua v1.1.1
 	github.com/zaf/g711 v0.0.0-20220109202201-cf0017bf0359
-	github.com/zclconf/go-cty v1.16.3
+	github.com/zclconf/go-cty v1.16.4
 	github.com/zeebo/bencode v1.0.0
 	github.com/zhangjianweibj/prometheus-libvirt-exporter v1.1.0
 	github.com/zimmski/go-mutesting v0.0.0-20210610104036-6d9217011a00
@@ -1644,8 +1645,7 @@ require (
 	github.com/hashicorp/mdns v1.0.5 // indirect
 	github.com/hashicorp/nomad/api v0.0.0-20241218080744-e3ac00f30eec // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
-	github.com/hashicorp/terraform-exec v0.23.0 // indirect
-	github.com/hashicorp/terraform-json v0.25.0 // indirect
+	github.com/hashicorp/terraform-json v0.26.0 // indirect
 	github.com/hashicorp/terraform-plugin-sdk v1.17.2 // indirect
 	github.com/hashicorp/terraform-registry-address v0.2.5 // indirect
 	github.com/hashicorp/terraform-svchost v0.1.1 // indirect

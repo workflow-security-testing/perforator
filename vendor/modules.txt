@@ -10066,13 +10066,15 @@ github.com/hashicorp/nomad/api/internal/testutil/discover
 # github.com/hashicorp/serf v0.10.1
 ## explicit; go 1.12
 github.com/hashicorp/serf/coordinate
-# github.com/hashicorp/terraform-exec v0.23.0
+# github.com/hashicorp/terraform-exec v0.23.1
 ## explicit; go 1.23.0
+github.com/hashicorp/terraform-exec
 github.com/hashicorp/terraform-exec/internal/version
 github.com/hashicorp/terraform-exec/tfexec
+github.com/hashicorp/terraform-exec/tfexec/internal/e2etest
 github.com/hashicorp/terraform-exec/tfexec/internal/testutil
-# github.com/hashicorp/terraform-json v0.25.0
-## explicit; go 1.18
+# github.com/hashicorp/terraform-json v0.26.0
+## explicit; go 1.21
 github.com/hashicorp/terraform-json
 # github.com/hashicorp/terraform-plugin-docs v0.15.0
 ## explicit; go 1.19
@@ -16379,7 +16381,7 @@ github.com/yvasiyarov/newrelic_platform_go
 github.com/zaf/g711
 github.com/zaf/g711/cmd/g711dec
 github.com/zaf/g711/cmd/g711enc
-# github.com/zclconf/go-cty v1.16.3
+# github.com/zclconf/go-cty v1.16.4
 ## explicit; go 1.18
 github.com/zclconf/go-cty/cty
 github.com/zclconf/go-cty/cty/convert
