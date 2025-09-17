@@ -804,7 +804,7 @@ require (
 	github.com/xitongsys/parquet-go v1.6.2
 	github.com/xlab/treeprint v1.2.0
 	github.com/xuri/excelize/v2 v2.9.1
-	github.com/yandex-cloud/go-genproto v0.7.0
+	github.com/yandex-cloud/go-genproto v0.24.0
 	github.com/yandex-cloud/go-sdk v0.0.0
 	github.com/yandex/pandora v0.5.3
 	github.com/ybbus/jsonrpc/v3 v3.1.1

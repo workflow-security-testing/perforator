@@ -15628,8 +15628,9 @@ github.com/xuri/nfp
 # github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0
 ## explicit
 github.com/yalp/jsonpath
-# github.com/yandex-cloud/go-genproto v0.7.0
+# github.com/yandex-cloud/go-genproto v0.24.0
 ## explicit; go 1.21
+github.com/yandex-cloud/go-genproto
 github.com/yandex-cloud/go-genproto/yandex/cloud
 github.com/yandex-cloud/go-genproto/yandex/cloud/access
 github.com/yandex-cloud/go-genproto/yandex/cloud/ai/assistants/v1
@@ -15672,6 +15673,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/cloudregistry/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/cloudrouter/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1/instancegroup
+github.com/yandex-cloud/go-genproto/yandex/cloud/connectionmanager/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/containerregistry/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/dataproc/manager/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/dataproc/v1
@@ -15706,6 +15708,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/loadtesting/api/v1/report/table
 github.com/yandex-cloud/go-genproto/yandex/cloud/loadtesting/api/v1/test
 github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/logging/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/maintenance/v2
 github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/licensemanager/saas/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/licensemanager/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/marketplace/metering/v1
@@ -15726,6 +15729,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/mysql/v1alpha/config
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/opensearch/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/opensearch/v1/config
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/opensearch/v1/extension
+github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/operationlog/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/postgresql/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/postgresql/v1/config
 github.com/yandex-cloud/go-genproto/yandex/cloud/mdb/redis/v1
@@ -15738,6 +15742,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/monitoring/v3
 github.com/yandex-cloud/go-genproto/yandex/cloud/oauth
 github.com/yandex-cloud/go-genproto/yandex/cloud/operation
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/idp
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/saml
 github.com/yandex-cloud/go-genproto/yandex/cloud/quota
 github.com/yandex-cloud/go-genproto/yandex/cloud/quotamanager/v1
@@ -15765,6 +15770,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/video/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1/privatelink
 github.com/yandex-cloud/go-genproto/yandex/cloud/ydb/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/ytsaurus/v1
 # github.com/yandex-cloud/go-sdk v0.0.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-sdk
