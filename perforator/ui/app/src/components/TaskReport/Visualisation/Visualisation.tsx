@@ -118,7 +118,6 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
                         };
                         uiFactory().rum()?.sendDelta?.(metricId, opts.delta, { additional });
                         uiFactory().rum()?.logInt?.(`${metricId}-nodes`, opts.textNodesCount);
-                        uiFactory().rum()?.logInt?.(`${metricId}-total-frames`, totalFrames!);
                         if (memory) {
                             uiFactory().rum()?.logMemory?.(metricId, memory);
                         }
