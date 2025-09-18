@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-16T19:02:11Z",
+    "created": "2025-09-18T09:31:17.113Z",
     "pr": {
-      "id": 10025722,
+      "id": 9983120,
       "author": "baymer",
-      "summary": "revert: FBP-2518: возвращаем двойной инсталл"
+      "summary": "FBP-1978: nots: сделать `output.tar` как основной output сборочного модуля"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9739237486"
+      "uri": "sbr:9755108672"
     },
     "darwin-arm64": {
-      "uri": "sbr:9739236273"
+      "uri": "sbr:9755105960"
     },
     "linux": {
-      "uri": "sbr:9739239650"
+      "uri": "sbr:9755114658"
     },
     "linux-aarch64": {
-      "uri": "sbr:9739238536"
+      "uri": "sbr:9755111375"
     }
   }
 }

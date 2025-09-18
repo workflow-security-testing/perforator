@@ -53,5 +53,5 @@ def build_tsc_func(args: TscBuilderOptions):
         if args.after_build_outdir:
             out_dirs.append(args.after_build_outdir)
 
-    # Step 3 - create '<module_name>.output.tar'
+    # Step 3 - create 'output.tar'
     TscBuilder.bundle_dirs(out_dirs, args.bindir, args.output_file)

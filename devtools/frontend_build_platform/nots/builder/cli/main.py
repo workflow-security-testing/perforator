@@ -4,8 +4,6 @@ import uuid
 from datetime import datetime, UTC
 from pprint import pformat
 
-import library.python.fs
-
 from build.plugins.lib.nots.package_manager import constants as pm_constants, utils as pm_utils
 from devtools.frontend_build_platform.libraries.logging import init_logging, timeit_options
 from devtools.frontend_build_platform.nots.builder.api import BuildError
@@ -34,13 +32,6 @@ def __add_uuid_for_output(bindir: str, output_file: str):
         f.write(f"{output_filename}: {uuid_str} - {timestamp}")
 
 
-def __produce_old_output_tar(output_file: str):
-    # TODO FBP-1978 (remove the function)
-    old_output_tar_file = os.path.join(os.path.dirname(output_file), 'output.tar')
-
-    library.python.fs.hardlink_or_copy(output_file, old_output_tar_file)
-
-
 def _postprocess_output(args: AllOptions) -> None:
     with_after_build = getattr(args, 'with_after_build', False)
     output_file = getattr(args, 'output_file', args.node_modules_bundle)
@@ -50,8 +41,6 @@ def _postprocess_output(args: AllOptions) -> None:
 
     if output_file and os.path.isfile(output_file):
         if output_file != args.node_modules_bundle:
-            # TODO FBP-1978 (remove call)
-            __produce_old_output_tar(output_file)
             __add_uuid_for_output(args.bindir, output_file)
 
 

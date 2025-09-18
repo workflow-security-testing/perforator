@@ -66,7 +66,7 @@ class BaseOptions:
 @dataclass
 class CommonBuildersOptions(BaseOptions):
     output_file: str
-    """Absolute path to `<module_name>.output.tar`, expecting to be after building"""
+    """Absolute path to `output.tar`, expecting to be after building"""
 
     with_after_build: bool
     """Shows if should run after build script"""

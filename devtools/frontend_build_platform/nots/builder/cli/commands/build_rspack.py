@@ -25,5 +25,5 @@ def build_rspack_func(args: RspackBuilderOptions):
     builder = RspackBuilder(options=args, ts_config_path=args.tsconfigs[0])
     builder.build()
 
-    # Step 3 - create '<module_name>.output.tar'
+    # Step 3 - create 'output.tar'
     builder.bundle()

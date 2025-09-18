@@ -65,7 +65,7 @@ class BaseBuilder(object):
             pm_constants.PNPM_LOCKFILE_FILENAME,
             # ya-make artifacts
             pm_constants.NODE_MODULES_WORKSPACE_BUNDLE_FILENAME,
-            "output.tar",  # TODO FBP-1978
+            pm_constants.OUTPUT_TAR_FILENAME,
             pm_constants.OUTPUT_TAR_UUID_FILENAME,
             # Other
             "a.yaml",

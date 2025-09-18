@@ -23,5 +23,5 @@ def build_package_func(args: PackageBuilderOptions):
     builder = PackageBuilder(options=args)
     builder.build()
 
-    # Step 3 - create '<module_name>.output.tar'
+    # Step 3 - create 'output.tar'
     builder.bundle()

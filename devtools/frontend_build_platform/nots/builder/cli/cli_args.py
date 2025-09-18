@@ -95,7 +95,7 @@ def __with_builders_options(parser: ArgumentParser):
     parser.add_argument(
         '--output-file',
         required=True,
-        help="Absolute path to <module_name>.output.tar, expected to be generated during build",
+        help="Absolute path to output.tar, expected to be generated during build",
     )
 
     parser.add_argument(
