@@ -108,8 +108,13 @@ func NewServer(
 		return nil, fmt.Errorf("failed to create storage bundle: %w", err)
 	}
 
+	storageServiceConfig := conf.StorageServiceConfig
+	if storageServiceConfig == nil {
+		storageServiceConfig = conf.StorageServiceConfigDeprecated
+	}
+
 	storageService, err := storage.NewService(
-		conf.StorageServiceConfig,
+		storageServiceConfig,
 		logger,
 		registry,
 		storageBundle,
