@@ -2,7 +2,6 @@ RECURSE(
     binary
     blob
     bundle
-    client
     creds
     custom_profile
     custom_profiling_operation

@@ -22,6 +22,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/perfmap"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
+	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/logfield"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
@@ -262,6 +263,34 @@ func (p *Profiler) shouldDiscoverProcess(pid linux.ProcessID) bool {
 	return found
 }
 
+func (p *Profiler) initializeStorage(r metrics.Registry) (err error) {
+	if p.conf.StorageClientConfigDeprecated != nil {
+		conf := p.conf.StorageClientConfigDeprecated
+
+		l := xlog.New(p.log)
+
+		agentGatewayClient, err := agent_gateway_client.NewGatewayClient(conf, l)
+		if err != nil {
+			return fmt.Errorf("failed to create agent gateway client: %w", err)
+		}
+
+		p.storage = client.NewRemoteStorage(l, r, agentGatewayClient.StorageClient)
+	} else if p.conf.LocalStorageConfig != nil {
+		// Create local storage
+		p.storage, err = client.NewLocalStorage(p.conf.LocalStorageConfig, p.log)
+		if err != nil {
+			return fmt.Errorf("failed to create local storage: %w", err)
+		}
+	} else if p.conf.InMemoryStorage != nil {
+		p.storage = client.NewInMemoryStorage(p.conf.InMemoryStorage)
+	} else {
+		p.log.Warn("Creating dummy storage, not saving profiles")
+		p.storage = &client.DummyStorage{}
+	}
+
+	return nil
+}
+
 // Initialize the profiler.
 // Prepare and load eBPF programs, tune rlimits, ...
 func (p *Profiler) initialize(r metrics.Registry) (err error) {
@@ -303,25 +332,11 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to setup common profile labels: %w", err)
 	}
 
-	// Create storage client
+	// Initialize storage
 	if p.storage == nil {
-		if p.conf.StorageClientConfig != nil {
-			// Create remote storage client
-			p.storage, err = client.NewRemoteStorage(p.conf.StorageClientConfig, xlog.New(p.log), r)
-			if err != nil {
-				return fmt.Errorf("failed to create storage client: %w", err)
-			}
-		} else if p.conf.LocalStorageConfig != nil {
-			// Create local storage
-			p.storage, err = client.NewLocalStorage(p.conf.LocalStorageConfig, p.log)
-			if err != nil {
-				return fmt.Errorf("failed to create local storage: %w", err)
-			}
-		} else if p.conf.InMemoryStorage != nil {
-			p.storage = client.NewInMemoryStorage(p.conf.InMemoryStorage)
-		} else {
-			p.log.Warn("Creating dummy storage, not saving profiles")
-			p.storage = &client.DummyStorage{}
+		err = p.initializeStorage(r)
+		if err != nil {
+			return fmt.Errorf("failed to initialize storage: %w", err)
 		}
 	}
 

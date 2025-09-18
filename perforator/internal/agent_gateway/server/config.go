@@ -1,4 +1,4 @@
-package agent_gateway
+package server
 
 import (
 	"errors"
@@ -6,8 +6,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/yandex/perforator/perforator/internal/agent_gateway/custom_profiling_operation"
-	"github.com/yandex/perforator/perforator/internal/agent_gateway/storage"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/custom_profiling_operation"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/storage"
 	"github.com/yandex/perforator/perforator/pkg/certifi"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 )

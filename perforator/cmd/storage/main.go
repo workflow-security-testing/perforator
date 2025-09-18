@@ -11,8 +11,8 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/log/zap"
-	"github.com/yandex/perforator/perforator/internal/agent_gateway"
-	"github.com/yandex/perforator/perforator/internal/agent_gateway/storage"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/server"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/storage"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/maxprocs"
@@ -62,7 +62,7 @@ var (
 				logger.Error(ctx, "Failed to lock self executable", log.Error(err))
 			}
 
-			conf, err := agent_gateway.ParseConfig(storageConfigPath, false /* strict */)
+			conf, err := server.ParseConfig(storageConfigPath, false /* strict */)
 			if err != nil {
 				logger.Fatal(ctx, "Failed to parse config", log.Error(err))
 			}
@@ -80,7 +80,7 @@ var (
 				samplingModuloByEvent[event] = uint64(modulo)
 			}
 
-			server, err := agent_gateway.NewServer(
+			server, err := server.NewServer(
 				conf,
 				logger,
 				registry,

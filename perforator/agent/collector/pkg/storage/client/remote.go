@@ -13,9 +13,9 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/client/storage"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
-	"github.com/yandex/perforator/perforator/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -34,17 +34,12 @@ type remoteStorageClientMetrics struct {
 }
 
 type RemoteStorage struct {
-	client  *client.Client
+	client  *storage.Client
 	logger  xlog.Logger
 	metrics remoteStorageClientMetrics
 }
 
-func NewRemoteStorage(conf *client.Config, l xlog.Logger, r metrics.Registry) (*RemoteStorage, error) {
-	client, err := client.NewStorageClient(conf, l)
-	if err != nil {
-		return nil, err
-	}
-
+func NewRemoteStorage(l xlog.Logger, r metrics.Registry, client *storage.Client) *RemoteStorage {
 	return &RemoteStorage{
 		client: client,
 		logger: l,
@@ -63,7 +58,7 @@ func NewRemoteStorage(conf *client.Config, l xlog.Logger, r metrics.Registry) (*
 			binariesUploadedBytes:     r.Counter("binaries.uploaded_bytes"),
 			binariesUploadsInProgress: r.IntGauge("binaries.uploads_in_progress"),
 		},
-	}, nil
+	}
 }
 
 func addProfileComments(profile *profile.Profile, labels map[string]string) {

@@ -21,7 +21,6 @@ import (
 	"github.com/yandex/perforator/library/go/core/log/zap/asynczap"
 	"github.com/yandex/perforator/library/go/core/log/zap/encoders"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/agent"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
@@ -136,13 +135,13 @@ func run() error {
 		xmetrics.WithFormat(xmetrics.FormatText),
 	)
 
-	c := &config.Config{}
+	c := &agent.Config{}
 	err = parseYaml(l, configPath, c)
 	if err != nil {
 		return err
 	}
 	if debug {
-		c.Debug = debug
+		c.Profiler.Debug = debug
 	}
 
 	hostname, err := os.Hostname()
@@ -167,8 +166,14 @@ func run() error {
 		})
 	}
 
-	var profilerOpts []profiler.Option
+	if c.DebugModeToggler == nil {
+		c.DebugModeToggler = &agent.DebugModeTogglerConfig{
+			Interval:    time.Second,
+			TogglerPath: "perforator.debug",
+		}
+	}
 
+	profilerOpts := []profiler.Option{}
 	profilerOpts = append(profilerOpts, profiler.WithSelfTarget(map[string]string{
 		"service": "perforator",
 		"host":    hostname,
@@ -192,15 +197,12 @@ func run() error {
 		}))
 	}
 
-	agent, err := agent.NewPerforatorAgent(
+	perforatorAgent, err := agent.NewPerforatorAgent(
 		l,
 		r,
-		c,
+		c.Profiler,
 		agent.WithProfilerOptions(profilerOpts...),
-		agent.WithDebugModeToggler(&agent.DebugModeTogglerConfig{
-			Interval:    time.Second,
-			TogglerPath: "perforator.debug",
-		}),
+		agent.WithDebugModeToggler(c.DebugModeToggler),
 	)
 	if err != nil {
 		return err
@@ -220,7 +222,7 @@ func run() error {
 		}
 	}()
 
-	return agent.Run(ctx)
+	return perforatorAgent.Run(ctx)
 }
 
 func newLogger(level zapcore.Level) (l log.Logger, stop func(), err error) {

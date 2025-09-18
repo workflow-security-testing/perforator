@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/yandex/perforator/perforator/internal/agent_gateway"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/server"
 	"github.com/yandex/perforator/perforator/pkg/must"
 )
 
@@ -18,7 +18,7 @@ var (
 		Short: "Validate storage config",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			config, err := agent_gateway.ParseConfig(storageConfigForValidationPath, true /* strict */)
+			config, err := server.ParseConfig(storageConfigForValidationPath, true /* strict */)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Invalid config: %v\n", err)
 				os.Exit(1)

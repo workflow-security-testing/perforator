@@ -9,11 +9,16 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
+	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
+	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 type agentOptions struct {
 	debugModeTogglerConfig *DebugModeTogglerConfig
 	profilerOpts           []profiler.Option
+	agentGatewayConfig     *agent_gateway_client.Config
+	cpoProcessorConfig     *CPOProcessorConfig
 }
 
 type Option func(*agentOptions)
@@ -30,6 +35,18 @@ func WithProfilerOptions(opts ...profiler.Option) Option {
 	}
 }
 
+func WithAgentGateway(config *agent_gateway_client.Config) Option {
+	return func(o *agentOptions) {
+		o.agentGatewayConfig = config
+	}
+}
+
+func WithCPOProcessor(config *CPOProcessorConfig) Option {
+	return func(o *agentOptions) {
+		o.cpoProcessorConfig = config
+	}
+}
+
 type PerforatorAgent struct {
 	l        log.Logger
 	profiler *profiler.Profiler
@@ -38,7 +55,9 @@ type PerforatorAgent struct {
 	targetManipulator
 	debugModeToggler *debugModeTogglerWatcher
 	options          *agentOptions
-	// TODO: add CustomProfilingOperationWorker
+
+	agentGatewayClient *agent_gateway_client.GatewayClient
+	cpoProcessor       *cpoProcessor
 }
 
 type targetManipulator interface {
@@ -50,27 +69,49 @@ func NewPerforatorAgent(
 	l log.Logger,
 	r metrics.Registry,
 	profilerConfig *config.Config,
-	agentOpts ...Option,
+	opts ...Option,
 ) (*PerforatorAgent, error) {
 	options := &agentOptions{}
-	for _, opt := range agentOpts {
+	for _, opt := range opts {
 		opt(options)
 	}
 
-	profiler, err := profiler.NewProfiler(profilerConfig, l, r, options.profilerOpts...)
+	var err error
+	agent := &PerforatorAgent{}
+
+	xLogger := xlog.New(l)
+
+	clientConfig := options.agentGatewayConfig
+	if clientConfig == nil {
+		clientConfig = profilerConfig.StorageClientConfigDeprecated
+	}
+	if clientConfig != nil {
+		agentGatewayClient, err := agent_gateway_client.NewGatewayClient(clientConfig, xLogger)
+		if err != nil {
+			return nil, err
+		}
+		agent.agentGatewayClient = agentGatewayClient
+	}
+
+	if agent.agentGatewayClient != nil {
+		remoteStorage := client.NewRemoteStorage(xLogger, r, agent.agentGatewayClient.StorageClient)
+		options.profilerOpts = append(options.profilerOpts, profiler.WithStorage(remoteStorage))
+	}
+
+	agent.profiler, err = profiler.NewProfiler(profilerConfig, l, r, options.profilerOpts...)
 	if err != nil {
 		return nil, err
 	}
 
-	agent := &PerforatorAgent{
-		l:                 l,
-		profiler:          profiler,
-		targetManipulator: profiler,
-		options:           options,
+	if options.debugModeTogglerConfig != nil {
+		agent.debugModeToggler = newDebugModeTogglerWatcher(l, options.debugModeTogglerConfig, agent.profiler)
 	}
 
-	if options.debugModeTogglerConfig != nil {
-		agent.debugModeToggler = newDebugModeTogglerWatcher(l, options.debugModeTogglerConfig, profiler)
+	if options.cpoProcessorConfig != nil {
+		agent.cpoProcessor, err = newCPOProcessor(xLogger, options.cpoProcessorConfig, agent.agentGatewayClient.CustomProfilingOperationClient)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return agent, nil
@@ -84,6 +125,15 @@ func (a *PerforatorAgent) Run(ctx context.Context) error {
 			a.l.Info("Starting debug mode toggle watcher", log.String("path", a.debugModeToggler.conf.TogglerPath))
 			err := a.debugModeToggler.run(ctx)
 			a.l.Error("Exiting debug mode toggle watcher", log.Error(err))
+			return err
+		})
+	}
+
+	if a.cpoProcessor != nil {
+		g.Go(func() error {
+			a.l.Info("Starting custom profiling operation processor", log.Any("config", a.cpoProcessor.config))
+			err := a.cpoProcessor.Run(ctx)
+			a.l.Error("Exiting custom profiling operation processor", log.Error(err))
 			return err
 		})
 	}

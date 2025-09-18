@@ -1,12 +1,9 @@
-package client
+package storage
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -14,17 +11,9 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/perforator/pkg/certifi"
-	"github.com/yandex/perforator/perforator/pkg/endpointsetresolver"
-	"github.com/yandex/perforator/perforator/pkg/storage/creds"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
-	storagetvm "github.com/yandex/perforator/perforator/pkg/storage/tvm"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	perforatorstorage "github.com/yandex/perforator/perforator/proto/storage"
-)
-
-const (
-	MaxSendMessageSize = 1024 * 1024 * 1024 // 1 GB
 )
 
 type CompressionFunction func([]byte) ([]byte, error)
@@ -102,17 +91,7 @@ func (w *BinaryGRPCClientWriter) Close() error {
 	return err
 }
 
-type TvmConfig struct {
-	SecretVar        string `yaml:"tvm_secret_var"`
-	ServiceFromTvmID uint32 `yaml:"from_service_id"`
-	ServiceToTvmID   uint32 `yaml:"to_service_id"`
-	CacheDir         string `yaml:"cache_dir"`
-}
-
-type GRPCConfig struct {
-	MaxSendMessageSize uint32 `yaml:"max_send_message_size"`
-}
-
+// TODO: remove because of retryConfig for grpc.ClientConn ?
 type Timeouts struct {
 	PushBinaryTimeout       time.Duration `yaml:"push_binary"`
 	PushProfileTimeout      time.Duration `yaml:"push_profile"`
@@ -131,166 +110,28 @@ func (t *Timeouts) fillDefault() {
 	}
 }
 
-// RetryConfig defines settings for gRPC retry policy for client
-type RetryConfig struct {
-	MaxAttempts          int           `yaml:"max_attempts"`
-	InitialBackoff       time.Duration `yaml:"initial_backoff"`
-	MaxBackoff           time.Duration `yaml:"max_backoff"`
-	BackoffMultiplier    float64       `yaml:"backoff_multiplier"`
-	RetryableStatusCodes []string      `yaml:"retryable_status_codes"`
-}
-
-func (r *RetryConfig) fillDefault() {
-	if r.MaxAttempts == 0 {
-		r.MaxAttempts = 5
-	}
-	if r.InitialBackoff == time.Duration(0) {
-		r.InitialBackoff = 200 * time.Millisecond
-	}
-	if r.MaxBackoff == time.Duration(0) {
-		r.MaxBackoff = 5 * time.Second
-	}
-	if r.BackoffMultiplier == 0 {
-		r.BackoffMultiplier = 2
-	}
-	if len(r.RetryableStatusCodes) == 0 {
-		r.RetryableStatusCodes = []string{"CANCELLED", "UNKNOWN", "RESOURCE_EXHAUSTED", "INTERNAL", "UNAVAILABLE"}
-	}
-}
-
-// The gRPC service config only accepts time values in seconds format.
-// See: https://github.com/grpc/grpc-go/blob/master/examples/features/retry/client/main.go#L42
-func formatDurationForGRPC(d time.Duration) string {
-	return fmt.Sprintf("%.6fs", d.Seconds())
-}
-
-// setupRetryPolicy creates a gRPC dial option with the specified retry policy
-// See:
-// https://github.com/grpc/grpc/blob/master/doc/service_config.md
-// https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto
-func setupRetryPolicy(retryConfig RetryConfig) ([]grpc.DialOption, error) {
-	serviceConfig := map[string]interface{}{
-		"methodConfig": []map[string]interface{}{
-			{
-				"name": []map[string]interface{}{
-					{"service": "NPerforator.NProto.PerforatorStorage"},
-				},
-				"retryPolicy": map[string]interface{}{
-					"maxAttempts":          int(retryConfig.MaxAttempts),
-					"initialBackoff":       formatDurationForGRPC(retryConfig.InitialBackoff),
-					"maxBackoff":           formatDurationForGRPC(retryConfig.MaxBackoff),
-					"backoffMultiplier":    retryConfig.BackoffMultiplier,
-					"retryableStatusCodes": retryConfig.RetryableStatusCodes,
-				},
-			},
-		},
-	}
-
-	serviceConfigJSON, err := json.Marshal(serviceConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithDefaultServiceConfig(string(serviceConfigJSON)))
-	// Both maxAttempts fields must be specified. See: https://github.com/grpc/grpc-go/blob/v1.65.0/service_config.go#L284-L286
-	opts = append(opts, grpc.WithMaxCallAttempts(retryConfig.MaxAttempts))
-
-	return opts, nil
-}
-
 type Config struct {
-	TvmConfig          *TvmConfig                            `yaml:"tvm"`
-	TLS                certifi.ClientTLSConfig               `yaml:"tls"`
-	GRPCConfig         GRPCConfig                            `yaml:"grpc,omitempty"`
-	EndpointSet        endpointsetresolver.EndpointSetConfig `yaml:"endpoint_set,omitempty"`
-	Host               string                                `yaml:"host,omitempty"`
-	Port               uint32                                `yaml:"port,omitempty"`
-	ProfileCompression string                                `yaml:"profile_compression,omitempty"`
-	RPCTimeouts        Timeouts                              `yaml:"timeouts"`
-	Retry              RetryConfig                           `yaml:"retry,omitempty"`
-
-	CertificateNameDeprecated string `yaml:"name,omitempty"`
-	CACertPathDeprecated      string `yaml:"ca_cert_path,omitempty"`
+	ProfileCompression string   `yaml:"profile_compression,omitempty"`
+	RPCTimeouts        Timeouts `yaml:"timeouts"`
 }
 
 func (c *Config) fillDefault() {
 	c.RPCTimeouts.fillDefault()
-	c.Retry.fillDefault()
 }
 
 type Client struct {
 	conf             Config
 	compressionFunc  CompressionFunction
 	compressionCodec string
-	creds            creds.DestroyablePerRPCCredentials
-	connection       *grpc.ClientConn
 	client           perforatorstorage.PerforatorStorageClient
 	logger           xlog.Logger
 }
 
-func NewStorageClient(conf *Config, l xlog.Logger) (*Client, error) {
-	l = l.WithName("storage.Client")
+func NewClient(conf *Config, l xlog.Logger, conn *grpc.ClientConn) (*Client, error) {
+	l = l.WithName("PerforatorStorage.Client")
 	conf.fillDefault()
 
-	if conf.Host == "" && conf.EndpointSet.ID == "" {
-		return nil, errors.New("endpointset or host must be specified")
-	}
-
 	compressFunc, err := compressionFunctionFromString(conf.ProfileCompression)
-	if err != nil {
-		return nil, err
-	}
-
-	creds, err := getCreds(conf, l)
-	if err != nil {
-		return nil, err
-	}
-
-	var maxSendMsgSize uint32 = MaxSendMessageSize
-	if conf.GRPCConfig.MaxSendMessageSize != 0 {
-		maxSendMsgSize = conf.GRPCConfig.MaxSendMessageSize
-	}
-
-	var opts []grpc.DialOption
-
-	retryOpt, err := setupRetryPolicy(conf.Retry)
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure retry policy: %w", err)
-	}
-	opts = append(opts, retryOpt...)
-
-	tlsOpts, err := conf.TLS.GRPCDialOptions()
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure TLS: %w", err)
-	}
-	opts = append(opts, tlsOpts...)
-
-	opts = append(opts,
-		grpc.WithDefaultCallOptions(
-			grpc.MaxSendMsgSizeCallOption{
-				MaxSendMsgSize: int(maxSendMsgSize),
-			},
-		),
-	)
-
-	if creds != nil {
-		opts = append(opts, grpc.WithPerRPCCredentials(creds))
-	}
-
-	var target string
-	if conf.Host != "" {
-		target = conf.Host
-	} else {
-		endpointSetTarget, resolverOpts, err := endpointsetresolver.GetGrpcTargetAndResolverOpts(conf.EndpointSet, l)
-		if err != nil {
-			return nil, err
-		}
-		target = endpointSetTarget
-		opts = append(opts, resolverOpts...)
-	}
-
-	conn, err := grpc.NewClient(target, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -299,24 +140,9 @@ func NewStorageClient(conf *Config, l xlog.Logger) (*Client, error) {
 		conf:             *conf,
 		compressionFunc:  compressFunc,
 		compressionCodec: conf.ProfileCompression,
-		creds:            creds,
-		connection:       conn,
 		client:           perforatorstorage.NewPerforatorStorageClient(conn),
 		logger:           l,
 	}, nil
-}
-
-func getCreds(conf *Config, l xlog.Logger) (creds.DestroyablePerRPCCredentials, error) {
-	if conf.TvmConfig != nil {
-		return storagetvm.NewTVMCredentials(
-			conf.TvmConfig.ServiceFromTvmID,
-			conf.TvmConfig.ServiceToTvmID,
-			os.Getenv(conf.TvmConfig.SecretVar),
-			conf.TvmConfig.CacheDir,
-			l,
-		)
-	}
-	return nil, nil
 }
 
 // return pushed profile size and error
@@ -423,11 +249,4 @@ func (c *Client) PushBinary(ctx context.Context, buildID string) (io.WriteCloser
 	writer := NewBinaryGRPCClientWriter(pushBinaryClient)
 	l.Debug(ctx, "Successfully created push binary writer")
 	return writer, cancel, nil
-}
-
-func (c *Client) Destroy() {
-	_ = c.connection.Close()
-	if c.creds != nil {
-		c.creds.Destroy()
-	}
 }

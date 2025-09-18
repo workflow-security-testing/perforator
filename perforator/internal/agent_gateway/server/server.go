@@ -1,4 +1,4 @@
-package agent_gateway
+package server
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/perforator/internal/agent_gateway/custom_profiling_operation"
-	"github.com/yandex/perforator/perforator/internal/agent_gateway/storage"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/custom_profiling_operation"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/storage"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpcmetrics"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"

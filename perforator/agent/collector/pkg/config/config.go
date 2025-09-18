@@ -8,9 +8,9 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	storage "github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/upload"
+	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
-	"github.com/yandex/perforator/perforator/pkg/storage/client"
 )
 
 type ProcessDiscoveryConfig struct {
@@ -128,9 +128,9 @@ type Config struct {
 
 	Egress EgressConfig `yaml:"egress"`
 
-	StorageClientConfig *client.Config                 `yaml:"storage,omitempty"`
-	LocalStorageConfig  *storage.LocalStorageConfig    `yaml:"local_storage,omitempty"`
-	InMemoryStorage     *storage.InMemoryStorageConfig `yaml:"inmemory_storage,omitempty"`
+	StorageClientConfigDeprecated *agent_gateway_client.Config   `yaml:"storage,omitempty"`
+	LocalStorageConfig            *storage.LocalStorageConfig    `yaml:"local_storage,omitempty"`
+	InMemoryStorage               *storage.InMemoryStorageConfig `yaml:"inmemory_storage,omitempty"`
 
 	UploadSchedulerConfig upload.SchedulerConfig `yaml:"upload_scheduler,omitempty"`
 	SampleConsumer        SampleConsumerConfig   `yaml:"sample_consumer,omitempty"`
@@ -242,17 +242,7 @@ func (c *Config) FillDefault() {
 	defaultPointer(&c.SampleConsumer.PerfBufferPerCPUSize, 16*1024*1024)
 	defaultPointer(&c.SampleConsumer.PerfBufferWatermark, 100*2048)
 
-	if c.StorageClientConfig != nil {
-		// TLS backward compatibility.
-		// Previously, agent communicated with storage via only TLS, so you need to enable tls if these values ​​are present.
-		if c.StorageClientConfig.CertificateNameDeprecated != "" {
-			c.StorageClientConfig.TLS.Enabled = true
-			c.StorageClientConfig.TLS.ServerNameOverride = c.StorageClientConfig.CertificateNameDeprecated
-		}
-
-		if c.StorageClientConfig.CACertPathDeprecated != "" {
-			c.StorageClientConfig.TLS.Enabled = true
-			c.StorageClientConfig.TLS.CAFile = c.StorageClientConfig.CACertPathDeprecated
-		}
+	if c.StorageClientConfigDeprecated != nil {
+		c.StorageClientConfigDeprecated.FillDefault()
 	}
 }
