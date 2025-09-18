@@ -25,9 +25,47 @@ import './Visualisation.css';
 const calculateTopForTable = withMeasureTime(calculateTopForTableOriginal, 'calculateTopForTable', (ms) => uiFactory().rum()?.sendDelta?.('calculateTopForTable', ms));
 
 
-export interface VisualisationProps extends Pick<FlamegraphProps, 'profileData' | 'isDiff' | 'theme' | 'userSettings'> {
+type FlamegraphSizes = 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
+
+const enum SizeThresholds {
+    XS = 10_000,
+    S = 50_000,
+    M = 100_000,
+    L = 500_000,
+    XL = 1_000_000,
+}
+
+function getFlamegraphSize(n: number): FlamegraphSizes {
+    if (n < SizeThresholds.XS) {
+        return 'xs';
+    }
+    else if (n < SizeThresholds.S) {
+        return 's';
+    }
+    else if (n < SizeThresholds.M) {
+        return 'm';
+    }
+    else if (n < SizeThresholds.L) {
+        return 'l';
+    }
+    else if (n < SizeThresholds.XL) {
+        return 'xl';
+    }
+
+    return 'xxl';
+}
+
+export interface VisualisationProps extends Pick<FlamegraphProps,
+'profileData'
+ | 'isDiff'
+ | 'theme'
+ | 'userSettings'
+ > {
     loading: boolean;
 }
+
+const RUM_BASE_NAME = 'flamegraph-render';
+
 
 export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...props }) => {
     const navigate = useNavigate();
@@ -52,6 +90,13 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
         return profileData && isFirstTopRender ? calculateTopForTable(profileData.rows, profileData.stringTable.length, { rootCoords: [0, 0], omitted: [] }) : null;
     }, [profileData, isFirstTopRender]);
 
+    const totalFrames = profileData?.rows.reduce((a, row) => a + row.length, 0);
+
+    React.useEffect(() => {
+        if (totalFrames !== undefined) {
+            uiFactory().rum()?.logInt?.(`${RUM_BASE_NAME}-total-frames`, totalFrames);
+        }
+    }, [totalFrames]);
 
     let content: React.JSX.Element | undefined;
 
@@ -63,18 +108,24 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             getState: getQuery,
             setState: setQuery,
             onFinishRendering: (opts) => {
+                const size = getFlamegraphSize(totalFrames ?? 0);
                 uiFactory().rum()?.finishDataRendering?.('task-flamegraph');
-                if (opts?.delta && opts?.textNodesCount) {
-                    const memory = measureBrowserMemory();
-                    const additional = { textNodesCount: opts.textNodesCount, exceededLimit: opts.exceededLimit,
-                        ...(memory ? memory : {}),
-                    };
-                    uiFactory().rum()?.sendDelta?.('flamegraph-render', opts.delta, { additional });
-                    uiFactory().rum()?.logInt?.('flamegraph-render-nodes', opts.textNodesCount);
-                    if (memory) {
-                        uiFactory().rum()?.logMemory?.('flamegraph-render', memory);
+                const memory = measureBrowserMemory();
+                function sendWithMetric(metricId: string) {
+                    if (opts?.delta && opts?.textNodesCount) {
+                        const additional = { textNodesCount: opts.textNodesCount, exceededLimit: opts.exceededLimit,
+                            ...(memory ? memory : {}),
+                        };
+                        uiFactory().rum()?.sendDelta?.(metricId, opts.delta, { additional });
+                        uiFactory().rum()?.logInt?.(`${metricId}-nodes`, opts.textNodesCount);
+                        uiFactory().rum()?.logInt?.(`${metricId}-total-frames`, totalFrames!);
+                        if (memory) {
+                            uiFactory().rum()?.logMemory?.(metricId, memory);
+                        }
                     }
                 }
+                sendWithMetric(RUM_BASE_NAME);
+                sendWithMetric(RUM_BASE_NAME + '-' + size);
             },
             onSuccess: createSuccessToast,
             goToDefinitionHref: uiFactory().goToDefinitionHref,
