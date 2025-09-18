@@ -144,6 +144,7 @@ func NewService(
 		logger: logger,
 		conf:   conf,
 		reg:    reg,
+		opts:   opts,
 		metrics: &serviceMetrics{
 			pushProfileInProgress:   reg.IntGauge("push_profile.in_progress.gauge"),
 			successPushProfileTimer: reg.WithTags(map[string]string{"kind": "success"}).Timer("push_profile.timer"),
