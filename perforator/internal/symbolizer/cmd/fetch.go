@@ -302,6 +302,10 @@ func fetchDiffProfile(args []string) error {
 	}
 	defer cli.Shutdown()
 
+	if sampleProfileStacks {
+		experimentalOptions.SampleProfileStacks = true
+	}
+
 	// We do not support text format for diff profile
 	if strings.Contains(format, string(render.PlainTextFormat)) {
 		return fmt.Errorf("unsupported format for diff profile: %s", format)
@@ -342,6 +346,7 @@ func fetchDiffProfile(args []string) error {
 		},
 		SymbolizeOptions: format.Symbolize,
 		RenderFormat:     format,
+		Experimental:     &experimentalOptions,
 	}, false)
 	if err != nil {
 		return err
