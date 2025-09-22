@@ -487,7 +487,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     const LEVEL_HEIGHT = parseInt(getCssVariable('--flamegraph-level-height'));
     const BLOCK_SPACING = parseInt(getCssVariable('--flamegraph-block-spacing'));
     const BLOCK_HEIGHT = LEVEL_HEIGHT - BLOCK_SPACING;
-    const MAX_TEXT_LABELS = 500;
+    const MAX_TEXT_LABELS = 1500;
 
 
     const canvas = findElement('canvas') as HTMLCanvasElement;
