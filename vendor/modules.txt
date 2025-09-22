@@ -6000,6 +6000,9 @@ github.com/crossplane/crossplane-runtime/pkg/resource/unstructured/composite
 github.com/crossplane/crossplane-runtime/pkg/test
 github.com/crossplane/crossplane-runtime/pkg/test/integration
 github.com/crossplane/crossplane-runtime/pkg/webhook
+# github.com/cubicdaiya/gonp v1.0.4
+## explicit; go 1.18
+github.com/cubicdaiya/gonp
 # github.com/cucumber/gherkin-go/v19 v19.0.3
 ## explicit; go 1.13
 github.com/cucumber/gherkin-go/v19
@@ -8129,7 +8132,7 @@ github.com/go-shiori/dom
 github.com/go-shiori/go-readability
 github.com/go-shiori/go-readability/cmd/go-readability
 github.com/go-shiori/go-readability/scripts
-# github.com/go-sql-driver/mysql v1.9.1
+# github.com/go-sql-driver/mysql v1.9.2
 ## explicit; go 1.21.0
 github.com/go-sql-driver/mysql
 # github.com/go-stack/stack v1.8.1
@@ -12948,6 +12951,10 @@ github.com/peterbourgon/diskv/v3
 github.com/peterh/liner
 # github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7
 ## explicit; go 1.17
+# github.com/pganalyze/pg_query_go/v6 v6.1.0
+## explicit; go 1.14
+github.com/pganalyze/pg_query_go/v6
+github.com/pganalyze/pg_query_go/v6/parser
 # github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
 ## explicit
 github.com/phayes/freeport
@@ -12983,13 +12990,13 @@ github.com/pierrec/lz4/v4/internal/xxh32
 # github.com/pingcap/check v0.0.0-20211026125417-57bd13f7b5f0
 ## explicit; go 1.13
 github.com/pingcap/check
-# github.com/pingcap/errors v0.11.5-0.20221009092201-b66cddb77c32
+# github.com/pingcap/errors v0.11.5-0.20240311024730-e056997136bb
 ## explicit; go 1.14
 github.com/pingcap/errors
 github.com/pingcap/errors/errdoc-gen
 github.com/pingcap/errors/terror_test
-# github.com/pingcap/failpoint v0.0.0-20220801062533-2eaa32854a6c
-## explicit; go 1.13
+# github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86
+## explicit; go 1.18
 github.com/pingcap/failpoint
 # github.com/pingcap/go-ycsb v1.0.1
 ## explicit; go 1.18
@@ -13010,15 +13017,14 @@ github.com/pingcap/parser/opcode
 github.com/pingcap/parser/terror
 github.com/pingcap/parser/test_driver
 github.com/pingcap/parser/types
-# github.com/pingcap/tidb/pkg/parser v0.0.0-20231103042308-035ad5ccbe67
-## explicit; go 1.18
+# github.com/pingcap/tidb/pkg/parser v0.0.0-20250324122243-d51e00e5bbf0
+## explicit; go 1.23
 github.com/pingcap/tidb/pkg/parser
 github.com/pingcap/tidb/pkg/parser/ast
 github.com/pingcap/tidb/pkg/parser/auth
 github.com/pingcap/tidb/pkg/parser/charset
 github.com/pingcap/tidb/pkg/parser/duration
 github.com/pingcap/tidb/pkg/parser/format
-github.com/pingcap/tidb/pkg/parser/model
 github.com/pingcap/tidb/pkg/parser/mysql
 github.com/pingcap/tidb/pkg/parser/opcode
 github.com/pingcap/tidb/pkg/parser/terror
@@ -13802,6 +13808,9 @@ github.com/rivo/tview/demos/unicode
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
+# github.com/riza-io/grpc-go v0.2.0
+## explicit; go 1.17
+github.com/riza-io/grpc-go/credentials/basic
 # github.com/robfig/cron v1.2.0
 ## explicit
 github.com/robfig/cron
@@ -14710,6 +14719,85 @@ github.com/spiral/roadrunner/v2/tests/plugins/service
 github.com/spiral/roadrunner/v2/tests/plugins/status
 github.com/spiral/roadrunner/v2/tests/plugins/websockets
 github.com/spiral/roadrunner/v2/utils
+# github.com/sqlc-dev/sqlc v1.29.0
+## explicit; go 1.23.0
+github.com/sqlc-dev/sqlc
+github.com/sqlc-dev/sqlc/cmd/sqlc
+github.com/sqlc-dev/sqlc/cmd/sqlc-gen-json
+github.com/sqlc-dev/sqlc/examples/authors/mysql
+github.com/sqlc-dev/sqlc/examples/authors/postgresql
+github.com/sqlc-dev/sqlc/examples/authors/sqlite
+github.com/sqlc-dev/sqlc/examples/batch/postgresql
+github.com/sqlc-dev/sqlc/examples/booktest/mysql
+github.com/sqlc-dev/sqlc/examples/booktest/postgresql
+github.com/sqlc-dev/sqlc/examples/booktest/sqlite
+github.com/sqlc-dev/sqlc/examples/jets/postgresql
+github.com/sqlc-dev/sqlc/examples/ondeck/mysql
+github.com/sqlc-dev/sqlc/examples/ondeck/postgresql
+github.com/sqlc-dev/sqlc/examples/ondeck/sqlite
+github.com/sqlc-dev/sqlc/internal/analysis
+github.com/sqlc-dev/sqlc/internal/analyzer
+github.com/sqlc-dev/sqlc/internal/bundler
+github.com/sqlc-dev/sqlc/internal/cache
+github.com/sqlc-dev/sqlc/internal/cmd
+github.com/sqlc-dev/sqlc/internal/codegen/golang
+github.com/sqlc-dev/sqlc/internal/codegen/golang/opts
+github.com/sqlc-dev/sqlc/internal/codegen/json
+github.com/sqlc-dev/sqlc/internal/codegen/sdk
+github.com/sqlc-dev/sqlc/internal/compiler
+github.com/sqlc-dev/sqlc/internal/config
+github.com/sqlc-dev/sqlc/internal/config/convert
+github.com/sqlc-dev/sqlc/internal/constants
+github.com/sqlc-dev/sqlc/internal/dbmanager
+github.com/sqlc-dev/sqlc/internal/debug
+github.com/sqlc-dev/sqlc/internal/endtoend
+github.com/sqlc-dev/sqlc/internal/engine/dolphin
+github.com/sqlc-dev/sqlc/internal/engine/postgresql
+github.com/sqlc-dev/sqlc/internal/engine/postgresql/analyzer
+github.com/sqlc-dev/sqlc/internal/engine/postgresql/contrib
+github.com/sqlc-dev/sqlc/internal/engine/postgresql/parser
+github.com/sqlc-dev/sqlc/internal/engine/sqlite
+github.com/sqlc-dev/sqlc/internal/engine/sqlite/parser
+github.com/sqlc-dev/sqlc/internal/ext
+github.com/sqlc-dev/sqlc/internal/ext/process
+github.com/sqlc-dev/sqlc/internal/ext/wasm
+github.com/sqlc-dev/sqlc/internal/inflection
+github.com/sqlc-dev/sqlc/internal/info
+github.com/sqlc-dev/sqlc/internal/metadata
+github.com/sqlc-dev/sqlc/internal/migrations
+github.com/sqlc-dev/sqlc/internal/multierr
+github.com/sqlc-dev/sqlc/internal/opts
+github.com/sqlc-dev/sqlc/internal/pattern
+github.com/sqlc-dev/sqlc/internal/pgx/poolcache
+github.com/sqlc-dev/sqlc/internal/plugin
+github.com/sqlc-dev/sqlc/internal/quickdb
+github.com/sqlc-dev/sqlc/internal/quickdb/v1
+github.com/sqlc-dev/sqlc/internal/remote
+github.com/sqlc-dev/sqlc/internal/rpc
+github.com/sqlc-dev/sqlc/internal/shfmt
+github.com/sqlc-dev/sqlc/internal/source
+github.com/sqlc-dev/sqlc/internal/sql/ast
+github.com/sqlc-dev/sqlc/internal/sql/astutils
+github.com/sqlc-dev/sqlc/internal/sql/catalog
+github.com/sqlc-dev/sqlc/internal/sql/info
+github.com/sqlc-dev/sqlc/internal/sql/lang
+github.com/sqlc-dev/sqlc/internal/sql/named
+github.com/sqlc-dev/sqlc/internal/sql/rewrite
+github.com/sqlc-dev/sqlc/internal/sql/sqlerr
+github.com/sqlc-dev/sqlc/internal/sql/sqlpath
+github.com/sqlc-dev/sqlc/internal/sql/validate
+github.com/sqlc-dev/sqlc/internal/sqltest
+github.com/sqlc-dev/sqlc/internal/sqltest/local
+github.com/sqlc-dev/sqlc/internal/tools/sqlc-pg-gen
+github.com/sqlc-dev/sqlc/internal/tracer
+github.com/sqlc-dev/sqlc/internal/vet
+github.com/sqlc-dev/sqlc/pkg/cli
+github.com/sqlc-dev/sqlc/scripts
+github.com/sqlc-dev/sqlc/scripts/build
+github.com/sqlc-dev/sqlc/scripts/bump-version
+github.com/sqlc-dev/sqlc/scripts/cleanup-test-dbs
+github.com/sqlc-dev/sqlc/scripts/mirror-go-plugin
+github.com/sqlc-dev/sqlc/scripts/test-json-process-plugin
 # github.com/src-d/gcfg v1.4.0
 ## explicit
 # github.com/ssgreg/nlreturn v1.0.5
@@ -14942,6 +15030,43 @@ github.com/testcontainers/testcontainers-go/internal/core
 github.com/testcontainers/testcontainers-go/internal/core/network
 github.com/testcontainers/testcontainers-go/network
 github.com/testcontainers/testcontainers-go/wait
+# github.com/tetratelabs/wazero v1.9.0
+## explicit; go 1.22.0
+github.com/tetratelabs/wazero
+github.com/tetratelabs/wazero/api
+github.com/tetratelabs/wazero/experimental
+github.com/tetratelabs/wazero/experimental/sys
+github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1
+github.com/tetratelabs/wazero/internal/descriptor
+github.com/tetratelabs/wazero/internal/engine/interpreter
+github.com/tetratelabs/wazero/internal/engine/wazevo
+github.com/tetratelabs/wazero/internal/engine/wazevo/backend
+github.com/tetratelabs/wazero/internal/engine/wazevo/backend/isa/amd64
+github.com/tetratelabs/wazero/internal/engine/wazevo/backend/isa/arm64
+github.com/tetratelabs/wazero/internal/engine/wazevo/backend/regalloc
+github.com/tetratelabs/wazero/internal/engine/wazevo/frontend
+github.com/tetratelabs/wazero/internal/engine/wazevo/ssa
+github.com/tetratelabs/wazero/internal/engine/wazevo/wazevoapi
+github.com/tetratelabs/wazero/internal/expctxkeys
+github.com/tetratelabs/wazero/internal/filecache
+github.com/tetratelabs/wazero/internal/fsapi
+github.com/tetratelabs/wazero/internal/ieee754
+github.com/tetratelabs/wazero/internal/internalapi
+github.com/tetratelabs/wazero/internal/leb128
+github.com/tetratelabs/wazero/internal/moremath
+github.com/tetratelabs/wazero/internal/platform
+github.com/tetratelabs/wazero/internal/sock
+github.com/tetratelabs/wazero/internal/sys
+github.com/tetratelabs/wazero/internal/sysfs
+github.com/tetratelabs/wazero/internal/u32
+github.com/tetratelabs/wazero/internal/u64
+github.com/tetratelabs/wazero/internal/version
+github.com/tetratelabs/wazero/internal/wasip1
+github.com/tetratelabs/wazero/internal/wasm
+github.com/tetratelabs/wazero/internal/wasm/binary
+github.com/tetratelabs/wazero/internal/wasmdebug
+github.com/tetratelabs/wazero/internal/wasmruntime
+github.com/tetratelabs/wazero/sys
 # github.com/tevino/abool v1.2.0
 ## explicit; go 1.14
 github.com/tevino/abool

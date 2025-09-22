@@ -410,7 +410,7 @@ require (
 	github.com/go-resty/resty/v2 v2.16.3
 	github.com/go-rod/rod v0.116.2
 	github.com/go-shiori/go-readability v0.0.0-20230421032831-c66949dfc0ad
-	github.com/go-sql-driver/mysql v1.9.1
+	github.com/go-sql-driver/mysql v1.9.2
 	github.com/go-stomp/stomp v2.1.4+incompatible
 	github.com/go-swagger/go-swagger v0.30.5
 	github.com/go-test/deep v1.1.0
@@ -651,7 +651,7 @@ require (
 	github.com/phin1x/go-ipp v1.6.1
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pierrec/lz4/v4 v4.1.22
-	github.com/pingcap/errors v0.11.5-0.20221009092201-b66cddb77c32
+	github.com/pingcap/errors v0.11.5-0.20240311024730-e056997136bb
 	github.com/pingcap/parser v0.0.0-20210415081931-48e7f467fd74
 	github.com/pion/datachannel v1.5.10
 	github.com/pion/ice/v4 v4.0.10
@@ -741,6 +741,7 @@ require (
 	github.com/spiral/endure v1.0.4
 	github.com/spiral/goridge/v3 v3.2.7
 	github.com/spiral/roadrunner/v2 v2.4.0
+	github.com/sqlc-dev/sqlc v1.29.0
 	github.com/ssgreg/nlreturn/v2 v2.2.1
 	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/testify v1.10.0
@@ -1340,6 +1341,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/cristalhq/acmd v0.11.1 // indirect
 	github.com/crossdock/crossdock-go v0.0.0-20160816171116-049aabb0122b // indirect
+	github.com/cubicdaiya/gonp v1.0.4 // indirect
 	github.com/cucumber/gherkin/go/v28 v28.0.0 // indirect
 	github.com/cucumber/messages/go/v24 v24.1.0 // indirect
 	github.com/cyberdelia/templates v1.0.0 // indirect
@@ -1963,6 +1965,7 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/peterbourgon/diskv/v3 v3.0.1 // indirect
 	github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 // indirect
+	github.com/pganalyze/pg_query_go/v6 v6.1.0 // indirect
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5 // indirect
 	github.com/phayes/permbits v0.0.0-20190612203442-39d7c581d2ee // indirect
 	github.com/phf/go-queue v0.0.0-20170504031614-9abe38d0371d // indirect
@@ -1970,10 +1973,10 @@ require (
 	github.com/phpdave11/gofpdf v1.4.2 // indirect
 	github.com/phpdave11/gofpdi v1.0.15 // indirect
 	github.com/pingcap/check v0.0.0-20211026125417-57bd13f7b5f0 // indirect
-	github.com/pingcap/failpoint v0.0.0-20220801062533-2eaa32854a6c // indirect
+	github.com/pingcap/failpoint v0.0.0-20240528011301-b51a646c7c86 // indirect
 	github.com/pingcap/go-ycsb v1.0.1 // indirect
 	github.com/pingcap/log v1.1.1-0.20230317032135-a0d097d16e22 // indirect
-	github.com/pingcap/tidb/pkg/parser v0.0.0-20231103042308-035ad5ccbe67 // indirect
+	github.com/pingcap/tidb/pkg/parser v0.0.0-20250324122243-d51e00e5bbf0 // indirect
 	github.com/pingcap/tipb v0.0.0-20220825135535-d6f1aebebabd // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/dtls/v3 v3.0.6 // indirect
@@ -2022,6 +2025,7 @@ require (
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.4 // indirect
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5 // indirect
+	github.com/riza-io/grpc-go v0.2.0 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/rogpeppe/go-charset v0.0.0-20190617161244-0dc95cdf6f31 // indirect
@@ -2129,6 +2133,7 @@ require (
 	github.com/temporalio/tctl-kit v0.0.0-20250107205014-58462b03dfb2 // indirect
 	github.com/tenntenn/modver v1.0.1 // indirect
 	github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3 // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/tevino/abool v1.2.0 // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
 	github.com/theupdateframework/notary v0.7.0 // indirect
