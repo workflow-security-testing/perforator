@@ -153,6 +153,10 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 			log.Any("config", perfMapConf),
 			log.Errors("errors", errs),
 		)
+		if !r.enableJVM && perfMapConf.java {
+			r.logger.Info("Process requests JVM integration but feature flag is disabled, this request will be ignored", logfield.Pid(tp.pid))
+			perfMapConf.java = false
+		}
 	}
 	if perfMapConf == nil {
 		// We can't log environment, it is sensitive
