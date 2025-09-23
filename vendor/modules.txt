@@ -16155,7 +16155,7 @@ github.com/ydb-platform/fq-connector-go/tools/ydb/olap_inconsistency
 github.com/ydb-platform/fq-connector-go/tools/ydb/query_service_negative
 # github.com/ydb-platform/ydb-api-protos v0.0.0-20221215182550-667c41254584
 ## explicit
-# github.com/ydb-platform/ydb-go-genproto v0.0.0-20241112172322-ea1f63298f77
+# github.com/ydb-platform/ydb-go-genproto v0.0.0-20250911135631-b3beddd517d9
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-genproto
 github.com/ydb-platform/ydb-go-genproto/Ydb_Auth_V1
@@ -16245,7 +16245,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.115.6
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.116.0
 ## explicit; go 1.22.5
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -16299,6 +16299,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/params
 github.com/ydb-platform/ydb-go-sdk/v3/internal/pg
 github.com/ydb-platform/ydb-go-sdk/v3/internal/pool
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query
+github.com/ydb-platform/ydb-go-sdk/v3/internal/query/arrow
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/options
 github.com/ydb-platform/ydb-go-sdk/v3/internal/query/result
