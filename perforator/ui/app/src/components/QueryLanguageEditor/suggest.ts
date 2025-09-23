@@ -78,9 +78,13 @@ const makeRange = (word: Word) => ({
     endColumn: word[1] + 1,
 });
 
-const textToInsert = (tokenKey: keyof Token, value: string) => {
+const textToInsert = (tokenKey: keyof Token, value: string, hasComma?: boolean) => {
     if (tokenKey === 'value') {
-        return `"${value}", `;
+        if (hasComma) {
+            return `"${value}"`;
+        } else {
+            return `"${value}", `;
+        }
     } else if (tokenKey === 'operator') {
         return value + ' "$0"';  // place cursor between quotes
     }
@@ -100,6 +104,25 @@ const getEditor = (
     }
     return undefined;
 };
+
+
+/** true == there is comma, false == there is no comma */
+const hasFrontComma: (text: string, index: number) => boolean | undefined = (text, index) => {
+    if (index > text.length - 1 || index < 0) {
+        return undefined;
+    }
+
+    for (let i = index; i < text.length; i++) {
+        if (text[i] === ',') {
+            return true;
+        }
+        if (text[i] !== ' ') {
+            return false;
+        }
+    }
+    return false;
+};
+
 
 export const setupSuggest = (
     monacoInstance: typeof monaco,
@@ -123,7 +146,7 @@ export const setupSuggest = (
         const range = makeRange(wordUnderCursor);
         const makeSuggestion = (value: string, index: number) => ({
             label: value,
-            insertText: textToInsert(tokenKey, value),
+            insertText: textToInsert(tokenKey, value, hasFrontComma(text, wordUnderCursor[1])),
             kind: monacoInstance.languages.CompletionItemKind.Text,
             range,
 
