@@ -99,6 +99,7 @@ func Connect(ctx context.Context, conf *Config) (*Connection, error) {
 			Username: conf.User,
 			Password: password,
 		},
+		ConnOpenStrategy: clickhouse.ConnOpenRoundRobin,
 		Compression: &clickhouse.Compression{
 			Method: clickhouse.CompressionZSTD,
 		},
