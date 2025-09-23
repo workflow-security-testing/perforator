@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/karlseguin/ccache/v3"
@@ -75,8 +76,8 @@ type Service struct {
 	logger  xlog.Logger
 
 	binaryUploadLimiter   *semaphore.Weighted
-	defaultProfileSampler *moduloSampler
 	profileSamplerByEvent map[string]*moduloSampler
+	mutex                 sync.RWMutex
 
 	profileStorage profilestorage.Storage
 	binaryStorage  binarystorage.Storage
@@ -172,7 +173,6 @@ func NewService(
 			announceBinariesCacheHit:    reg.WithTags(map[string]string{"kind": "hit"}).Counter("announce_binaries.count"),
 			announceBinariesCacheMiss:   reg.WithTags(map[string]string{"kind": "miss"}).Counter("announce_binaries.count"),
 		},
-		defaultProfileSampler:    newModuloSampler(opts.samplingModulo),
 		profileSamplerByEvent:    make(map[string]*moduloSampler),
 		binaryUploadLimiter:      semaphore.NewWeighted(1),
 		profileStorage:           storageBundle.ProfileStorage,
@@ -335,10 +335,21 @@ const (
 )
 
 func (s *Service) sampleProfile(meta *profilemeta.ProfileMetadata) (pushProfileAdmitResult, uint64) {
+	s.mutex.RLock()
 	sampler := s.profileSamplerByEvent[meta.MainEventType]
+	s.mutex.RUnlock()
+
 	if sampler == nil {
-		sampler = s.defaultProfileSampler
+		s.mutex.Lock()
+		defer s.mutex.Unlock()
+
+		sampler = s.profileSamplerByEvent[meta.MainEventType]
+		if sampler == nil {
+			sampler = newModuloSampler(s.opts.samplingModulo)
+			s.profileSamplerByEvent[meta.MainEventType] = sampler
+		}
 	}
+
 	if sampler.Sample() {
 		return passedSampling, sampler.modulo
 	}
