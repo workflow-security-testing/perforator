@@ -97,7 +97,7 @@ func (r *Registry) addProcessEntry(pid linux.ProcessID) *trackedProcess {
 	return tp
 }
 
-func (r *Registry) registerImpl(ctx context.Context, tp *trackedProcess, nspid linux.ProcessID, java bool, pfd *pidfd.FD) {
+func (r *Registry) registerImpl(ctx context.Context, tp *trackedProcess, nspid linux.ProcessID, java bool, pfd *pidfd.FD) bool {
 	var conn *jvmattach.VirtualMachineConn
 	if java {
 		var err error
@@ -108,13 +108,14 @@ func (r *Registry) registerImpl(ctx context.Context, tp *trackedProcess, nspid l
 		})
 		if err != nil {
 			r.logger.Info("Failed to connect to JVM", logfield.Pid(tp.pid), log.Error(err))
-			return
+			return false
 		}
 	}
 
 	path := fmt.Sprintf("/proc/%d/root/tmp/perf-%d.map", tp.pid, nspid)
 	tp.perfmap = newPerfMap(path)
 	tp.javaConn = conn
+	return true
 }
 
 func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) processState {
@@ -174,7 +175,10 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 		r.logger.Info("Resolved pid in innermost pid_ns", logfield.Pid(tp.pid), log.UInt32("nspid", uint32(nspid)))
 	}
 
-	r.registerImpl(ctx, tp, nspid, perfMapConf.java, pfd)
+	ok = r.registerImpl(ctx, tp, nspid, perfMapConf.java, pfd)
+	if !ok {
+		return processStateTerminalSkip
+	}
 	return processStateInitialized
 }
 
