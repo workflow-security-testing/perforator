@@ -551,6 +551,7 @@ require (
 	github.com/keybase/dbus v0.0.0-20220506165403-5aa21ea2c23a
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/keybase/go-keychain v0.0.1
+	github.com/kisielk/og-rek v1.3.0
 	github.com/klauspost/compress v1.18.0
 	github.com/klauspost/reedsolomon v1.10.1-0.20220820100202-797d62e03058
 	github.com/kolesa-team/go-webp v1.0.5
@@ -1184,6 +1185,7 @@ require (
 	github.com/appleboy/gofight/v2 v2.1.2 // indirect
 	github.com/aquasecurity/libbpfgo v0.1.1 // indirect
 	github.com/arbovm/levenshtein v0.0.0-20160628152529-48b4e1c0c4d0 // indirect
+	github.com/aristanetworks/gomap v0.0.0-20230726210543-f4e41046dced // indirect
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2 // indirect
 	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 // indirect

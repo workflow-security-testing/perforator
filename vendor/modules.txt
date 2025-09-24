@@ -4285,6 +4285,9 @@ github.com/araddon/dateparse/example
 # github.com/arbovm/levenshtein v0.0.0-20160628152529-48b4e1c0c4d0
 ## explicit
 github.com/arbovm/levenshtein
+# github.com/aristanetworks/gomap v0.0.0-20230726210543-f4e41046dced
+## explicit; go 1.19
+github.com/aristanetworks/gomap
 # github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 ## explicit
 # github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6
@@ -11143,6 +11146,9 @@ github.com/kingledion/go-tools/tree
 ## explicit; go 1.14
 # github.com/kisielk/gotool v1.0.0
 ## explicit
+# github.com/kisielk/og-rek v1.3.0
+## explicit; go 1.18
+github.com/kisielk/og-rek
 # github.com/kisielk/sqlstruct v0.0.0-20210630145711-dae28ed37023
 ## explicit
 github.com/kisielk/sqlstruct
