@@ -486,6 +486,9 @@ message FlamegraphOptions {
 
     // How to display raw addresses in the flamegraph.
     optional AddressRenderPolicy RenderAddresses = 7;
+
+    // Whether to ignore file paths (can be useful in diffs)
+    optional bool IgnoreFilePaths = 8;
 }
 
 message TextProfileOptions {

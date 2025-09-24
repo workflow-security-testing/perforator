@@ -168,6 +168,10 @@ func (f *FlameGraph) SetInverted(value bool) {
 	f.inverted = value
 }
 
+func (f *FlameGraph) SetIgnoreFullPath(value bool) {
+	f.bb.SetIgnoreFullPath(value)
+}
+
 func (f *FlameGraph) SetTitle(value string) {
 	f.title = value
 }

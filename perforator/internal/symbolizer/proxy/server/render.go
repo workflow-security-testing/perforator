@@ -90,6 +90,10 @@ func fillFlamegraphOptions(fg *render.FlameGraph, options *perforator.Flamegraph
 		fg.SetFileNames(*filenames)
 	}
 
+	if ignore := options.IgnoreFilePaths; ignore != nil {
+		fg.SetIgnoreFullPath(*ignore)
+	}
+
 	switch options.GetRenderAddresses() {
 	case perforator.AddressRenderPolicy_RenderAddressesNever:
 		fg.SetAddressRenderPolicy(render.RenderAddressesNever)

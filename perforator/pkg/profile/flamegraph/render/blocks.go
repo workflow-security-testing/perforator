@@ -62,8 +62,13 @@ func (b *block) setLevelPos(i int) {
 }
 
 type blocksBuilder struct {
-	root   *block
-	blocks []*block
+	root       *block
+	blocks     []*block
+	ignorePath bool
+}
+
+func (b *blocksBuilder) SetIgnoreFullPath(value bool) {
+	b.ignorePath = value
 }
 
 func newBlocksBuilder() *blocksBuilder {
@@ -73,7 +78,10 @@ func newBlocksBuilder() *blocksBuilder {
 }
 
 func (b *blocksBuilder) child(block *block, name, path string) *block {
-	fullPath := name + path
+	fullPath := name
+	if !b.ignorePath {
+		fullPath += path
+	}
 	res, found := block.children[fullPath]
 	if !found {
 		res = b.newBlock(block, fullPath, name, path, block.level+1)
