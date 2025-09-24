@@ -54,7 +54,7 @@ func TestRegistry_Simple(t *testing.T) {
 	// no-op
 	registry.release(ctx, buildID)
 
-	var expected *dso = nil
+	var expected *DSO = nil
 	require.Equal(t, expected, registry.get(buildID))
 }
 

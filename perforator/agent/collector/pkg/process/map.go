@@ -64,8 +64,32 @@ type processRegistryMetrics struct {
 	mappingsFailedELFVaddrRetrieval metrics.Counter
 }
 
+type mappingImpl struct {
+	m *dso.Mapping
+}
+
+func (m mappingImpl) dso() *dso.DSO {
+	return m.m.DSO
+}
+
+func (m mappingImpl) begin() uint64 {
+	return m.m.Begin
+}
+
+func (m mappingImpl) end() uint64 {
+	return m.m.End
+}
+
+func (m mappingImpl) Path() string {
+	return m.m.Path
+}
+
+func (m mappingImpl) buildInfo() *xelf.BuildInfo {
+	return m.m.BuildInfo
+}
+
 type processMap struct {
-	*dso.Mapping
+	Mapping
 	id uint32
 }
 
@@ -80,6 +104,7 @@ type processInfo struct {
 	generation     atomic.Uint64
 	mapsgeneration atomic.Uint64
 	nextmapid      atomic.Uint32
+	// map itself can be changed (while holding mapslock), but values must be immutable.
 	registeredmaps map[procfs.Address]processMap
 	mapslock       sync.Mutex
 }
@@ -113,6 +138,17 @@ func (p *processInfo) Env() map[string]string {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 	return p.envs
+}
+
+// Mappings implements ProcessInfo
+func (p *processInfo) Mappings() []Mapping {
+	p.mapslock.Lock()
+	defer p.mapslock.Unlock()
+	mps := make([]Mapping, 0, len(p.registeredmaps))
+	for _, mp := range p.registeredmaps {
+		mps = append(mps, mp.Mapping)
+	}
+	return mps
 }
 
 type processState int
@@ -460,6 +496,16 @@ func (a *processAnalyzer) run(ctx context.Context) error {
 		a.log.Debug(ctx, "Failed to load process environment", log.Error(err))
 	}
 
+	if err := a.loadMaps(ctx); err != nil {
+		return err
+	}
+
+	if err := a.storeBPFMaps(ctx); err != nil {
+		return err
+	}
+
+	// Note that a.registeredmaps must be populated before exposing process object to listeners,
+	// so this has to be sequenced after storeBPFMaps.
 	if !a.proc.listenersNotified.Swap(true) {
 		for _, l := range a.reg.listeners {
 			l.OnProcessDiscovery(a.proc)
@@ -468,14 +514,6 @@ func (a *processAnalyzer) run(ctx context.Context) error {
 		for _, l := range a.reg.listeners {
 			l.OnProcessRescan(a.proc)
 		}
-	}
-
-	if err := a.loadMaps(ctx); err != nil {
-		return err
-	}
-
-	if err := a.storeBPFMaps(ctx); err != nil {
-		return err
 	}
 
 	return nil
@@ -707,7 +745,7 @@ func (a *processAnalyzer) syncMaps(ctx context.Context) {
 
 		mapping, ok := a.proc.registeredmaps[m.Begin]
 		// Happy path. Mapping exist and points to the valid binary.
-		if ok && mapping.DSO.ID == m.DSO.ID && mapping.End == m.End {
+		if ok && mapping.dso().ID == m.DSO.ID && mapping.end() == m.End {
 			continue
 		}
 
@@ -740,7 +778,7 @@ func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso
 	id := pi.nextmapid.Add(1)
 
 	// Step 1. Populate LPM trie
-	err := iterateMappingLPMSegments(m, func(address uint64, prefix uint32) error {
+	err := iterateMappingLPMSegments(mappingImpl{m}, func(address uint64, prefix uint32) error {
 		return r.bpf.AddMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
 			Prefixlen:     32 + prefix,
 			Pid:           uint32(pi.id),
@@ -771,7 +809,7 @@ func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso
 	}
 
 	// Step 3. Now we can finally commit our map to the user-space registery.
-	pi.registeredmaps[m.Begin] = processMap{m, id}
+	pi.registeredmaps[m.Begin] = processMap{mappingImpl{m}, id}
 }
 
 func HostToBigEndian64(value uint64) uint64 {
@@ -782,7 +820,7 @@ func HostToBigEndian64(value uint64) uint64 {
 
 func (r *ProcessRegistry) removeBPFMap(ctx context.Context, pi *processInfo, m processMap) {
 	l := r.log.With(logfield.Pid(pi.id)).WithName("lpm")
-	l.Debug(ctx, "Trying to remove eBPF mapping", log.String("buildid", m.BuildInfo.BuildID))
+	l.Debug(ctx, "Trying to remove eBPF mapping", log.String("buildid", m.buildInfo().BuildID))
 
 	// Step 1. Remove LPM trie
 	err := iterateMappingLPMSegments(m.Mapping, func(address uint64, prefix uint32) error {
@@ -809,7 +847,7 @@ func (r *ProcessRegistry) removeBPFMap(ctx context.Context, pi *processInfo, m p
 	}
 
 	// Step 3. Now we can finally remove our map from user-space registery.
-	delete(pi.registeredmaps, m.Begin)
+	delete(pi.registeredmaps, m.begin())
 }
 
 func (r *ProcessRegistry) removeProcessMappings(ctx context.Context, pi *processInfo) {
@@ -818,13 +856,13 @@ func (r *ProcessRegistry) removeProcessMappings(ctx context.Context, pi *process
 	}
 }
 
-func iterateMappingLPMSegments(m *dso.Mapping, callback func(address uint64, prefix uint32) error) error {
-	addr := m.Begin
+func iterateMappingLPMSegments(m Mapping, callback func(address uint64, prefix uint32) error) error {
+	addr := m.begin()
 
-	for addr < m.End {
+	for addr < m.end() {
 		for bits := min(63, bits.TrailingZeros64(addr)); bits >= 0; bits-- {
 			width := uint64(1) << bits
-			if addr+width <= m.End {
+			if addr+width <= m.end() {
 				err := callback(addr, uint32(64-bits))
 				if err != nil {
 					return err
@@ -835,8 +873,8 @@ func iterateMappingLPMSegments(m *dso.Mapping, callback func(address uint64, pre
 			}
 		}
 	}
-	if addr != m.End {
-		return fmt.Errorf("BUG: invalid LPM segment set, got %x final address for [%x, %x) mapping", addr, m.Begin, m.End)
+	if addr != m.end() {
+		return fmt.Errorf("BUG: invalid LPM segment set, got %x final address for [%x, %x) mapping", addr, m.begin(), m.end())
 	}
 
 	return nil

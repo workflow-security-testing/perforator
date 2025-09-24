@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,10 +32,11 @@ const (
 )
 
 type trackedProcess struct {
-	state    atomic.Int32
-	pid      linux.ProcessID
-	perfmap  *perfMap
-	javaConn *jvmattach.VirtualMachineConn
+	state             atomic.Int32
+	hasJVMLikeMapping atomic.Bool
+	pid               linux.ProcessID
+	perfmap           *perfMap
+	javaConn          *jvmattach.VirtualMachineConn
 }
 
 type Registry struct {
@@ -170,6 +172,10 @@ func (r *Registry) registerSync(ctx context.Context, tp *trackedProcess) process
 			return processStateTerminalSkip
 		}
 	}
+	if perfMapConf.jvmVerifyMethod == jvmVerifyMethodMapping && !tp.hasJVMLikeMapping.Load() {
+		r.logger.Info("Process does not have mapping with file named libjvm.so, skipping process", logfield.Pid(tp.pid))
+		return processStateTransientSkip
+	}
 
 	nspid, err := process.GetNamespacedPID()
 	if err != nil {
@@ -236,6 +242,14 @@ func (r *Registry) tryEnqueueForDiscovery(tp *trackedProcess, info process.Proce
 		tp.state.Store(int32(processStateTransientSkip))
 		return
 	}
+	hasJVMLikeMapping := false
+	for _, m := range info.Mappings() {
+		if strings.Contains(m.Path(), "libjvm.so") {
+			hasJVMLikeMapping = true
+			break
+		}
+	}
+	tp.hasJVMLikeMapping.Store(hasJVMLikeMapping)
 
 	select {
 	case r.registerQueue <- tp:

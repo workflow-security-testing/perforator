@@ -24,7 +24,7 @@ import (
 
 // DSO stands for Dynamic Shared Object.
 // Just any executable binary file.
-type dso struct {
+type DSO struct {
 	// Unique ID of the DSO. It is used by eBPF.
 	ID uint64
 
@@ -51,9 +51,9 @@ const (
 ////////////////////////////////////////////////////////////////////////////////
 
 type refCountedDSO struct {
-	*dso
+	*DSO
 	refCount int32 // Guarded by RWMutex in Registry
-	cached   ccache.TrackedItem[*dso]
+	cached   ccache.TrackedItem[*DSO]
 }
 
 type registryMetrics struct {
@@ -67,7 +67,7 @@ type Registry struct {
 	dsosmu sync.RWMutex
 	dsos   map[string]*refCountedDSO
 	nextid atomic.Uint64
-	cache  *ccache.Cache[*dso]
+	cache  *ccache.Cache[*DSO]
 
 	usagemu     sync.Mutex
 	usedPages   int
@@ -97,9 +97,9 @@ func NewRegistry(l xlog.Logger, m metrics.Registry, manager *bpf.BPFBinaryManage
 		},
 	}
 
-	r.cache = ccache.New[*dso](
+	r.cache = ccache.New[*DSO](
 		ccache.
-			Configure[*dso]().
+			Configure[*DSO]().
 			MaxSize(280 * 1024 * 1024).
 			OnDelete(r.onDelete).
 			Track(),
@@ -150,7 +150,7 @@ func (d *Registry) onPagesRestoredFromCache(ctx context.Context, n int) {
 	d.updateResourceUsageMetrics(ctx)
 }
 
-func (d *Registry) get(buildID string) *dso {
+func (d *Registry) get(buildID string) *DSO {
 	d.dsosmu.RLock()
 	defer d.dsosmu.RUnlock()
 	dso, present := d.dsos[buildID]
@@ -158,7 +158,7 @@ func (d *Registry) get(buildID string) *dso {
 		return nil
 	}
 
-	return dso.dso
+	return dso.DSO
 }
 
 func (d *Registry) getMappingCount() int {
@@ -167,7 +167,7 @@ func (d *Registry) getMappingCount() int {
 	return len(d.dsos)
 }
 
-func (d *Registry) trackingFetch(id string, ttl time.Duration, cb func() *dso) ccache.TrackedItem[*dso] {
+func (d *Registry) trackingFetch(id string, ttl time.Duration, cb func() *DSO) ccache.TrackedItem[*DSO] {
 	item := d.cache.TrackingGet(id)
 	if item != nil {
 		// item can be .Expired() now.
@@ -205,23 +205,23 @@ func (d *Registry) ensure(buildID string, newDSO *refCountedDSO) (*refCountedDSO
 }
 
 // Return existing DSO if it exists, otherwise build unwind table and store new DSO
-func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file binary.UnsealedFile) *dso {
+func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file binary.UnsealedFile) *DSO {
 	buildID := buildInfo.BuildID
 
 	rcdso := d.acquireIfExists(buildID)
 	if rcdso != nil {
-		return rcdso.dso
+		return rcdso.DSO
 	}
 
-	item := d.trackingFetch(buildID, 10*time.Minute, func() *dso {
-		return &dso{
+	item := d.trackingFetch(buildID, 10*time.Minute, func() *DSO {
+		return &DSO{
 			ID:        d.nextid.Add(1) - 1,
 			buildInfo: buildInfo,
 		}
 	})
 
 	newDSO := &refCountedDSO{
-		dso:      item.Value(),
+		DSO:      item.Value(),
 		refCount: 1,
 		cached:   item,
 	}
@@ -229,11 +229,11 @@ func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file
 	dso, inserted := d.ensure(buildID, newDSO)
 	if !inserted {
 		item.Release()
-		return dso.dso
+		return dso.DSO
 	}
 
 	if file != nil {
-		d.populateDSO(ctx, dso.dso, file.GetFile())
+		d.populateDSO(ctx, dso.DSO, file.GetFile())
 	}
 
 	d.l.Debug(ctx,
@@ -242,7 +242,7 @@ func (d *Registry) register(ctx context.Context, buildInfo *xelf.BuildInfo, file
 		log.UInt64("id", newDSO.ID),
 	)
 
-	return newDSO.dso
+	return newDSO.DSO
 }
 
 func (d *Registry) release(ctx context.Context, buildID string) {
@@ -259,25 +259,25 @@ func (d *Registry) release(ctx context.Context, buildID string) {
 	if dso.refCount == 0 {
 		d.l.Debug(ctx, "Release DSO", log.String("buildid", buildID))
 		delete(d.dsos, buildID)
-		d.freeDSO(ctx, dso.dso)
+		d.freeDSO(ctx, dso.DSO)
 		dso.cached.Release()
 	}
 }
 
-func (d *Registry) onDelete(item *ccache.Item[*dso]) {
+func (d *Registry) onDelete(item *ccache.Item[*DSO]) {
 	dso := item.Value()
 	d.maybeReleaseBinary(dso)
 	d.l.Debug(context.TODO(), "Delete DSO from cache", log.String("buildid", dso.buildInfo.BuildID))
 }
 
-func (d *Registry) maybeReleaseBinary(dso *dso) {
+func (d *Registry) maybeReleaseBinary(dso *DSO) {
 	if d.bpfBinaryManager != nil && dso.bpfAllocation != nil {
 		d.bpfBinaryManager.Release(dso.bpfAllocation)
 		dso.bpfAllocation = nil
 	}
 }
 
-func (d *Registry) populateDSO(ctx context.Context, dso *dso, f *os.File) {
+func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 	if f == nil || d.bpfBinaryManager == nil {
 		return
 	}
@@ -370,7 +370,7 @@ func (d *Registry) populateDSO(ctx context.Context, dso *dso, f *os.File) {
 	}
 }
 
-func (d *Registry) freeDSO(ctx context.Context, dso *dso) {
+func (d *Registry) freeDSO(ctx context.Context, dso *DSO) {
 	dso.bpfAllocationMutex.Lock()
 	defer dso.bpfAllocationMutex.Unlock()
 

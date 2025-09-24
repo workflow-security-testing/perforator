@@ -34,7 +34,7 @@ type Mapping struct {
 	BuildInfo *xelf.BuildInfo
 
 	// Processed binary. May be empty.
-	DSO *dso
+	DSO *DSO
 
 	// Base address. Difference between in-memory virtual address inside the mapping
 	// and virtual address inside the corresponding ELF file.
@@ -135,8 +135,8 @@ func (d *Storage) removeMapping(ctx context.Context, vmap *versionedMapping) {
 // Add mapping for the process.
 // Thread safe.
 // Atomic relative to RemoveProcess
-func (d *Storage) AddMapping(ctx context.Context, pid linux.ProcessID, mapping Mapping, binary binary.UnsealedFile) *dso {
-	var dso *dso
+func (d *Storage) AddMapping(ctx context.Context, pid linux.ProcessID, mapping Mapping, binary binary.UnsealedFile) *DSO {
+	var dso *DSO
 
 	if mapping.BuildInfo != nil {
 		dso = d.registry.register(ctx, mapping.BuildInfo, binary)

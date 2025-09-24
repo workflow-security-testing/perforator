@@ -6,16 +6,25 @@ import (
 	"strings"
 )
 
+type jvmVerifyMethod int
+
+const (
+	jvmVerifyMethodMapping jvmVerifyMethod = iota
+	jvmVerifyMethodNone
+)
+
 type processConfig struct {
-	percentage uint32
-	java       bool
+	percentage      uint32
+	java            bool
+	jvmVerifyMethod jvmVerifyMethod
 }
 
 func parseProcessConfig(config string) (*processConfig, []error) {
 	var errs []error
 	parts := strings.Split(config, ",")
 	parsed := &processConfig{
-		percentage: 100,
+		percentage:      100,
+		jvmVerifyMethod: jvmVerifyMethodMapping,
 	}
 	for _, part := range parts {
 		if part == "" {
@@ -44,6 +53,15 @@ func parseProcessConfig(config string) (*processConfig, []error) {
 				continue
 			}
 			parsed.java = true
+		case "verify_method":
+			switch kv[1] {
+			case "none":
+				parsed.jvmVerifyMethod = jvmVerifyMethodNone
+			case "mapping":
+				parsed.jvmVerifyMethod = jvmVerifyMethodMapping
+			default:
+				errs = append(errs, fmt.Errorf("invalid verify_method field: unknown value %q", kv[1]))
+			}
 		default:
 			errs = append(errs, fmt.Errorf("invalid config field: %q", kv[0]))
 		}
