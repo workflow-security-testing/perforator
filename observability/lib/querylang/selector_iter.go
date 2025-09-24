@@ -140,6 +140,24 @@ func (f *Selector) AddMatchers(matchers ...*Matcher) {
 	f.Matchers = append(f.Matchers, matchers...)
 }
 
+func (f *Selector) AddStringFieldInMatcher(field string, values ...string) {
+	if len(values) == 0 {
+		return
+	}
+	conditions := make([]*Condition, len(values))
+	for i, value := range values {
+		conditions[i] = &Condition{
+			Operator: operator.Eq,
+			Value:    String{Value: value},
+		}
+	}
+	f.AddMatchers(&Matcher{
+		Field:      field,
+		Operator:   OR,
+		Conditions: conditions,
+	})
+}
+
 // CandidateValues returns a superset of values for each field in Selector.
 // If result[field] is nil then the function failed to find a superset of
 // values.
