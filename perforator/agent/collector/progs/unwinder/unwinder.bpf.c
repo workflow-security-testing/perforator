@@ -698,6 +698,38 @@ int perforator_perf_event(struct bpf_perf_event_data* ctx) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+static NOINLINE int profiler_do_sample_amd_fam19h_brs_perfevent(void* ctx, struct profiler_sample_args* args) {
+    PROFILER_DO_SAMPLE_COMMON_PROLOGUE;
+
+    PROFILER_DEFINE_STAGE(profiler_stage_collect_lbr_stack(ctx, state), METRIC_ERROR_STAGE_LBR_STACK_COUNT);
+
+    PROFILER_DO_SAMPLE_COMMON_EPILOGUE;
+}
+
+SEC("perf_event")
+int perforator_amd_fam19h_brs_event(struct bpf_perf_event_data* ctx) {
+    struct profiler_sample_args args = {};
+    args.starttime = bpf_ktime_get_ns();
+    args.needs_lbr_stack = true;
+    args.record_walltime = false;
+
+    args.sample_type = SAMPLE_TYPE_PERF_EVENT;
+    args.sample_config = get_perf_event_id(ctx);
+    args.event_count = calculate_perf_counter_delta(ctx, args.sample_config);
+    if (args.event_count == 0) {
+        return 0;
+    }
+    BPF_TRACE("Got event count %llu\n", args.event_count);
+
+    profiler_do_sample_start(&args);
+    int err = profiler_do_sample_amd_fam19h_brs_perfevent(ctx, &args);
+    profiler_do_sample_finish(err);
+
+    return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 static NOINLINE bool sample_sched_event() {
     struct profiler_config* config = get_config();
     if (!config) {

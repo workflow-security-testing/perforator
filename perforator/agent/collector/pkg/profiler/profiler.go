@@ -9,11 +9,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/klauspost/cpuid/v2"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sys/unix"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
+	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso"
@@ -326,6 +328,16 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to link bpf program with perf events: %w", err)
 	}
 
+	// Initialize AMD-Family19h-specific branch-stack sampling, if relevant.
+	//
+	// AMD Fam19h processors have a very limited BRS (analogue of Intel LBR) support.
+	// Due to its limitations, kernel can only sample last branch records when
+	// 1. sampling with a specified period (sampling with frequency doesn't work)
+	// 2. sampling an AMD-specific event
+	// Thus, we have to create an additional perf-event, to which we only attach
+	// the LBR-collecting ebpf-program.
+	p.maybeInitializeAmdFam19hBRSPerfEvent()
+
 	// Load common profile labels (e.g. nodename or cpu model).
 	err = p.setupCommonProfileLabels()
 	if err != nil {
@@ -526,6 +538,55 @@ func (p *Profiler) installPerfEventBPF() error {
 		}
 	}
 	return nil
+}
+
+func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
+	if !(cpuid.CPU.VendorID == cpuid.AMD && cpuid.CPU.Family == 0x19) {
+		// Family19h is Zen 3, Zen 3+ and Zen 4 (https://en.wikipedia.org/wiki/List_of_AMD_CPU_microarchitectures)
+		//
+		// Family1Ah is Zen 5, and Zen 5 supports sampling last branch records
+		// with any kind of perf-event via LbrExtV2 out of the box, so we don't have to
+		// create an additional one.
+		//
+		// Zen 4 also supports LbrExtV2, but it's is mutually exclusive with BRS,
+		// so either we have already installed the branch sampling in perf_event_open above
+		// and the subsequent perf_event_open syscall will fail, or LbrExtV2 wasn't available,
+		// and we will try to enable BRS. In any case, we won't sample branches twice.
+		return
+	}
+
+	p.log.Info("Trying to enable AMD BRS perf-event")
+
+	target := &perfevent.Target{
+		WholeSystem: true,
+	}
+	options := &perfevent.Options{
+		Type: perfevent.AMD_RetiredTakenBranchInstructions,
+		// Frequency is not supported here, so we have to provide sampling period.
+		// This value seems reasonable to me, but could be easily changed.
+		SampleRate:             ptr.T(uint64(1000009)),
+		TryToSampleBranchStack: true,
+	}
+
+	bundle, err := p.eventmanager.Open(target, options)
+	if err != nil {
+		p.log.Warn("Failed to enable AMD BRS perf-event")
+		// Failure here is okay, BRS support is best-effort.
+		return
+	}
+	defer func() {
+		if err != nil {
+			_ = bundle.Close()
+		}
+	}()
+
+	err = bundle.AttachBPF(p.bpf.AmdBRSProgramFD())
+	if err != nil {
+		p.log.Warn("Failed to attach eBPF-program to the AMD BRS perf-event")
+		return
+	}
+
+	p.events[options.Type] = bundle
 }
 
 func (p *Profiler) registerMetrics(r metrics.Registry) error {

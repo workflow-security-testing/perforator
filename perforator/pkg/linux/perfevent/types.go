@@ -17,6 +17,9 @@ const (
 	StalledCyclesBackend  Type = "StalledCyclesBackend"
 	RefCPUCycles          Type = "RefCPUCycles"
 
+	// AMD-specific hadrware events
+	AMD_RetiredTakenBranchInstructions Type = "AmdFam19hBRS"
+
 	// Software events
 	CPUClock        Type = "CPUClock" // cpu clock is broken: https://stackoverflow.com/a/56967896
 	TaskClock       Type = "TaskClock"

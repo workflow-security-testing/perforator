@@ -406,6 +406,12 @@ func (b *BPF) ProfilerProgramFD() int {
 	return b.progs.PerforatorPerfEvent.FD()
 }
 
+func (b *BPF) AmdBRSProgramFD() int {
+	b.progsmu.Lock()
+	defer b.progsmu.Unlock()
+	return b.progs.PerforatorAmdFam19hBrsEvent.FD()
+}
+
 func (b *BPF) ReloadProgram(debug bool) error {
 	b.progsmu.Lock()
 	defer b.progsmu.Unlock()
