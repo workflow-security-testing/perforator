@@ -77,7 +77,9 @@ func NewPerforatorAgent(
 	}
 
 	var err error
-	agent := &PerforatorAgent{}
+	agent := &PerforatorAgent{
+		l: l,
+	}
 
 	xLogger := xlog.New(l)
 
@@ -102,6 +104,7 @@ func NewPerforatorAgent(
 	if err != nil {
 		return nil, err
 	}
+	agent.targetManipulator = agent.profiler
 
 	if options.debugModeTogglerConfig != nil {
 		agent.debugModeToggler = newDebugModeTogglerWatcher(l, options.debugModeTogglerConfig, agent.profiler)
