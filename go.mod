@@ -553,6 +553,7 @@ require (
 	github.com/keybase/go-keychain v0.0.1
 	github.com/kisielk/og-rek v1.3.0
 	github.com/klauspost/compress v1.18.0
+	github.com/klauspost/cpuid/v2 v2.2.8
 	github.com/klauspost/reedsolomon v1.10.1-0.20220820100202-797d62e03058
 	github.com/kolesa-team/go-webp v1.0.5
 	github.com/kolide/osquery-go v0.0.0-20190113061206-be0a8de4cf1d
@@ -1748,7 +1749,6 @@ require (
 	github.com/kisielk/sqlstruct v0.0.0-20210630145711-dae28ed37023 // indirect
 	github.com/klauspost/asmfmt v1.3.2 // indirect
 	github.com/klauspost/cpuid v1.3.1 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/knadh/koanf v1.5.0 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
