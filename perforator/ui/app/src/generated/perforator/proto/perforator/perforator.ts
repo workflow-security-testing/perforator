@@ -6,6 +6,8 @@
 
 /* eslint-disable */
 import { type Duration } from "../../../google/protobuf/duration";
+import { type TimeInterval } from "../lib/time_interval/time_interval";
+import { type MergeOptions } from "../profile/merge_options";
 
 export enum ListServicesOrderByClause {
   Unspecified = "Unspecified",
@@ -41,11 +43,6 @@ export enum AddressRenderPolicy {
 export interface Paginated {
   Offset: string;
   Limit: string;
-}
-
-export interface TimeInterval {
-  From: string | undefined;
-  To: string | undefined;
 }
 
 export interface SortOrder {
@@ -186,6 +183,12 @@ export interface MergeProfilesRequest {
    * @deprecated
    */
   MaxSamples: number;
+  /** Controls how different profiles are merged together. */
+  MergeOptions?:
+    | MergeOptions
+    | undefined;
+  /** Experimental options. Use at your own risk. */
+  Experimental?: MergeExperimentalOptions | undefined;
 }
 
 export interface MergeProfilesResponse {
@@ -205,6 +208,16 @@ export interface MergeProfilesResponse {
    * See perforator/pkg/profile/quality.
    */
   Statistics: ProfileStatistics | undefined;
+}
+
+export interface MergeExperimentalOptions {
+  /** Enable new fast profile merger. */
+  EnableNewProfileMerger: boolean;
+  /**
+   * Sample the stacks when doing a merge.
+   * Useful for merging a LOT of profiles.
+   */
+  SampleProfileStacks: boolean;
 }
 
 export interface ProfileStatistics {
@@ -272,13 +285,27 @@ export interface PGOMeta {
   AddressCountMapSize: string;
   /** BuildID, guessed from the samples, for which the resulting profile is generated. */
   GuessedBuildID: string;
+  /** Count of accounted profiles per service (usable in case of merging multiple services) */
+  ProfilesByServiceCount: { [key: string]: string };
+}
+
+export interface PGOMeta_ProfilesByServiceCountEntry {
+  key: string;
+  value: string;
 }
 
 export interface GeneratePGOProfileRequest {
-  /** Service name (podset-id). */
+  /**
+   * Service name (podset-id).
+   * Deprecated, use Query instead.
+   */
   Service: string;
   /** The format to render aggregated data in (autofdo/bolt). */
-  Format: PGOProfileFormat | undefined;
+  Format:
+    | PGOProfileFormat
+    | undefined;
+  /** Optional. If specified, takes precedence over Service. */
+  Query: ProfileQuery | undefined;
 }
 
 export interface GeneratePGOProfileResponse {
@@ -331,7 +358,15 @@ export interface DiffProfilesRequest {
    * @deprecated
    */
   FlamegraphOptions: FlamegraphOptions | undefined;
-  RenderFormat: RenderFormat | undefined;
+  RenderFormat:
+    | RenderFormat
+    | undefined;
+  /** Controls how different profiles are merged together. */
+  MergeOptions?:
+    | MergeOptions
+    | undefined;
+  /** Experimental options. Use at your own risk. */
+  Experimental?: MergeExperimentalOptions | undefined;
 }
 
 export interface DiffProfilesResponse {
@@ -426,7 +461,11 @@ export interface FlamegraphOptions {
     | boolean
     | undefined;
   /** How to display raw addresses in the flamegraph. */
-  RenderAddresses?: AddressRenderPolicy | undefined;
+  RenderAddresses?:
+    | AddressRenderPolicy
+    | undefined;
+  /** Whether to ignore file paths (can be useful in diffs) */
+  IgnoreFilePaths?: boolean | undefined;
 }
 
 export interface TextProfileOptions {
@@ -457,6 +496,10 @@ export interface RawProfileOptions {
 export interface LLVMPGOProfileOptions {
 }
 
+/** Empty */
+export interface ProtoProfileOptions {
+}
+
 export interface PostprocessOptions {
   MergePythonAndNativeStacks?: boolean | undefined;
 }
@@ -471,7 +514,7 @@ export interface RenderFormat {
   Flamegraph?:
     | FlamegraphOptions
     | undefined;
-  /** Return raw profile, potentiatlly symbolized. */
+  /** Return raw profile, potentially symbolized. */
   RawProfile?:
     | RawProfileOptions
     | undefined;
@@ -502,7 +545,14 @@ export interface RenderFormat {
     | FlamegraphOptions
     | undefined;
   /** Render profile as human-readable text. */
-  TextProfile?: TextProfileOptions | undefined;
+  TextProfile?:
+    | TextProfileOptions
+    | undefined;
+  /**
+   * Return proto profile, potentially symbolized.
+   * The profile schema is defined at perforator/proto/profile.
+   */
+  ProtoProfile?: ProtoProfileOptions | undefined;
 }
 
 export interface Perforator {

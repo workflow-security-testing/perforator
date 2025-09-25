@@ -16,14 +16,6 @@ import {
 } from "./perforator";
 import { type RecordRemoteProfileRequest, type RecordRemoteProfileResponse } from "./record_remote";
 
-export enum TaskNamespace {
-  /** TaskNamespaceDefault - Default task type - e.g. MergeProfiles, DiffProfiles, ... */
-  TaskNamespaceDefault = "TaskNamespaceDefault",
-  /** TaskNamespaceAgent - e.g. RecordRemoteProfile */
-  TaskNamespaceAgent = "TaskNamespaceAgent",
-  UNRECOGNIZED = "UNRECOGNIZED",
-}
-
 export enum TaskState {
   Unknown = "Unknown",
   Created = "Created",
@@ -40,12 +32,10 @@ export interface StartTaskRequest {
 
 export interface StartTaskResponse {
   TaskID: string;
-  Namespace: TaskNamespace;
 }
 
 export interface GetTaskRequest {
   TaskID: string;
-  Namespace: TaskNamespace;
 }
 
 export interface GetTaskResponse {
@@ -57,7 +47,6 @@ export interface GetTaskResponse {
 export interface ListTasksRequest {
   Query: TaskQuery | undefined;
   Pagination: Paginated | undefined;
-  Namespace: TaskNamespace;
 }
 
 export interface ListTasksResponse {
@@ -100,21 +89,11 @@ export interface TaskResult {
   RecordRemoteProfile?: RecordRemoteProfileResponse | undefined;
 }
 
-export interface RecordRemoteTaskStats {
-  CollectedProfiles: string;
-  EventsCount: string;
-}
-
-export interface TaskStats {
-  RecordRemoteTaskStats?: RecordRemoteTaskStats | undefined;
-}
-
 export interface TaskStatus {
   State: TaskState;
   LastPing: string;
   Error: string;
   Attempts: TaskExecution[];
-  Stats: TaskStats | undefined;
 }
 
 export interface TaskExecution {
