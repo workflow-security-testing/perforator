@@ -21,7 +21,19 @@
 }
 
 .select__control .g-select-control {
-    /* disable animation https://github.com/gravity-ui/uikit/blob/80752145ce50d914c208b47f551b6a8577534f3d/src/components/Select/components/SelectControl/SelectControl.scss#L75 */
+    /* change animation https://github.com/gravity-ui/uikit/blob/80752145ce50d914c208b47f551b6a8577534f3d/src/components/Select/components/SelectControl/SelectControl.scss#L75 */
     /* stylelint-disable-next-line declaration-no-important */
-    transition: none !important;
+    transition: transform 0.05s ease-out !important;
+}
+
+.select__control .g-select-control:not(.g-select-control_disabled):not(.g-select-control_no-active):active {
+    /* change animation https://github.com/gravity-ui/uikit/blob/80752145ce50d914c208b47f551b6a8577534f3d/src/components/Select/components/SelectControl/SelectControl.scss#L199 */
+    /* stylelint-disable-next-line declaration-no-important */
+    transform: scale(0.995) !important;
+}
+
+.select__control .g-select-control__button:active::after {
+    // https://github.com/gravity-ui/uikit/blob/80752145ce50d914c208b47f551b6a8577534f3d/src/components/Select/components/SelectControl/SelectControl.scss#L130
+    /* stylelint-disable-next-line declaration-no-important */
+    transform: scale(1.005) !important;
 }
