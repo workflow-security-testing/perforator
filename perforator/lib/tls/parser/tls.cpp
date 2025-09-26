@@ -76,7 +76,7 @@ TTlsParser::TTlsParser(llvm::object::ObjectFile* file)
 
 void TTlsParser::VisitVariables(TFunctionRef<void(const TVariableRef&)> callback) {
 #define TRY_ELF_TYPE(ELFT) \
-    if (auto res = VisitTlsVariables<ELFT>(File_, callback)) { \
+    if (VisitTlsVariables<ELFT>(File_, callback)) { \
         return; \
     }
 
