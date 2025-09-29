@@ -49,7 +49,8 @@ type PGOConfig struct {
 }
 
 type TasksConfig struct {
-	ConcurrencyLimit int64 `yaml:"concurrency_limit,omitempty"`
+	Pool             string `yaml:"pool"`
+	ConcurrencyLimit int64  `yaml:"concurrency_limit,omitempty"`
 }
 
 type SymbolizationConfig struct {

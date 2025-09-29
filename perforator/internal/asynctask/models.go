@@ -26,7 +26,7 @@ type TaskService interface {
 	AddTask(ctx context.Context, meta *perforator.TaskMeta, spec *perforator.TaskSpec) (TaskID, error)
 	FinishTask(ctx context.Context, id TaskID, result *perforator.TaskResult) error
 	FailTask(ctx context.Context, id TaskID, err string) error
-	PickTask(ctx context.Context) (task *Task, stop func(), err error)
+	PickTask(ctx context.Context, pool string) (task *Task, stop func(), err error)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

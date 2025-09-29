@@ -54,6 +54,7 @@ func (s *PerforatorServer) StartTask(
 	if key := req.GetIdempotencyKey(); key != "" {
 		meta.IdempotencyKey = key
 	}
+	meta.Pool = s.c.Tasks.Pool
 
 	id, err := s.tasks.AddTask(ctx, meta, req.GetSpec())
 	if err != nil {
@@ -156,7 +157,7 @@ func (s *PerforatorServer) pollTasks(ctx context.Context) (spawned bool, err err
 		}
 	}()
 
-	task, stop, err := s.tasks.PickTask(ctx)
+	task, stop, err := s.tasks.PickTask(ctx, s.c.Tasks.Pool)
 	if err != nil {
 		s.l.Warn(ctx, "Failed to pick async task", log.Error(err))
 		return false, nil

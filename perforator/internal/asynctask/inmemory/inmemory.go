@@ -150,7 +150,8 @@ func (s *InMemoryTaskService) pickTask(ctx context.Context) (task *asynctask.Tas
 	return
 }
 
-func (s *InMemoryTaskService) PickTask(ctx context.Context) (task *asynctask.Task, stop func(), err error) {
+// TODO: add pool support
+func (s *InMemoryTaskService) PickTask(ctx context.Context, pool string) (task *asynctask.Task, stop func(), err error) {
 	for {
 		select {
 		case <-ctx.Done():

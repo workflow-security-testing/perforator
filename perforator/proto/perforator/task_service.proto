@@ -90,6 +90,7 @@ message TaskMeta {
     int64 CreationTime = 2;
     string Author = 3;
     string IdempotencyKey = 4;
+    string Pool = 5;
 }
 
 message TaskSpec {

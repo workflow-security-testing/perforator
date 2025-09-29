@@ -250,7 +250,7 @@ func (s *TaskService) FailTask(ctx context.Context, id asynctask.TaskID, err str
 	})
 }
 
-func (s *TaskService) pickTask(ctx context.Context) (task *asynctask.Task, stop func(), err error) {
+func (s *TaskService) pickTask(ctx context.Context, pool string) (task *asynctask.Task, stop func(), err error) {
 	primary, err := s.cluster.WaitForPrimary(ctx)
 	if err != nil {
 		return
@@ -265,7 +265,7 @@ func (s *TaskService) pickTask(ctx context.Context) (task *asynctask.Task, stop 
 		_ = tx.Rollback()
 	}()
 
-	t, err := s.selectNextTask(ctx, tx)
+	t, err := s.selectNextTask(ctx, pool, tx)
 	if err != nil {
 		return
 	}
@@ -293,7 +293,7 @@ func (s *TaskService) pickTask(ctx context.Context) (task *asynctask.Task, stop 
 	return
 }
 
-func (s *TaskService) PickTask(ctx context.Context) (task *asynctask.Task, stop func(), err error) {
+func (s *TaskService) PickTask(ctx context.Context, pool string) (task *asynctask.Task, stop func(), err error) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -301,7 +301,7 @@ func (s *TaskService) PickTask(ctx context.Context) (task *asynctask.Task, stop 
 		default:
 		}
 
-		task, stop, err = s.pickTask(ctx)
+		task, stop, err = s.pickTask(ctx, pool)
 		if errors.Is(err, asynctask.ErrAttemptsLimitReached) {
 			continue
 		}
@@ -309,7 +309,7 @@ func (s *TaskService) PickTask(ctx context.Context) (task *asynctask.Task, stop 
 	}
 }
 
-func (s *TaskService) selectNextTask(ctx context.Context, tx *sqlx.Tx) (*asynctask.Task, error) {
+func (s *TaskService) selectNextTask(ctx context.Context, pool string, tx *sqlx.Tx) (*asynctask.Task, error) {
 	deadline := time.Now().Add(-s.pingTimeout)
 
 	var row TaskRow
@@ -317,12 +317,22 @@ func (s *TaskService) selectNextTask(ctx context.Context, tx *sqlx.Tx) (*asyncta
 		ctx,
 		`SELECT id, idempotency_key, meta, spec, status, result
 		FROM tasks
-		WHERE (status->>'State' = 'Running' AND (status->>'LastPing')::bigint < $1)
-		OR status->>'State' = 'Created'
+		WHERE (
+			(status->>'State' = 'Running' AND (status->>'LastPing')::bigint < $1)
+			OR status->>'State' = 'Created'
+		)
+		AND (
+			-- If a non-empty pool name, pick only that pool      
+			($2 <> '' AND meta->>'Pool' = $2)   
+			OR
+			-- If empty, pick only tasks with empty Pool field or no field at all      
+			($2 = '' AND (meta->>'Pool' IS NULL OR meta->>'Pool' = ''))
+		)
 		ORDER BY status->>'State', (status->>'LastPing')::bigint
 		LIMIT 1
 		FOR UPDATE`,
 		deadline.UnixMicro(),
+		pool,
 	).Scan(&row.ID, &row.IdempotencyKey, &row.Meta, &row.Spec, &row.Status, &row.Result)
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
