@@ -7,7 +7,5 @@ SRCS(
 END()
 
 RECURSE(
-    factory
-    mocks
-    postgres
+    custom_profiling_operation
 )

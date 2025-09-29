@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+import "perforator/proto/custom_profiling_operation/custom_profiling_operation.proto";
+
+package NPerforator.NProto.NCustomProfilingOperation;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/perforator";
+
+// This API is experimental and may be removed or signficantly changed in the future.
+service CustomProfilingOperationAPI {
+    rpc Schedule(ScheduleProfilingOperationRequest) returns (ScheduleProfilingOperationResponse) {}
+    rpc Stop(StopProfilingOperationRequest) returns (StopProfilingOperationResponse) {}
+    rpc Get(GetProfilingOperationRequest) returns(GetProfilingOperationResponse) {}
+}
+
+message ScheduleProfilingOperationRequest {
+    NPerforator.NProto.NCustomProfilingOperation.OperationSpec OperationSpec = 1;
+}
+
+message ScheduleProfilingOperationResponse {
+    string OperationID = 1;
+}
+
+message StopProfilingOperationRequest {
+    string OperationID = 1;
+}
+
+message StopProfilingOperationResponse {}
+
+message GetProfilingOperationRequest {
+    string OperationID = 1;
+}
+
+message GetProfilingOperationResponse {
+    NPerforator.NProto.NCustomProfilingOperation.Operation Operation = 1;
+}

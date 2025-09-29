@@ -14,7 +14,7 @@ import (
 	custom_profiles_compound "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/compound"
 	custom_profiles_meta "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
-	postgres_cpo "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation/postgres"
+	cpo_factory "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation/factory"
 	"github.com/yandex/perforator/perforator/pkg/storage/databases"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope"
 	postgres_microscope "github.com/yandex/perforator/perforator/pkg/storage/microscope/pg"
@@ -112,10 +112,15 @@ func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger,
 	}
 
 	if c.CustomProfilingOperationStorage != nil {
-		if res.DBs.PostgresCluster == nil {
-			return nil, ErrPostgresClusterNotSpecified
+		opts, err := res.createCPOStorageOpts(*c.CustomProfilingOperationStorage)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create custom profiling operation storage options: %w", err)
 		}
-		res.CustomProfilingOperationStorage = postgres_cpo.NewStorage(l, res.DBs.PostgresCluster)
+
+		res.CustomProfilingOperationStorage, err = cpo_factory.NewStorage(l, *c.CustomProfilingOperationStorage, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create custom profiling operation storage: %w", err)
+		}
 	}
 
 	if c.CustomProfileStorage != nil {
@@ -200,6 +205,20 @@ func (b *StorageBundle) createOptsFromTasksStorageType(tasksStorageType tasks.Ta
 		opts = append(opts, tasks.WithInMemoryTasksStorage(b.conf.TaskStorage))
 	default:
 		return nil, ErrTasksStorageIsNotSpecified
+	}
+
+	return opts, nil
+}
+
+func (b *StorageBundle) createCPOStorageOpts(storageType custom_profiling_operation.CustomProfilingOperationStorageType) ([]cpo_factory.Option, error) {
+	opts := []cpo_factory.Option{}
+	switch storageType {
+	case custom_profiling_operation.Postgres:
+		if b.DBs.PostgresCluster == nil {
+			return nil, ErrPostgresClusterNotSpecified
+		}
+
+		opts = append(opts, cpo_factory.WithPostgresCluster(b.DBs.PostgresCluster))
 	}
 
 	return opts, nil

@@ -8,6 +8,7 @@ SRCS(
     microscope.go
     render.go
     server.go
+    services.go
     tasks.go
 )
 

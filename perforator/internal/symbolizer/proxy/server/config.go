@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	"github.com/yandex/perforator/perforator/pkg/tracing"
@@ -65,6 +66,10 @@ type ProfileMergerConfig struct {
 	ThreadCount uint32 `yaml:"thread_count"`
 }
 
+type FeaturesConfig struct {
+	EnableCPOExperimental *bool `yaml:"enable_custom_profiling_operation"`
+}
+
 type Config struct {
 	StorageConfig        bundle.Config         `yaml:"storage"`
 	BinaryProvider       BinaryProviderConfig  `yaml:"binary_provider"`
@@ -79,6 +84,7 @@ type Config struct {
 	ProfileMerger        ProfileMergerConfig   `yaml:"profile_merger"`
 	SymbolizationConfig  SymbolizationConfig   `yaml:"symbolization"`
 	ACL                  ACLConfig             `yaml:"acl"`
+	FeaturesConfig       FeaturesConfig        `yaml:"features"`
 }
 
 func ParseConfig(path string) (conf *Config, err error) {
@@ -102,5 +108,8 @@ func (c *Config) FillDefault() {
 	}
 	if c.ProfileMerger.ThreadCount == 0 {
 		c.ProfileMerger.ThreadCount = 16
+	}
+	if c.FeaturesConfig.EnableCPOExperimental == nil {
+		c.FeaturesConfig.EnableCPOExperimental = ptr.Bool(false)
 	}
 }

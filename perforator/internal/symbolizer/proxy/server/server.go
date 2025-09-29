@@ -44,6 +44,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/auth"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/autofdo"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
+	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/symbolize"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/cprofile"
@@ -140,6 +141,10 @@ type PerforatorServer struct {
 	httpRouter   chi.Router
 
 	metrics *perforatorServerMetrics
+
+	// TODO: Later all grpc services can be aggregated here
+	// e.g: PerforatorService, TaskService, MicroscopeService, ReflectionService, ...
+	additionalGrpcServices []services.GRPCService
 }
 
 func getSymbolizationMode(conf *Config) symbolize.SymbolizationMode {
@@ -234,6 +239,11 @@ func NewPerforatorServer(
 		return nil, err
 	}
 
+	additionalGrpcServices, err := newServices(&conf.FeaturesConfig, l, reg, storageBundle)
+	if err != nil {
+		return nil, err
+	}
+
 	authp, err := newAuthProvider(l, conf.Server.Insecure)
 	if err != nil {
 		return nil, err
@@ -280,24 +290,25 @@ func NewPerforatorServer(
 	healthgrpc.RegisterHealthServer(grpcServer, healthServer)
 
 	server = &PerforatorServer{
-		l:                 l,
-		c:                 conf,
-		reg:               reg,
-		microscopeStorage: storageBundle.MicroscopeStorage,
-		profileStorage:    storageBundle.ProfileStorage,
-		renderedProfiles:  renderedProfiles,
-		bannedUsers:       bannedUsers,
-		tasks:             storageBundle.TaskStorage,
-		tasksemaphore:     semaphore.NewWeighted(conf.Tasks.ConcurrencyLimit),
-		httpclient:        resty.New().SetTimeout(time.Hour).SetRetryCount(3),
-		downloader:        downloaderInstance,
-		llvmTools:         llvmTools,
-		symbolizer:        symbolizer,
-		mergemanager:      mergemanager,
-		grpcServer:        grpcServer,
-		httpRouter:        httpr,
-		healthServer:      healthServer,
-		otelShutdown:      shutdown,
+		l:                      l,
+		c:                      conf,
+		reg:                    reg,
+		microscopeStorage:      storageBundle.MicroscopeStorage,
+		profileStorage:         storageBundle.ProfileStorage,
+		renderedProfiles:       renderedProfiles,
+		bannedUsers:            bannedUsers,
+		tasks:                  storageBundle.TaskStorage,
+		tasksemaphore:          semaphore.NewWeighted(conf.Tasks.ConcurrencyLimit),
+		httpclient:             resty.New().SetTimeout(time.Hour).SetRetryCount(3),
+		downloader:             downloaderInstance,
+		llvmTools:              llvmTools,
+		symbolizer:             symbolizer,
+		mergemanager:           mergemanager,
+		grpcServer:             grpcServer,
+		httpRouter:             httpr,
+		healthServer:           healthServer,
+		otelShutdown:           shutdown,
+		additionalGrpcServices: additionalGrpcServices,
 	}
 
 	mux := runtime.NewServeMux()
@@ -314,6 +325,12 @@ func NewPerforatorServer(
 	perforator.RegisterTaskServiceServer(server.grpcServer, server)
 	perforator.RegisterMicroscopeServiceServer(server.grpcServer, server)
 	reflection.Register(server.grpcServer)
+
+	for _, service := range server.additionalGrpcServices {
+		if err := service.Register(server.grpcServer); err != nil {
+			return nil, fmt.Errorf("failed to register grpc service: %w", err)
+		}
+	}
 
 	server.registerMetrics()
 

@@ -9,6 +9,7 @@ ENDIF()
 GRPC()
 
 SRCS(
+    custom_profile.proto
     perforator.proto
     microscope_service.proto
     record_remote.proto

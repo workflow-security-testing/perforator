@@ -1,3 +1,4 @@
 RECURSE(
     server
+    services
 )
