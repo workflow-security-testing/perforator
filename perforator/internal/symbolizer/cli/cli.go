@@ -70,7 +70,7 @@ func New(config *Config) (*App, error) {
 	var rpcClient *client.Client
 	if config.Client != nil {
 		if !config.Client.Insecure && config.Client.Token == "" {
-			token, err := findToken(ctx, logger)
+			token, err := FindToken(ctx, logger)
 			if err != nil {
 				return nil, err
 			}

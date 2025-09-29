@@ -1,4 +1,4 @@
-package profile_event
+package async_publisher
 
 import (
 	"context"
@@ -15,11 +15,12 @@ import (
 	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/kafka/producer"
+	"github.com/yandex/perforator/perforator/pkg/profile_event"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func newEvent() *SignalProfileEvent {
-	return &SignalProfileEvent{
+func newEvent() *profile_event.SignalProfileEvent {
+	return &profile_event.SignalProfileEvent{
 		ProfileID:   "id",
 		Service:     "svc",
 		Cluster:     "cluster",

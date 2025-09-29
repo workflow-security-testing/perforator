@@ -1,14 +1,18 @@
 GO_LIBRARY()
 
-SRCS(
-    async_publisher.go
-    model.go
-)
-
-GO_TEST_SRCS(async_publisher_test.go)
+IF (OPENSOURCE)
+    SRCS(
+        model.go
+    )
+ELSE()
+    SRCS(
+        model_yandex.go
+    )
+ENDIF()
 
 END()
 
 RECURSE(
-    gotest
+    async_publisher
+    event_processor
 )

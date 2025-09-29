@@ -1,4 +1,4 @@
-package profile_event
+package async_publisher
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/kafka/producer"
+	"github.com/yandex/perforator/perforator/pkg/profile_event"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -30,12 +31,12 @@ type AsyncSignalProfileEventPublisher struct {
 	m        sync.RWMutex
 	closed   bool
 	cfg      Config
-	producer *producer.JSONProducer[SignalProfileEvent]
+	producer *producer.JSONProducer[profile_event.SignalProfileEvent]
 	logger   xlog.Logger
 	metrics  *publisherMetrics
 	reg      xmetrics.Registry
 
-	messageChan chan SignalProfileMessage
+	messageChan chan profile_event.SignalProfileMessage
 }
 
 type publisherMetrics struct {
@@ -68,11 +69,11 @@ func NewAsyncSignalProfileEventPublisher(
 
 	return &AsyncSignalProfileEventPublisher{
 		cfg:         cfg,
-		producer:    producer.NewJSONProducer[SignalProfileEvent](pr),
+		producer:    producer.NewJSONProducer[profile_event.SignalProfileEvent](pr),
 		logger:      logger,
 		metrics:     newPublisherMetrics(reg),
 		reg:         reg,
-		messageChan: make(chan SignalProfileMessage, cfg.QueueSize),
+		messageChan: make(chan profile_event.SignalProfileMessage, cfg.QueueSize),
 	}
 }
 
@@ -91,7 +92,7 @@ func (p *AsyncSignalProfileEventPublisher) processMessages(ctx context.Context) 
 	}
 }
 
-func (p *AsyncSignalProfileEventPublisher) publish(ctx context.Context, msg SignalProfileMessage) {
+func (p *AsyncSignalProfileEventPublisher) publish(ctx context.Context, msg profile_event.SignalProfileMessage) {
 	start := time.Now()
 	var err error
 	defer func() {
@@ -104,19 +105,19 @@ func (p *AsyncSignalProfileEventPublisher) publish(ctx context.Context, msg Sign
 		}
 	}()
 
-	if err := p.producer.Publish(ctx, []byte(msg.partitionKey), msg.event); err != nil {
+	if err := p.producer.Publish(ctx, []byte(msg.PartitionKey), msg.Event); err != nil {
 		p.logger.Error(
 			ctx,
-			"Failed to publish profile event)",
+			"Failed to publish profile event",
 			log.Error(err),
-			log.String("key", msg.partitionKey),
-			log.String("profile_id", msg.event.ProfileID),
+			log.String("key", msg.PartitionKey),
+			log.String("profile_id", msg.Event.ProfileID),
 		)
 		return
 	}
 }
 
-func (p *AsyncSignalProfileEventPublisher) TryEnqueueForPublish(ctx context.Context, ev *SignalProfileEvent) {
+func (p *AsyncSignalProfileEventPublisher) TryEnqueueForPublish(ctx context.Context, ev *profile_event.SignalProfileEvent) {
 	p.m.RLock()
 	defer p.m.RUnlock()
 	if p.closed {
@@ -131,9 +132,9 @@ func (p *AsyncSignalProfileEventPublisher) TryEnqueueForPublish(ctx context.Cont
 	select {
 	case <-ctx.Done():
 		return
-	case p.messageChan <- SignalProfileMessage{
-		partitionKey: key,
-		event:        ev,
+	case p.messageChan <- profile_event.SignalProfileMessage{
+		PartitionKey: key,
+		Event:        ev,
 	}:
 		p.metrics.messageQueueLength.Set(float64(len(p.messageChan)))
 	default:

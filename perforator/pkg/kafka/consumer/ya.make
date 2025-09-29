@@ -1,0 +1,17 @@
+GO_LIBRARY()
+
+SRCS(
+    consumer.go
+    reader.go
+)
+
+# This test requires library/recipes, which is not supported in the oss repo
+IF (NOT OPENSOURCE)
+    GO_TEST_SRCS(consumer_test.go)
+ENDIF()
+
+END()
+
+IF (NOT OPENSOURCE)
+    RECURSE(gotest)
+ENDIF()

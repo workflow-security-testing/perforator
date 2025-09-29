@@ -20,6 +20,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/kafka/producer"
 	"github.com/yandex/perforator/perforator/pkg/profile_event"
+	"github.com/yandex/perforator/perforator/pkg/profile_event/async_publisher"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
@@ -88,7 +89,7 @@ type Service struct {
 
 	profileCommentProcessors map[string]func(string, *profilemeta.ProfileMetadata) error
 
-	signalPublisher *profile_event.AsyncSignalProfileEventPublisher
+	signalPublisher *async_publisher.AsyncSignalProfileEventPublisher
 	signalAllow     map[string]struct{}
 }
 
@@ -123,7 +124,7 @@ func NewService(
 	}
 
 	var (
-		asyncPublisher *profile_event.AsyncSignalProfileEventPublisher
+		asyncPublisher *async_publisher.AsyncSignalProfileEventPublisher
 		signalAllow    map[string]struct{}
 	)
 	if conf.ProfileSignalEvents != nil && conf.ProfileSignalEvents.Kafka != nil {
@@ -136,7 +137,7 @@ func NewService(
 		if err != nil {
 			return nil, fmt.Errorf("init kafka producer: %w", err)
 		}
-		asyncPublisher = profile_event.NewAsyncSignalProfileEventPublisher(kp, logger, reg, conf.ProfileSignalEvents.Config)
+		asyncPublisher = async_publisher.NewAsyncSignalProfileEventPublisher(kp, logger, reg, conf.ProfileSignalEvents.Config)
 	}
 
 	cache := ccache.New[bool](ccache.Configure[bool]().MaxSize(int64(opts.maxBuildIDCacheEntries)))

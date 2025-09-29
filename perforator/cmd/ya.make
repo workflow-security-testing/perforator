@@ -5,6 +5,7 @@ RECURSE(
     migrate
     offline_processing
     proxy
+    signal_profile_processor
     storage
     web
 )
