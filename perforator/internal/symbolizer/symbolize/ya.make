@@ -11,8 +11,9 @@ IF (CGO_ENABLED)
         perforator/symbolizer/lib/stacks_sampling
     )
 
-    CGO_SRCS(symbolize.go)
+    CGO_SRCS(cgosymbolize.go)
     CGO_SRCS(stacks_sampling.go)
+    SRCS(symbolize.go)
 ELSE()
     SRCS(stub.go)
     SRCS(stacks_sampling_stub.go)
@@ -23,6 +24,7 @@ SRCS(
     cachedbinaries.go
     errors.go
     interface.go
+    lineinfo.go
 )
 
 END()

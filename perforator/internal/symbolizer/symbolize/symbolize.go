@@ -1,14 +1,9 @@
 package symbolize
 
-// #include <stdlib.h>
-// #include <perforator/symbolizer/lib/symbolize/symbolizec.h>
-import "C"
 import (
 	"context"
 	"errors"
-	"fmt"
 	"sync"
-	"time"
 	"unsafe"
 
 	pprof "github.com/google/pprof/profile"
@@ -19,11 +14,14 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/perforator"
+	"github.com/yandex/perforator/perforator/proto/symbolizer"
 )
 
 const (
 	UnknownLine = "<unknown>"
 )
+
+var errUnknownBinary = errors.New("Unknown binary")
 
 type localSymbolizationPathProvider struct{}
 
@@ -56,45 +54,12 @@ type Symbolizer struct { // thread-safe
 	mutex sync.Mutex
 }
 
-func NewSymbolizer(
-	logger xlog.Logger,
-	reg metrics.Registry,
-	binaryProvider binaryprovider.BinaryProvider,
-	gsymBinaryProvider binaryprovider.BinaryProvider,
-	symbolizationMode SymbolizationMode,
-) (*Symbolizer, error) {
-	var errPtr *C.char = nil
-	var symbolizer unsafe.Pointer = C.MakeSymbolizer(&errPtr)
-	if errPtr != nil {
-		return nil, errors.New(C.GoString(errPtr))
-	}
-
-	reg = reg.WithPrefix("symbolizer")
-
-	return &Symbolizer{
-		logger:             logger,
-		symbolizationMode:  symbolizationMode,
-		binaryProvider:     binaryProvider,
-		gsymBinaryProvider: gsymBinaryProvider,
-		symbolizer:         symbolizer,
-		metrics: &symbolizerMetrics{
-			symbolizationTimer:      reg.Timer("symbolization.timer"),
-			unknownBinaries:         reg.Counter("unknown_binaries.count"),
-			unsymbolizableLocations: reg.Counter("unsymbolizable_locations.count"),
-		},
-	}, nil
-}
-
-func (s *Symbolizer) Destroy() {
-	C.DestroySymbolizer(s.symbolizer)
-}
-
-func addLine(profile *pprof.Profile, location *pprof.Location, lineInfo *C.TLineInfo, opts *perforator.SymbolizeOptions) {
+func AddLine(profile *pprof.Profile, location *pprof.Location, lineInfo *symbolizer.Line, opts *perforator.SymbolizeOptions) {
 	function := &pprof.Function{
 		ID:         uint64(len(profile.Function)) + 1,
-		Name:       C.GoString(lineInfo.DemangledFunctionName),
-		SystemName: C.GoString(lineInfo.FunctionName),
-		Filename:   C.GoString(lineInfo.FileName),
+		Name:       lineInfo.DemangledFunctionName,
+		SystemName: lineInfo.FunctionName,
+		Filename:   lineInfo.Filename,
 		StartLine:  int64(lineInfo.StartLine),
 	}
 
@@ -122,8 +87,8 @@ func addLine(profile *pprof.Profile, location *pprof.Location, lineInfo *C.TLine
 	)
 }
 
-func getUniqueBuildIDs(ctx context.Context, profile *pprof.Profile, logger xlog.Logger) []string {
-	uniqueBuildIDS := map[string]struct{}{}
+func getUnsymbolizedUniqueBuildIDs(ctx context.Context, profile *pprof.Profile, logger xlog.Logger) []string {
+	uniqueBuildIDs := make(map[string]struct{})
 
 	for i, mapping := range profile.Mapping {
 		if mapping == nil {
@@ -145,104 +110,34 @@ func getUniqueBuildIDs(ctx context.Context, profile *pprof.Profile, logger xlog.
 			continue
 		}
 
-		uniqueBuildIDS[mapping.BuildID] = struct{}{}
+		uniqueBuildIDs[mapping.BuildID] = struct{}{}
 	}
 
-	buildIDs := make([]string, 0, len(uniqueBuildIDS))
-	for buildID, _ := range uniqueBuildIDS {
+	buildIDs := make([]string, 0, len(uniqueBuildIDs))
+	for buildID := range uniqueBuildIDs {
 		buildIDs = append(buildIDs, buildID)
 	}
 
+	unsymbolizedBuildIDs := make(map[string]struct{})
+	for _, loc := range profile.Location {
+		if loc.Mapping != nil && len(loc.Line) == 0 {
+			unsymbolizedBuildIDs[loc.Mapping.BuildID] = struct{}{}
+		}
+	}
+
+	toRemove := make([]string, 0)
+	for buildID := range uniqueBuildIDs {
+		if _, ok := unsymbolizedBuildIDs[buildID]; !ok {
+			toRemove = append(toRemove, buildID)
+		}
+	}
+
+	for _, buildID := range toRemove {
+		delete(uniqueBuildIDs, buildID)
+		logger.Debug(ctx, "already symbolized", log.String("buildID", buildID))
+	}
+
 	return buildIDs
-}
-
-func (s *Symbolizer) symbolize(
-	ctx context.Context,
-	profile *pprof.Profile,
-	pathProvider BinaryPathProvider,
-	gsymPathProvider BinaryPathProvider,
-	opts *perforator.SymbolizeOptions,
-) error {
-	start := time.Now()
-	defer func() {
-		C.PruneCaches(s.symbolizer)
-		s.metrics.symbolizationTimer.RecordDuration(time.Since(start))
-	}()
-
-	s.logger.Debug(ctx, "Start symbolize")
-	for _, location := range profile.Location {
-		s.symbolizeLocation(ctx, location, profile, pathProvider, gsymPathProvider, opts)
-	}
-	return nil
-}
-
-func (s *Symbolizer) symbolizeLocation(
-	ctx context.Context,
-	location *pprof.Location,
-	profile *pprof.Profile,
-	pathProvider BinaryPathProvider,
-	gsymPathProvider BinaryPathProvider,
-	opts *perforator.SymbolizeOptions,
-) {
-	// Skip symbolized code.
-	if len(location.Line) > 0 {
-		return
-	}
-
-	if location.Mapping == nil {
-		return
-	}
-
-	path := pathProvider.Path(location.Mapping)
-	address := location.Address + location.Mapping.Offset - location.Mapping.Start
-
-	useGsym := C.ui32(0)
-	gsymPath := gsymPathProvider.Path(location.Mapping)
-	if gsymPath != "" {
-		path = gsymPath
-		useGsym = C.ui32(1)
-	}
-
-	if path == "" {
-		s.logger.Trace(ctx, "Unknown binary",
-			log.String("buildid", location.Mapping.BuildID),
-			log.String("address", fmt.Sprintf("%x", location.Address)),
-			log.String("original_file", location.Mapping.File),
-		)
-		s.metrics.unknownBinaries.Inc()
-		return
-	}
-
-	cpath := C.CString(path)
-	defer C.free(unsafe.Pointer(cpath))
-	linesCount := C.ui64(0)
-	var errPtr *C.char = nil
-
-	lines := C.Symbolize(
-		s.symbolizer,
-		cpath,
-		C.ulong(len(path)),
-		C.ui64(address),
-		&linesCount,
-		&errPtr,
-		useGsym,
-	)
-	if errPtr != nil {
-		s.logger.Error(ctx, "Failed to symbolize code", log.String("error", C.GoString(errPtr)))
-		s.metrics.unsymbolizableLocations.Inc()
-		return
-	}
-	defer C.DestroySymbolizeResult(lines, linesCount)
-
-	if linesCount == 0 {
-		return
-	}
-
-	location.Line = []pprof.Line{}
-	linesSlice := unsafe.Slice(lines, linesCount)
-	for _, lineInfo := range linesSlice {
-		addLine(profile, location, &lineInfo, opts)
-	}
 }
 
 // inplace symbolization using local binaries paths
@@ -252,25 +147,24 @@ func (s *Symbolizer) SymbolizeLocalProfile(
 	binaryPathProvider BinaryPathProvider,
 	gsymBinaryPathProvider BinaryPathProvider,
 ) error {
-	return s.symbolize(ctx, profile, binaryPathProvider, gsymBinaryPathProvider, nil)
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	return s.symbolizePprof(ctx, profile, binaryPathProvider, gsymBinaryPathProvider, nil)
 }
 
-func (s *Symbolizer) SymbolizeStorageProfile(
-	ctx context.Context,
-	profile *pprof.Profile,
-	opts *perforator.SymbolizeOptions,
-) (*pprof.Profile, error) {
-	buildIDs := getUniqueBuildIDs(ctx, profile, s.logger)
-	var err error
-
-	gsymCachedBinaries := NewCachedBinariesBatch(s.logger, s.gsymBinaryProvider, false)
+func (s *Symbolizer) acquireBinaries(ctx context.Context, buildIDs []string) (
+	gsymCachedBinaries *CachedBinariesBatch,
+	cachedBinaries *CachedBinariesBatch,
+	err error,
+) {
+	withGSYMLogger := s.logger.WithName("WithGSYM")
+	gsymCachedBinaries = NewCachedBinariesBatch(withGSYMLogger, s.gsymBinaryProvider, false)
 	if s.symbolizationMode == SymbolizationModeGSYMPreferred {
-		gsymCachedBinaries, err = ScheduleBinaryDownloads(ctx, s.logger, buildIDs, s.gsymBinaryProvider, false)
+		gsymCachedBinaries, err = ScheduleBinaryDownloads(ctx, withGSYMLogger, buildIDs, s.gsymBinaryProvider, false)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	defer gsymCachedBinaries.Release()
 
 	buildIDsWithoutGSYM := make([]string, 0)
 	for _, buildID := range buildIDs {
@@ -278,21 +172,143 @@ func (s *Symbolizer) SymbolizeStorageProfile(
 			buildIDsWithoutGSYM = append(buildIDsWithoutGSYM, buildID)
 		}
 	}
-	cachedBinaries, err := ScheduleBinaryDownloads(ctx, s.logger, buildIDsWithoutGSYM, s.binaryProvider, true)
+	cachedBinaries, err = ScheduleBinaryDownloads(ctx, s.logger.WithName("WithoutGSYM"), buildIDsWithoutGSYM, s.binaryProvider, true)
+	if err != nil {
+		gsymCachedBinaries.Release()
+		return nil, nil, err
+	}
+
+	return gsymCachedBinaries, cachedBinaries, nil
+}
+
+func (s *Symbolizer) SymbolizeStorageProfile(
+	ctx context.Context,
+	profile *pprof.Profile,
+	opts *perforator.SymbolizeOptions,
+) (*pprof.Profile, error) {
+	buildIDs := getUnsymbolizedUniqueBuildIDs(ctx, profile, s.logger)
+
+	gsymCachedBinaries, cachedBinaries, err := s.acquireBinaries(ctx, buildIDs)
 	if err != nil {
 		return nil, err
 	}
+	defer gsymCachedBinaries.Release()
 	defer cachedBinaries.Release()
 
 	_, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).acquireSymbolizerLock")
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	span.End()
+	defer span.End()
 
-	err = s.symbolize(ctx, profile, cachedBinaries, gsymCachedBinaries, opts)
+	err = s.symbolizePprof(ctx, profile, cachedBinaries, gsymCachedBinaries, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	return profile, nil
+}
+
+func getUniqueBuildIDsFromBatch(batch []*symbolizer.PerBinaryRequest) (buildIDs []string, buildIDOffsets map[string][]uint64) {
+	buildIDOffsets = make(map[string][]uint64)
+	for _, binaryRequest := range batch {
+		buildIDOffsets[binaryRequest.BuildID] = append(buildIDOffsets[binaryRequest.BuildID], binaryRequest.Offsets...)
+	}
+
+	buildIDs = make([]string, 0, len(buildIDOffsets))
+	for buildID := range buildIDOffsets {
+		buildIDs = append(buildIDs, buildID)
+	}
+
+	return buildIDs, buildIDOffsets
+}
+
+func (s *Symbolizer) provideCachePath(
+	ctx context.Context,
+	gsymCachedBinaries BinaryPathProvider,
+	cachedBinaries BinaryPathProvider,
+	buildID string,
+	originalFile string,
+) (path string, useGSYM bool, err error) {
+	gsymPath := gsymCachedBinaries.PathByBuildID(buildID)
+	if gsymPath != "" {
+		return gsymPath, true, nil
+	}
+
+	path = cachedBinaries.PathByBuildID(buildID)
+	if path != "" {
+		return path, false, nil
+	}
+
+	s.traceUnknownBinary(ctx, buildID, originalFile)
+
+	return "", false, errUnknownBinary
+}
+
+func (s *Symbolizer) traceUnknownBinary(ctx context.Context, buildID string, originalFile string) {
+	s.logger.Trace(ctx, "Unknown binary",
+		log.String("buildid", buildID),
+		log.String("original_file", originalFile),
+	)
+	s.metrics.unknownBinaries.Inc()
+}
+
+func (s *Symbolizer) SymbolizeBatch(
+	ctx context.Context,
+	batch []*symbolizer.PerBinaryRequest,
+	opts *perforator.SymbolizeOptions,
+) ([]*symbolizer.PerBinaryResponse, error) {
+	buildIDs, buildIDOffsets := getUniqueBuildIDsFromBatch(batch)
+
+	s.logger.Debug(ctx, "unique buildIDs", log.Array("buildIDs", buildIDs))
+
+	res := make([]*symbolizer.PerBinaryResponse, len(buildIDs))
+
+	_, span := otel.Tracer("Symbolizer").Start(ctx, "symbolize.(*Symbolizer).acquireSymbolizerLock")
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	defer span.End()
+
+	gsymCachedBinaries, cachedBinaries, err := s.acquireBinaries(ctx, buildIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer gsymCachedBinaries.Release()
+	defer cachedBinaries.Release()
+
+	for i, buildID := range buildIDs {
+		res[i] = &symbolizer.PerBinaryResponse{
+			BuildID: buildID,
+		}
+
+		path, useGSYM, err := s.provideCachePath(ctx, gsymCachedBinaries, cachedBinaries, buildID, "")
+		if err != nil {
+			res[i].Error = err.Error()
+			continue
+		}
+
+		lineInfoCnt := 0
+		for _, offset := range buildIDOffsets[buildID] {
+			loc := &symbolizer.LocationSymbolizationResult{
+				AddressType: &symbolizer.LocationSymbolizationResult_ELFOffset{
+					ELFOffset: offset,
+				},
+			}
+
+			lineInfos, err := s.symbolizeLocation(ctx, buildID, offset, path, useGSYM)
+			if err != nil {
+				loc.Error = err.Error()
+			} else {
+				for _, lineInfo := range lineInfos {
+					loc.Lines = append(loc.Lines, lineInfo.ProtoLine)
+				}
+				lineInfoCnt += len(lineInfos)
+			}
+
+			res[i].Locations = append(res[i].Locations, loc)
+		}
+
+		s.logger.Debug(ctx, "Symbolization stats", log.String("build_id", buildID), log.Int("line_count", lineInfoCnt))
+	}
+
+	return res, nil
 }

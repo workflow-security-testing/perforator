@@ -1,21 +1,19 @@
 package symbolize
 
 import (
-	pprof "github.com/google/pprof/profile"
-
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 )
 
 type BinaryPathProvider interface {
-	Path(mapping *pprof.Mapping) string
+	PathByBuildID(buildID string) string
 }
 
 type fixedBinariesPathProvider struct {
 	binaryPathByBuildID map[string]string
 }
 
-func (p *fixedBinariesPathProvider) Path(mapping *pprof.Mapping) string {
-	if path, ok := p.binaryPathByBuildID[mapping.BuildID]; ok {
+func (p *fixedBinariesPathProvider) PathByBuildID(buildId string) string {
+	if path, ok := p.binaryPathByBuildID[buildId]; ok {
 		return path
 	}
 	return ""
@@ -37,7 +35,7 @@ func NewFixedBinariesPathProvider(binaryPaths []string) (BinaryPathProvider, err
 
 type nilPathProvider struct{}
 
-func (*nilPathProvider) Path(*pprof.Mapping) string {
+func (*nilPathProvider) PathByBuildID(buildId string) string {
 	return ""
 }
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"sync"
 
-	pprof "github.com/google/pprof/profile"
 	"go.opentelemetry.io/otel"
 	otelcodes "go.opentelemetry.io/otel/codes"
 
@@ -141,10 +140,6 @@ func (b *CachedBinariesBatch) WaitAllDownloads(ctx context.Context) (err error) 
 	}
 
 	return
-}
-
-func (b *CachedBinariesBatch) Path(mapping *pprof.Mapping) string {
-	return b.PathByBuildID(mapping.BuildID)
 }
 
 func (b *CachedBinariesBatch) PathByBuildID(buildID string) string {
