@@ -479,7 +479,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3
 	github.com/grpc-ecosystem/grpc-health-probe v0.4.14
 	github.com/gruntwork-io/terratest v0.36.8
-	github.com/haivision/srtgo v0.0.0-20211019211331-3f0cef2e19ee
+	github.com/haivision/srtgo v0.0.0-20230627061225-a70d53fcd618
 	github.com/hamba/avro/v2 v2.21.1
 	github.com/haproxytech/client-native/v5 v5.0.0
 	github.com/haproxytech/config-parser/v5 v5.0.0
