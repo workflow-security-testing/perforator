@@ -232,7 +232,7 @@ require (
 	github.com/atotto/clipboard v0.1.4
 	github.com/awalterschulze/gographviz v2.0.3+incompatible
 	github.com/aws/aws-sdk-go v1.55.6
-	github.com/aws/aws-sdk-go-v2 v1.36.3
+	github.com/aws/aws-sdk-go-v2 v1.39.0
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.3
 	github.com/aws/aws-sdk-go-v2/config v1.28.9
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.50
@@ -245,7 +245,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.23.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.58.2
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.28.6
-	github.com/aws/smithy-go v1.22.2
+	github.com/aws/smithy-go v1.23.0
 	github.com/aymerick/douceur v0.2.0
 	github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible
 	github.com/beevik/etree v1.1.0
@@ -1195,8 +1195,8 @@ require (
 	github.com/aws/aws-lambda-go v1.34.1 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.10.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.4.26 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.34 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.34 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/appconfig v1.4.2 // indirect
@@ -1211,6 +1211,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.15 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.8.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.64.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.5 // indirect
