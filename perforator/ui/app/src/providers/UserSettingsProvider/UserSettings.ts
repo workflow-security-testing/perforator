@@ -1,9 +1,8 @@
 import type { Theme } from '@gravity-ui/uikit';
 
 import { LocalStorageKey } from 'src/const/localStorage';
+import { THEME_PARAM } from 'src/const/query';
 
-
-const THEME_PARAM = '_theme';
 
 export type ShortenMode = 'true' | 'false' | 'hover';
 

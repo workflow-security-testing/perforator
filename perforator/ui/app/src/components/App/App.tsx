@@ -3,6 +3,7 @@ import React from 'react';
 import { ToasterComponent, ToasterProvider, useThemeType } from '@gravity-ui/uikit';
 import { toaster } from '@gravity-ui/uikit/toaster-singleton';
 
+import { EMBED_PARAM } from 'src/const/query';
 import { uiFactory } from 'src/factory';
 import { RouterProvider } from 'src/providers/RouterProvider/RouterProvider';
 import { ThemeProvider } from 'src/providers/ThemeProvider/ThemeProvider';
@@ -17,7 +18,7 @@ const AppImpl: React.FC<{}> = () => {
     const theme = useThemeType();
     const external = uiFactory().initializeExternal({ theme });
     const searchParams = new URLSearchParams(window.location.search);
-    const embed = searchParams.get('embed') === '1';
+    const embed = searchParams.get(EMBED_PARAM) === '1';
     const pageProps: PageProps = {
         embed,
     };

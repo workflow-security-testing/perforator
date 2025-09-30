@@ -5,13 +5,15 @@ import { useSearchParams } from 'react-router-dom';
 import { ArrowUpRightFromSquare } from '@gravity-ui/icons';
 import { Icon, Link } from '@gravity-ui/uikit';
 
+import { EMBED_PARAM, THEME_PARAM } from 'src/const/query';
+
 import './PageHeading.scss';
 
 
 const makePerforatorUrl = (searchParams: URLSearchParams) => {
     const ignoredParams = [
-        'embed',
-        '_theme',
+        EMBED_PARAM,
+        THEME_PARAM,
     ];
     ignoredParams.forEach(param => searchParams.delete(param));
     const url = window.location.href.split('?')[0];

@@ -1,8 +1,11 @@
+import { EMBED_PARAM } from 'src/const/query';
+
+
 export const SHARE_IFRAME_HEIGHT = 500;
 
 export const makeEmbedUrl = (url: string): string => {
     const result = new URL(url);
-    result.searchParams.append('embed', '1');
+    result.searchParams.append(EMBED_PARAM, '1');
     return result.href;
 };
 
