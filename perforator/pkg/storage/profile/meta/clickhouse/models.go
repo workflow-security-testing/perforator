@@ -11,52 +11,55 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 type ProfileRow struct {
-	ID            string            `ch:"id"`
-	System        string            `ch:"system_name"`
-	MainEventType string            `ch:"event_type"`
-	AllEventTypes []string          `ch:"event_types"`
-	Cluster       string            `ch:"cluster"`
-	Service       string            `ch:"service"`
-	PodID         string            `ch:"pod_id"`
-	NodeID        string            `ch:"node_id"`
-	Timestamp     time.Time         `ch:"timestamp"`
-	BuildIDs      []string          `ch:"build_ids"`
-	Attributes    map[string]string `ch:"attributes"`
-	Expired       bool              `ch:"expired"`
-	Envs          []string          `ch:"envs"`
+	ID                         string            `ch:"id"`
+	System                     string            `ch:"system_name"`
+	MainEventType              string            `ch:"event_type"`
+	AllEventTypes              []string          `ch:"event_types"`
+	Cluster                    string            `ch:"cluster"`
+	Service                    string            `ch:"service"`
+	PodID                      string            `ch:"pod_id"`
+	NodeID                     string            `ch:"node_id"`
+	Timestamp                  time.Time         `ch:"timestamp"`
+	BuildIDs                   []string          `ch:"build_ids"`
+	Attributes                 map[string]string `ch:"attributes"`
+	Expired                    bool              `ch:"expired"`
+	Envs                       []string          `ch:"envs"`
+	CustomProfilingOperationID string            `ch:"custom_profiling_operation_id"`
 }
 
 func profileModelFromMeta(p *meta.ProfileMetadata) *ProfileRow {
 	return &ProfileRow{
-		ID:            p.ID,
-		System:        p.System,
-		MainEventType: p.MainEventType,
-		AllEventTypes: p.AllEventTypes,
-		Cluster:       p.Cluster,
-		Service:       p.Service,
-		PodID:         p.PodID,
-		NodeID:        p.NodeID,
-		Timestamp:     p.Timestamp,
-		BuildIDs:      slices.Clone(p.BuildIDs),
-		Attributes:    maps.Clone(p.Attributes),
-		Envs:          p.Envs,
+		ID:                         p.ID,
+		System:                     p.System,
+		MainEventType:              p.MainEventType,
+		AllEventTypes:              p.AllEventTypes,
+		Cluster:                    p.Cluster,
+		Service:                    p.Service,
+		PodID:                      p.PodID,
+		NodeID:                     p.NodeID,
+		Timestamp:                  p.Timestamp,
+		BuildIDs:                   slices.Clone(p.BuildIDs),
+		Attributes:                 maps.Clone(p.Attributes),
+		Envs:                       p.Envs,
+		CustomProfilingOperationID: p.CustomProfilingOperationID,
 	}
 }
 
 func profileMetaFromModel(p *ProfileRow) *meta.ProfileMetadata {
 	return &meta.ProfileMetadata{
-		ID:            p.ID,
-		System:        p.System,
-		MainEventType: p.MainEventType,
-		AllEventTypes: p.AllEventTypes,
-		Cluster:       p.Cluster,
-		Service:       p.Service,
-		PodID:         p.PodID,
-		NodeID:        p.NodeID,
-		Timestamp:     p.Timestamp,
-		BuildIDs:      slices.Clone(p.BuildIDs),
-		Attributes:    maps.Clone(p.Attributes),
-		Envs:          p.Envs,
+		ID:                         p.ID,
+		System:                     p.System,
+		MainEventType:              p.MainEventType,
+		AllEventTypes:              p.AllEventTypes,
+		Cluster:                    p.Cluster,
+		Service:                    p.Service,
+		PodID:                      p.PodID,
+		NodeID:                     p.NodeID,
+		Timestamp:                  p.Timestamp,
+		BuildIDs:                   slices.Clone(p.BuildIDs),
+		Attributes:                 maps.Clone(p.Attributes),
+		Envs:                       p.Envs,
+		CustomProfilingOperationID: p.CustomProfilingOperationID,
 	}
 }
 

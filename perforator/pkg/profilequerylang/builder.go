@@ -63,6 +63,7 @@ type Builder struct {
 	timestampFrom    *time.Time
 	timestampTo      *time.Time
 	clusters         []string
+	cpoIDs           []string
 }
 
 func NewBuilder() *Builder {
@@ -75,6 +76,7 @@ func NewBuilder() *Builder {
 		profilerVersions: []string{},
 		profileIDs:       []string{},
 		clusters:         []string{},
+		cpoIDs:           []string{},
 	}
 }
 
@@ -115,6 +117,11 @@ func (b *Builder) ProfilerVersions(versions ...string) *Builder {
 
 func (b *Builder) ProfileIDs(ids ...string) *Builder {
 	b.profileIDs = append(b.profileIDs, ids...)
+	return b
+}
+
+func (b *Builder) CPOIDs(ids ...string) *Builder {
+	b.cpoIDs = append(b.cpoIDs, ids...)
 	return b
 }
 
@@ -175,7 +182,8 @@ func (b *Builder) Build() *querylang.Selector {
 		AddMatcher(selector, ProfileIDLabel, b.profileIDs).
 		AddMatcher(selector, ProfilerVersionLabel, b.profilerVersions).
 		AddMatcher(selector, ServiceLabel, b.services).
-		AddMatcher(selector, ClusterLabel, b.clusters)
+		AddMatcher(selector, ClusterLabel, b.clusters).
+		AddMatcher(selector, CPOIDLabel, b.cpoIDs)
 
 	b.
 		AddTimestampMatcher(selector, operator.GTE, b.timestampFrom).

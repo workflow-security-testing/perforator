@@ -107,6 +107,15 @@ func TestQueryBuild(t *testing.T) {
 			`,
 			AllColumns,
 		),
+		`{custom_profiling_operation_id="abacaba"}`: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired=false
+			    AND custom_profiling_operation_id='abacaba'
+			ORDER BY
+			`,
+			AllColumns,
+		),
 	}
 
 	for selector, expectedSQLprefix := range queries {
@@ -311,22 +320,27 @@ func TestBuildInsertQuery(t *testing.T) {
 			name: "single row with basic fields",
 			rows: []*ProfileRow{
 				{
-					ID:            "test-id-1",
-					System:        "test-system",
-					MainEventType: "cpu.cycles",
-					AllEventTypes: []string{"cpu.cycles", "wall.seconds"},
-					Cluster:       "test-cluster",
-					Service:       "test-service",
-					PodID:         "test-pod",
-					NodeID:        "test-node",
-					Timestamp:     timestamp,
-					BuildIDs:      []string{"build1", "build2"},
-					Attributes:    map[string]string{"cpu": "Intel"},
-					Expired:       false,
-					Envs:          []string{"KEY=value", "ENV=prod"},
+					ID:                         "test-id-1",
+					System:                     "test-system",
+					MainEventType:              "cpu.cycles",
+					AllEventTypes:              []string{"cpu.cycles", "wall.seconds"},
+					Cluster:                    "test-cluster",
+					Service:                    "test-service",
+					PodID:                      "test-pod",
+					NodeID:                     "test-node",
+					Timestamp:                  timestamp,
+					BuildIDs:                   []string{"build1", "build2"},
+					Attributes:                 map[string]string{"cpu": "Intel"},
+					Expired:                    false,
+					Envs:                       []string{"KEY=value", "ENV=prod"},
+					CustomProfilingOperationID: "abacaba",
 				},
 			},
-			expected: fmt.Sprintf("INSERT INTO profiles (%s) SETTINGS async_insert=1, wait_for_async_insert=1 VALUES ('test-id-1', 'test-system', 'cpu.cycles', ['cpu.cycles', 'wall.seconds'], 'test-cluster', 'test-service', 'test-pod', 'test-node', %d, ['build1', 'build2'], {'cpu': 'Intel'}, false, ['KEY=value', 'ENV=prod'])", AllColumns, timestamp.UnixMilli()),
+			expected: fmt.Sprintf(
+				"INSERT INTO profiles (%s) SETTINGS async_insert=1, wait_for_async_insert=1 VALUES ('test-id-1', 'test-system', 'cpu.cycles', ['cpu.cycles', 'wall.seconds'], 'test-cluster', 'test-service', 'test-pod', 'test-node', %d, ['build1', 'build2'], {'cpu': 'Intel'}, false, ['KEY=value', 'ENV=prod'], 'abacaba')",
+				AllColumns,
+				timestamp.UnixMilli(),
+			),
 		},
 		{
 			name: "single row with empty collections",
@@ -347,7 +361,7 @@ func TestBuildInsertQuery(t *testing.T) {
 					Envs:          []string{},
 				},
 			},
-			expected: fmt.Sprintf("INSERT INTO profiles (%s) SETTINGS async_insert=1, wait_for_async_insert=1 VALUES ('test-id-2', 'system2', 'wall.seconds', [], 'cluster2', 'service2', 'pod2', 'node2', %d, [], {}, true, [])", AllColumns, timestamp.UnixMilli()),
+			expected: fmt.Sprintf("INSERT INTO profiles (%s) SETTINGS async_insert=1, wait_for_async_insert=1 VALUES ('test-id-2', 'system2', 'wall.seconds', [], 'cluster2', 'service2', 'pod2', 'node2', %d, [], {}, true, [], '')", AllColumns, timestamp.UnixMilli()),
 		},
 		{
 			name: "multiple rows",
@@ -383,7 +397,7 @@ func TestBuildInsertQuery(t *testing.T) {
 					Envs:          []string{"ENV=prod"},
 				},
 			},
-			expected: fmt.Sprintf("INSERT INTO profiles (%s) SETTINGS async_insert=1, wait_for_async_insert=1 VALUES ('id1', 'sys1', 'cpu.cycles', ['cpu.cycles'], 'cluster1', 'service1', 'pod1', 'node1', %d, ['build1'], {'key': 'value'}, false, ['ENV=test']), ('id2', 'sys2', 'wall.seconds', ['wall.seconds'], 'cluster2', 'service2', 'pod2', 'node2', %d, ['build2'], {'cpu': 'AMD'}, true, ['ENV=prod'])", AllColumns, timestamp.UnixMilli(), timestamp.UnixMilli()),
+			expected: fmt.Sprintf("INSERT INTO profiles (%s) SETTINGS async_insert=1, wait_for_async_insert=1 VALUES ('id1', 'sys1', 'cpu.cycles', ['cpu.cycles'], 'cluster1', 'service1', 'pod1', 'node1', %d, ['build1'], {'key': 'value'}, false, ['ENV=test'], ''), ('id2', 'sys2', 'wall.seconds', ['wall.seconds'], 'cluster2', 'service2', 'pod2', 'node2', %d, ['build2'], {'cpu': 'AMD'}, true, ['ENV=prod'], '')", AllColumns, timestamp.UnixMilli(), timestamp.UnixMilli()),
 		},
 		{
 			name: "row with special characters in strings",
@@ -404,7 +418,7 @@ func TestBuildInsertQuery(t *testing.T) {
 					Envs:          []string{"KEY='value'", "ENV=test\\path"},
 				},
 			},
-			expected: fmt.Sprintf("INSERT INTO profiles (%s) SETTINGS async_insert=1, wait_for_async_insert=1 VALUES ('test\\'id', 'sys\\\\tem', 'cpu.cycles', ['cpu.cycles'], 'cluster\\nname', 'service\\ttab', 'pod\\rid', 'node\\0null', %d, ['build\\'1', 'build\\\\2'], {'ke\\'y': 'val\\'ue'}, false, ['KEY=\\'value\\'', 'ENV=test\\\\path'])", AllColumns, timestamp.UnixMilli()),
+			expected: fmt.Sprintf("INSERT INTO profiles (%s) SETTINGS async_insert=1, wait_for_async_insert=1 VALUES ('test\\'id', 'sys\\\\tem', 'cpu.cycles', ['cpu.cycles'], 'cluster\\nname', 'service\\ttab', 'pod\\rid', 'node\\0null', %d, ['build\\'1', 'build\\\\2'], {'ke\\'y': 'val\\'ue'}, false, ['KEY=\\'value\\'', 'ENV=test\\\\path'], '')", AllColumns, timestamp.UnixMilli()),
 		},
 	}
 

@@ -14,19 +14,20 @@ type (
 	ProfileID = string
 
 	ProfileMetadata struct {
-		ID                ProfileID
-		System            string
-		MainEventType     string
-		AllEventTypes     []string
-		Cluster           string
-		Service           ServiceID
-		PodID             string
-		NodeID            string
-		Timestamp         time.Time
-		BuildIDs          []string
-		Attributes        map[string]string
-		LastUsedTimestamp time.Time
-		Envs              []string
+		ID                         ProfileID
+		System                     string
+		MainEventType              string
+		AllEventTypes              []string
+		Cluster                    string
+		Service                    ServiceID
+		PodID                      string
+		NodeID                     string
+		Timestamp                  time.Time
+		BuildIDs                   []string
+		Attributes                 map[string]string
+		LastUsedTimestamp          time.Time
+		Envs                       []string
+		CustomProfilingOperationID string
 	}
 
 	ProfileQuery struct {

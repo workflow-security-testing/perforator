@@ -450,6 +450,7 @@ func (s *PerforatorServer) ListSuggestions(
 	if err != nil {
 		return nil, err
 	}
+	parsedSelector = enrichCPOIDMatcher(parsedSelector)
 
 	query := &meta.SuggestionsQuery{
 		Field:    req.Field,
@@ -502,6 +503,7 @@ func storageMetaToProtoMeta(meta *meta.ProfileMetadata) *perforator.ProfileMeta 
 		Timestamp:  timestamppb.New(meta.Timestamp),
 		BuildIDs:   slices.Clone(meta.BuildIDs),
 		Attributes: maps.Clone(meta.Attributes),
+		CPOID:      meta.CustomProfilingOperationID,
 	}
 }
 
@@ -575,6 +577,25 @@ func (s *PerforatorServer) buildExcludeProfilerVersionMatcher() *querylang.Match
 	)
 }
 
+func enrichCPOIDMatcher(selector *querylang.Selector) *querylang.Selector {
+	// if cpo_id matcher is already present, return the selector
+	for _, matcher := range selector.Matchers {
+		if matcher.Field == profilequerylang.CPOIDLabel {
+			return selector
+		}
+	}
+
+	// Add matcher for empty cpo_id
+	selector.Matchers = append(selector.Matchers, profilequerylang.BuildMatcher(
+		profilequerylang.CPOIDLabel,
+		querylang.AND,
+		querylang.Condition{Operator: operator.Eq},
+		[]string{""},
+	))
+
+	return selector
+}
+
 func (s *PerforatorServer) defaultEventTypeMatcher() *querylang.Matcher {
 	return profilequerylang.BuildMatcher(
 		profilequerylang.EventTypeLabel,
@@ -608,6 +629,7 @@ func (s *PerforatorServer) parseProfileQuery(query *perforator.ProfileQuery) (*m
 		selector.Matchers,
 		s.buildExcludeProfilerVersionMatcher(),
 	)
+	selector = enrichCPOIDMatcher(selector)
 
 	return &meta.ProfileQuery{
 		Selector:   selector,

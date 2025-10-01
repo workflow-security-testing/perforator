@@ -167,6 +167,9 @@ message ProfileMeta {
 
     // Extra profile annotations.
     map<string, string> Attributes = 5;
+
+    // Custom Profiling Operation ID
+    string CPOID = 12;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

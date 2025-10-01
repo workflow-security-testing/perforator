@@ -303,6 +303,7 @@ func (s *Service) extractProfileBytesMeta(
 
 	meta.BuildIDs = slices.Clone(req.GetBuildIDs())
 	meta.Envs = slices.Clone(req.GetEnvs())
+	meta.CustomProfilingOperationID = req.GetCPOID()
 	return
 }
 

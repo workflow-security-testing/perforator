@@ -13,4 +13,5 @@ const (
 	TimestampLabel       = "timestamp"
 	ClusterLabel         = "cluster"
 	WeightLabel          = "weight"
+	CPOIDLabel           = "custom_profiling_operation_id"
 )

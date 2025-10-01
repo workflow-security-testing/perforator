@@ -87,6 +87,7 @@ var (
 		profilequerylang.SystemNameLabel:      []string{"system_name"},
 		profilequerylang.TimestampLabel:       []string{"timestamp"},
 		profilequerylang.ClusterLabel:         []string{"cluster"},
+		profilequerylang.CPOIDLabel:           []string{"custom_profiling_operation_id"},
 	}
 
 	arrayColumns = map[string]bool{
