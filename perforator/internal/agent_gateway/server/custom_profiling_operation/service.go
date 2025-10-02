@@ -11,8 +11,6 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/library/go/ptr"
-	"github.com/yandex/perforator/perforator/pkg/storage/custom_profile"
-	custom_profiles_meta "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
@@ -33,7 +31,6 @@ type Service struct {
 	metrics serviceMetrics
 
 	customProfilingOperationStorage custom_profiling_operation.Storage
-	customProfileStorage            custom_profile.Storage
 
 	// This manager stores latest snapshot of custom profiling operations.
 	latestSnapshotManager *operationsSnapshotManager
@@ -44,7 +41,6 @@ func NewService(
 	reg metrics.Registry,
 	conf *ServiceConfig,
 	customProfilingOperationStorage custom_profiling_operation.Storage,
-	customProfileStorage custom_profile.Storage,
 ) (*Service, error) {
 	reg = reg.WithPrefix("custom_profiling_operation_service")
 
@@ -64,7 +60,6 @@ func NewService(
 			}),
 		},
 		customProfilingOperationStorage: customProfilingOperationStorage,
-		customProfileStorage:            customProfileStorage,
 		latestSnapshotManager:           snapshotManager,
 	}, nil
 }
@@ -166,42 +161,4 @@ func (s *Service) UpdateOperationStatus(ctx context.Context, req *cpo_proto.Upda
 	}
 
 	return &cpo_proto.UpdateOperationStatusResponse{}, nil
-}
-
-// implements CustomProfilingOperationService/PushOperationProfile
-func (s *Service) PushOperationProfile(ctx context.Context, req *cpo_proto.PushOperationProfileRequest) (*cpo_proto.PushOperationProfileResponse, error) {
-	if req == nil || req.Profile == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "req is nil or req.Profile is nil")
-	}
-
-	if req.OperationID == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "req.OperationID is empty")
-	}
-
-	if req.StartTime == nil || req.FinishTime == nil || req.StartTime.AsTime().IsZero() || req.FinishTime.AsTime().IsZero() {
-		return nil, status.Errorf(codes.InvalidArgument, "profile interval is not set")
-	}
-
-	if req.StartTime.AsTime().After(req.FinishTime.AsTime()) {
-		return nil, status.Errorf(codes.InvalidArgument, "profile interval is invalid")
-	}
-
-	profileID, err := s.customProfileStorage.StoreCustomProfile(
-		ctx,
-		&custom_profiles_meta.CustomProfileMeta{
-			OperationID:   req.OperationID,
-			FromTimestamp: req.StartTime.AsTime(),
-			ToTimestamp:   req.FinishTime.AsTime(),
-			BuildIDs:      req.BuildIDs,
-			Labels:        req.Labels,
-		},
-		req.Profile,
-	)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to store custom profile: %v", err)
-	}
-
-	s.l.Info(ctx, "Stored custom profile", log.String("operation_id", req.OperationID), log.String("profile_id", profileID))
-
-	return &cpo_proto.PushOperationProfileResponse{}, nil
 }

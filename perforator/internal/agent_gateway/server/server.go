@@ -131,7 +131,6 @@ func NewServer(
 			registry,
 			conf.CustomProfilingOperationServiceConfig,
 			storageBundle.CustomProfilingOperationStorage,
-			storageBundle.CustomProfileStorage,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create custom profiling operation service: %w", err)

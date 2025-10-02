@@ -3,7 +3,6 @@ RECURSE(
     blob
     bundle
     creds
-    custom_profile
     custom_profiling_operation
     databases
     gc

@@ -13,7 +13,6 @@ option go_package = "github.com/yandex/perforator/perforator/proto/custom_profil
 service CustomProfilingOperationService {
     rpc PollOperations(PollOperationsRequest) returns (PollOperationsResponse) {}
     rpc UpdateOperationStatus(UpdateOperationStatusRequest) returns (UpdateOperationStatusResponse) {}
-    rpc PushOperationProfile(PushOperationProfileRequest) returns (PushOperationProfileResponse) {}
 }
 
 message PollOperationsFilter {
@@ -198,18 +197,3 @@ message UpdateOperationStatusRequest {
 }
 
 message UpdateOperationStatusResponse {}
-
-message PushOperationProfileRequest {
-    NPerforator.NProto.NProfile.ProfileContainer Profile = 1;
-
-    google.protobuf.Timestamp StartTime = 2;
-    google.protobuf.Timestamp FinishTime = 3;
-
-    map<string, string> Labels = 4;
-
-    repeated string BuildIDs = 5;
-
-    string OperationID = 6;
-}
-
-message PushOperationProfileResponse {}

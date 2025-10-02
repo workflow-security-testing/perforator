@@ -10,9 +10,6 @@ import (
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarycompound "github.com/yandex/perforator/perforator/pkg/storage/binary/compound"
-	"github.com/yandex/perforator/perforator/pkg/storage/custom_profile"
-	custom_profiles_compound "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/compound"
-	custom_profiles_meta "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	cpo_factory "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation/factory"
 	"github.com/yandex/perforator/perforator/pkg/storage/databases"
@@ -41,7 +38,6 @@ type StorageBundle struct {
 	MicroscopeStorage               microscope.Storage
 	TaskStorage                     asynctask.TaskService
 	CustomProfilingOperationStorage custom_profiling_operation.Storage
-	CustomProfileStorage            custom_profile.Storage
 }
 
 // bgCtx should be valid for as long as databases are used
@@ -123,27 +119,6 @@ func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger,
 		}
 	}
 
-	if c.CustomProfileStorage != nil {
-		if res.DBs.S3Client == nil {
-			return nil, ErrS3StorageIsNotSpecified
-		}
-
-		opts, err := res.createOptsFromCustomProfileMetaStorageType(c.CustomProfileStorage.MetaStorageType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create custom profile storage options: %w", err)
-		}
-		opts = append(opts, custom_profiles_compound.WithS3(res.DBs.S3Client, c.CustomProfileStorage.S3Bucket))
-
-		res.CustomProfileStorage, err = custom_profiles_compound.NewStorage(
-			l,
-			reg,
-			opts...,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to init custom profiles storage: %w", err)
-		}
-	}
-
 	if c.TaskStorage != nil {
 		opts, err := res.createOptsFromTasksStorageType(c.TaskStorage.StorageType)
 		if err != nil {
@@ -175,19 +150,6 @@ func (b *StorageBundle) createOptsFromMetaStorageType(metaStorageType binarystor
 		opts = append(opts, binarycompound.WithPostgresMetaStorage(b.DBs.PostgresCluster))
 	default:
 		return nil, ErrMetaStorageIsNotSpecified
-	}
-
-	return opts, nil
-}
-
-func (b *StorageBundle) createOptsFromCustomProfileMetaStorageType(metaStorageType custom_profiles_meta.CustomProfileStorageType) ([]custom_profiles_compound.Option, error) {
-	opts := []custom_profiles_compound.Option{}
-	switch metaStorageType {
-	case custom_profiles_meta.Clickhouse:
-		if b.DBs.ClickhouseConn == nil {
-			return nil, ErrClickhouseConnNotSpecified
-		}
-		opts = append(opts, custom_profiles_compound.WithClickhouseMetaStorage(b.DBs.ClickhouseConn))
 	}
 
 	return opts, nil

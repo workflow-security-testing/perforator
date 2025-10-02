@@ -13,14 +13,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/yandex/perforator/library/go/core/metrics/nop"
-	custom_profiles_meta "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/meta"
-	profiles_mocks "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/mocks"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	operation_mocks "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation/mocks"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
-	"github.com/yandex/perforator/perforator/proto/profile"
 )
 
 const (
@@ -60,7 +57,6 @@ func createTestOperationForPod(id, pod string) *cpo_proto.Operation {
 func createTestService(
 	t *testing.T,
 	operationsMockStorage *operation_mocks.MockStorage,
-	profilesMockStorage *profiles_mocks.MockStorage,
 	longPollingTimeout time.Duration,
 ) *Service {
 	logger := xlog.ForTest(t)
@@ -72,7 +68,7 @@ func createTestService(
 		LongPollingTimeout: longPollingTimeout,
 	}
 
-	service, err := NewService(logger, reg, conf, operationsMockStorage, profilesMockStorage)
+	service, err := NewService(logger, reg, conf, operationsMockStorage)
 	require.NoError(t, err)
 	return service
 }
@@ -85,8 +81,7 @@ func TestService_PollOperations_Immediate(t *testing.T) {
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 2*time.Second)
+	service := createTestService(t, operationsMockStorage, 2*time.Second)
 
 	testOperations := []*cpo_proto.Operation{
 		createTestOperationForNode("op-node1-1", "node1"),
@@ -172,8 +167,7 @@ func TestService_PollOperations_ValidationErrors(t *testing.T) {
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 2*time.Second)
+	service := createTestService(t, operationsMockStorage, 2*time.Second)
 
 	testOperations := []*cpo_proto.Operation{
 		createTestOperationForNode("test-node-op", "test-node"),
@@ -225,9 +219,8 @@ func TestService_PollOperations_SingleClientLongPolling(t *testing.T) {
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
 	longPollingTimeout := 2 * time.Second
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, longPollingTimeout)
+	service := createTestService(t, operationsMockStorage, longPollingTimeout)
 
 	initialOperations := []*cpo_proto.Operation{
 		createTestOperationForNode("op-node2-1", "node2"),
@@ -347,9 +340,8 @@ func TestService_PollOperations_LongPolling_FastPath(t *testing.T) {
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
 	longPollingTimeout := 3 * time.Second
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, longPollingTimeout)
+	service := createTestService(t, operationsMockStorage, longPollingTimeout)
 
 	initialOperations := []*cpo_proto.Operation{
 		createTestOperationForNode("op-node-initial", "test-node"),
@@ -444,8 +436,7 @@ func TestService_PollOperations_MultipleAgentsLongPolling(t *testing.T) {
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 3*time.Second)
+	service := createTestService(t, operationsMockStorage, 3*time.Second)
 
 	agentsCount := 10
 
@@ -621,8 +612,7 @@ func TestService_UpdateOperationStatus_Success(t *testing.T) {
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 2*time.Second)
+	service := createTestService(t, operationsMockStorage, 2*time.Second)
 
 	operationID := "test-operation-id"
 	status := &cpo_proto.OperationStatus{
@@ -664,8 +654,7 @@ func TestService_UpdateOperationStatus_StorageError(t *testing.T) {
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 2*time.Second)
+	service := createTestService(t, operationsMockStorage, 2*time.Second)
 
 	operationID := "test-operation-id"
 	status := &cpo_proto.OperationStatus{
@@ -708,8 +697,7 @@ func TestService_UpdateOperationStatus_ValidationErrors(t *testing.T) {
 	defer cancel()
 
 	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 2*time.Second)
+	service := createTestService(t, operationsMockStorage, 2*time.Second)
 
 	operationsMockStorage.EXPECT().UpdateOperationStatus(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 
@@ -738,242 +726,6 @@ func TestService_UpdateOperationStatus_ValidationErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := service.UpdateOperationStatus(ctx, tt.req)
-
-			require.Error(t, err)
-			assert.Nil(t, resp)
-
-			assert.Contains(t, err.Error(), tt.expectedErr)
-			assert.Contains(t, err.Error(), "InvalidArgument")
-		})
-	}
-}
-
-func TestService_PushOperationProfile_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
-	defer cancel()
-
-	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 2*time.Second)
-
-	operationID := "test-operation-id"
-	profileID := "test-profile-id"
-	startTime := timestamppb.Now()
-	finishTime := timestamppb.New(startTime.AsTime().Add(5 * time.Minute))
-
-	testProfile := &profile.ProfileContainer{
-		Pprof: &profile.ProfileContainer_Payload{
-			CompressionMethod: profile.ProfileContainer_None,
-			Data:              []byte("test-profile-data"),
-		},
-	}
-
-	labels := map[string]string{
-		"version": "1.0.0",
-	}
-
-	buildIDs := []string{"build-1", "build-2"}
-
-	expectedMeta := &custom_profiles_meta.CustomProfileMeta{
-		OperationID:   operationID,
-		FromTimestamp: startTime.AsTime(),
-		ToTimestamp:   finishTime.AsTime(),
-		BuildIDs:      buildIDs,
-		Labels:        labels,
-	}
-
-	profilesMockStorage.EXPECT().
-		StoreCustomProfile(
-			gomock.Any(),
-			expectedMeta,
-			testProfile,
-		).
-		Return(profileID, nil).
-		Times(1)
-
-	req := &cpo_proto.PushOperationProfileRequest{
-		OperationID: operationID,
-		Profile:     testProfile,
-		StartTime:   startTime,
-		FinishTime:  finishTime,
-		Labels:      labels,
-		BuildIDs:    buildIDs,
-	}
-
-	resp, err := service.PushOperationProfile(ctx, req)
-
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-
-	assert.Equal(t, &cpo_proto.PushOperationProfileResponse{}, resp)
-}
-
-func TestService_PushOperationProfile_StorageError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
-	defer cancel()
-
-	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 2*time.Second)
-
-	operationID := "test-operation-id"
-	startTime := timestamppb.Now()
-	finishTime := timestamppb.New(startTime.AsTime().Add(5 * time.Minute))
-
-	testProfile := &profile.ProfileContainer{
-		Pprof: &profile.ProfileContainer_Payload{
-			CompressionMethod: profile.ProfileContainer_None,
-			Data:              []byte("test-profile-data"),
-		},
-	}
-
-	labels := map[string]string{}
-
-	buildIDs := []string{"build-1"}
-
-	expectedError := fmt.Errorf("storage error")
-	profilesMockStorage.EXPECT().
-		StoreCustomProfile(
-			gomock.Any(),
-			gomock.Any(),
-			testProfile,
-		).
-		Return("", expectedError).
-		Times(1)
-
-	req := &cpo_proto.PushOperationProfileRequest{
-		OperationID: operationID,
-		Profile:     testProfile,
-		StartTime:   startTime,
-		FinishTime:  finishTime,
-		Labels:      labels,
-		BuildIDs:    buildIDs,
-	}
-
-	resp, err := service.PushOperationProfile(ctx, req)
-
-	require.Error(t, err)
-	assert.Nil(t, resp)
-
-	// Should be Internal gRPC error with wrapped storage error
-	assert.Contains(t, err.Error(), "Internal")
-	assert.Contains(t, err.Error(), "failed to store custom profile")
-	assert.Contains(t, err.Error(), "storage error")
-}
-
-func TestService_PushOperationProfile_ValidationErrors(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
-	defer cancel()
-
-	operationsMockStorage := operation_mocks.NewMockStorage(ctrl)
-	profilesMockStorage := profiles_mocks.NewMockStorage(ctrl)
-	service := createTestService(t, operationsMockStorage, profilesMockStorage, 2*time.Second)
-
-	profilesMockStorage.EXPECT().StoreCustomProfile(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-
-	validStartTime := timestamppb.Now()
-	validFinishTime := timestamppb.New(validStartTime.AsTime().Add(5 * time.Minute))
-	validProfile := &profile.ProfileContainer{
-		Pprof: &profile.ProfileContainer_Payload{
-			CompressionMethod: profile.ProfileContainer_None,
-			Data:              []byte("test-profile-data"),
-		},
-	}
-
-	tests := []struct {
-		name        string
-		req         *cpo_proto.PushOperationProfileRequest
-		expectedErr string
-	}{
-		{
-			name:        "nil_request",
-			req:         nil,
-			expectedErr: "req is nil or req.Profile is nil",
-		},
-		{
-			name: "nil_profile",
-			req: &cpo_proto.PushOperationProfileRequest{
-				OperationID: "test-id",
-				Profile:     nil,
-				StartTime:   validStartTime,
-				FinishTime:  validFinishTime,
-			},
-			expectedErr: "req is nil or req.Profile is nil",
-		},
-		{
-			name: "empty_operation_id",
-			req: &cpo_proto.PushOperationProfileRequest{
-				OperationID: "",
-				Profile:     validProfile,
-				StartTime:   validStartTime,
-				FinishTime:  validFinishTime,
-			},
-			expectedErr: "req.OperationID is empty",
-		},
-		{
-			name: "nil_start_time",
-			req: &cpo_proto.PushOperationProfileRequest{
-				OperationID: "test-id",
-				Profile:     validProfile,
-				StartTime:   nil,
-				FinishTime:  validFinishTime,
-			},
-			expectedErr: "profile interval is not set",
-		},
-		{
-			name: "nil_finish_time",
-			req: &cpo_proto.PushOperationProfileRequest{
-				OperationID: "test-id",
-				Profile:     validProfile,
-				StartTime:   validStartTime,
-				FinishTime:  nil,
-			},
-			expectedErr: "profile interval is not set",
-		},
-		{
-			name: "zero_start_time",
-			req: &cpo_proto.PushOperationProfileRequest{
-				OperationID: "test-id",
-				Profile:     validProfile,
-				StartTime:   timestamppb.New(time.Time{}),
-				FinishTime:  validFinishTime,
-			},
-			expectedErr: "profile interval is not set",
-		},
-		{
-			name: "zero_finish_time",
-			req: &cpo_proto.PushOperationProfileRequest{
-				OperationID: "test-id",
-				Profile:     validProfile,
-				StartTime:   validStartTime,
-				FinishTime:  timestamppb.New(time.Time{}),
-			},
-			expectedErr: "profile interval is not set",
-		},
-		{
-			name: "start_after_finish",
-			req: &cpo_proto.PushOperationProfileRequest{
-				OperationID: "test-id",
-				Profile:     validProfile,
-				StartTime:   validFinishTime,
-				FinishTime:  validStartTime,
-			},
-			expectedErr: "profile interval is invalid",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := service.PushOperationProfile(ctx, tt.req)
 
 			require.Error(t, err)
 			assert.Nil(t, resp)

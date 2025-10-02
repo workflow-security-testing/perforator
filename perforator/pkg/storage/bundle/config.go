@@ -8,8 +8,7 @@ import (
 
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
 	binary "github.com/yandex/perforator/perforator/pkg/storage/binary"
-	custom_profiles "github.com/yandex/perforator/perforator/pkg/storage/custom_profile/compound"
-	custom_profiling_operation "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
+	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/storage/databases"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope"
 	profile "github.com/yandex/perforator/perforator/pkg/storage/profile"
@@ -21,7 +20,6 @@ type Config struct {
 	MicroscopeStorage               *microscope.MicroscopeStorageType                               `yaml:"microscope"`
 	TaskStorage                     *tasks.TasksConfig                                              `yaml:"tasks"`
 	CustomProfilingOperationStorage *custom_profiling_operation.CustomProfilingOperationStorageType `yaml:"custom_profiling_operation"`
-	CustomProfileStorage            *custom_profiles.Config                                         `yaml:"custom_profile"`
 
 	DBs databases.Config `yaml:"databases"`
 }
