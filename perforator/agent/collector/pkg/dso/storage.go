@@ -22,6 +22,7 @@ var (
 	ErrNoMainMapping    = errors.New("no main mapping")
 	ErrNoDSOMainMapping = errors.New("no dso structure for main mapping")
 	ErrNoBpfAllocation  = errors.New("no bpf allocation")
+	ErrNoTLSAtOffset    = errors.New("no tls at offset")
 )
 
 type Address = procfs.Address
@@ -185,7 +186,7 @@ func (d *Storage) ResolveAddress(ctx context.Context, pid linux.ProcessID, addre
 	}, nil
 }
 
-// resolve tls variable name by variable offset
+// Resolve tls variable name by variable offset.
 func (d *Storage) ResolveTLSName(ctx context.Context, pid linux.ProcessID, offset uint64) (string, error) {
 	m := d.findProcess(pid)
 	if m == nil {
@@ -211,7 +212,11 @@ func (d *Storage) ResolveTLSName(ctx context.Context, pid linux.ProcessID, offse
 	mainMap.DSO.bpfAllocation.TLSMutex.RLock()
 	defer mainMap.DSO.bpfAllocation.TLSMutex.RUnlock()
 
-	return mainMap.DSO.bpfAllocation.TLSMap[offset], nil
+	name, ok := mainMap.DSO.bpfAllocation.TLSMap[offset]
+	if !ok {
+		return "", ErrNoTLSAtOffset
+	}
+	return name, nil
 }
 
 // Get or create process maps.

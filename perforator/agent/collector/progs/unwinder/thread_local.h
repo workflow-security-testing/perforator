@@ -147,23 +147,27 @@ static ALWAYS_INLINE bool collect_tls_value(
 }
 
 static ALWAYS_INLINE void collect_tls_values(struct process_info* proc_info, struct tls_collect_result* result) {
-    if (proc_info == NULL || result == NULL) {
+    if (result == NULL) {
         return;
+    }
+
+    int resultIndex = 0;
+
+    if (proc_info == NULL) {
+        goto cleanup;
     }
 
     binary_id id = proc_info->main_binary_id;
     struct tls_binary_config* tls_config = bpf_map_lookup_elem(&tls_storage, &id);
     if (tls_config == NULL) {
-        return;
+        goto cleanup;
     }
 
     unsigned long tcb = get_tcb_pointer();
     BPF_TRACE("tls: read tcb %p", tcb);
 
-    int resultIndex = 0;
     for (int i = 0; i < MAX_TRACKED_THREAD_LOCALS_PER_BINARY; ++i) {
         if (tls_config->offsets[i] == 0) {
-            result->values[resultIndex].offset = 0;
             break;
         }
 
@@ -176,6 +180,7 @@ static ALWAYS_INLINE void collect_tls_values(struct process_info* proc_info, str
         resultIndex += collected;
     }
 
+cleanup:
     for (int i = resultIndex; i < MAX_TRACKED_THREAD_LOCALS_PER_BINARY; ++i) {
         result->values[i].offset = 0;
     }
