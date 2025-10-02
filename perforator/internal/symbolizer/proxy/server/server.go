@@ -1221,7 +1221,7 @@ func (s *PerforatorServer) MergeProfiles(
 		query.MaxSamples = uint64(req.MaxSamples)
 	}
 
-	if req.GetExperimental().GetEnableNewProfileMerger() {
+	if req.GetExperimental().GetEnableNewProfileMerger() || (s.c.FeaturesConfig.EnableNewProfileMerger != nil && *s.c.FeaturesConfig.EnableNewProfileMerger) {
 		s.l.Debug(ctx, "Merging profiles via new profile merger")
 		return s.fetchAndRenderProfileFast(ctx, req, query, targetEventType)
 	} else {

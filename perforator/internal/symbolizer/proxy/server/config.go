@@ -67,7 +67,8 @@ type ProfileMergerConfig struct {
 }
 
 type FeaturesConfig struct {
-	EnableCPOExperimental *bool `yaml:"enable_custom_profiling_operation"`
+	EnableCPOExperimental  *bool `yaml:"enable_custom_profiling_operation"`
+	EnableNewProfileMerger *bool `yaml:"enable_new_profile_merger"`
 }
 
 type Config struct {
@@ -111,5 +112,8 @@ func (c *Config) FillDefault() {
 	}
 	if c.FeaturesConfig.EnableCPOExperimental == nil {
 		c.FeaturesConfig.EnableCPOExperimental = ptr.Bool(false)
+	}
+	if c.FeaturesConfig.EnableNewProfileMerger == nil {
+		c.FeaturesConfig.EnableNewProfileMerger = ptr.Bool(false)
 	}
 }
