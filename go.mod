@@ -524,7 +524,7 @@ require (
 	github.com/jackc/pgtype v1.14.0
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v4 v4.18.3
-	github.com/jackc/pgx/v5 v5.7.4
+	github.com/jackc/pgx/v5 v5.7.6
 	github.com/jaegertracing/jaeger v1.48.0
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/jasonlvhit/gocron v0.0.0-20190121134850-6771d4b492ba

@@ -10556,8 +10556,8 @@ github.com/jackc/pgx/v4/log/zapadapter
 github.com/jackc/pgx/v4/log/zerologadapter
 github.com/jackc/pgx/v4/pgxpool
 github.com/jackc/pgx/v4/stdlib
-# github.com/jackc/pgx/v5 v5.7.4
-## explicit; go 1.21
+# github.com/jackc/pgx/v5 v5.7.6
+## explicit; go 1.23.0
 github.com/jackc/pgx/v5
 github.com/jackc/pgx/v5/examples/chat
 github.com/jackc/pgx/v5/examples/todo

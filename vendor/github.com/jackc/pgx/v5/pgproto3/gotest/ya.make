@@ -2,7 +2,7 @@ GO_TEST_FOR(vendor/github.com/jackc/pgx/v5/pgproto3)
 
 LICENSE(MIT)
 
-VERSION(v5.7.4)
+VERSION(v5.7.6)
 
 DATA(
     arcadia/vendor/github.com/jackc/pgx/v5/pgproto3/testdata
