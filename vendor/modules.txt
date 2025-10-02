@@ -18064,8 +18064,8 @@ golang.org/x/arch/x86/x86csv
 golang.org/x/arch/x86/x86map
 golang.org/x/arch/x86/x86spec
 golang.org/x/arch/x86/xeddata
-# golang.org/x/crypto v0.40.0
-## explicit; go 1.23.0
+# golang.org/x/crypto v0.42.0
+## explicit; go 1.24.0
 golang.org/x/crypto
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
@@ -18180,7 +18180,7 @@ golang.org/x/image/webp
 ## explicit; go 1.11
 # golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a
 ## explicit; go 1.18
-# golang.org/x/mod v0.26.0
+# golang.org/x/mod v0.27.0
 ## explicit; go 1.23.0
 golang.org/x/mod
 golang.org/x/mod/gosumcheck
@@ -18194,8 +18194,8 @@ golang.org/x/mod/sumdb/note
 golang.org/x/mod/sumdb/storage
 golang.org/x/mod/sumdb/tlog
 golang.org/x/mod/zip
-# golang.org/x/net v0.42.0
-## explicit; go 1.23.0
+# golang.org/x/net v0.44.0
+## explicit; go 1.24.0
 golang.org/x/net
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -18282,15 +18282,15 @@ golang.org/x/oauth2/uber
 golang.org/x/oauth2/vk
 golang.org/x/oauth2/yahoo
 golang.org/x/oauth2/yandex
-# golang.org/x/sync v0.16.0 => golang.org/x/sync v0.15.0
+# golang.org/x/sync v0.17.0 => golang.org/x/sync v0.15.0
 ## explicit; go 1.23.0
 golang.org/x/sync
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.34.0
-## explicit; go 1.23.0
+# golang.org/x/sys v0.36.0
+## explicit; go 1.24.0
 golang.org/x/sys
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -18304,7 +18304,7 @@ golang.org/x/sys/windows/svc/debug
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/example
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/telemetry v0.0.0-20250710130107-8d8967aff50b
+# golang.org/x/telemetry v0.0.0-20250807160809-1a19826ec488
 ## explicit; go 1.23.0
 golang.org/x/telemetry
 golang.org/x/telemetry/counter
@@ -18315,11 +18315,11 @@ golang.org/x/telemetry/internal/crashmonitor
 golang.org/x/telemetry/internal/mmap
 golang.org/x/telemetry/internal/telemetry
 golang.org/x/telemetry/internal/upload
-# golang.org/x/term v0.33.0
-## explicit; go 1.23.0
+# golang.org/x/term v0.35.0
+## explicit; go 1.24.0
 golang.org/x/term
-# golang.org/x/text v0.27.0
-## explicit; go 1.23.0
+# golang.org/x/text v0.29.0
+## explicit; go 1.24.0
 golang.org/x/text
 golang.org/x/text/cases
 golang.org/x/text/cmd/gotext
@@ -18386,7 +18386,7 @@ golang.org/x/text/width
 # golang.org/x/time v0.11.0
 ## explicit; go 1.23.0
 golang.org/x/time/rate
-# golang.org/x/tools v0.35.1-0.20250728180453-01a3475a31bc
+# golang.org/x/tools v0.36.0
 ## explicit; go 1.23.0
 golang.org/x/tools
 golang.org/x/tools/benchmark/parse
@@ -18518,6 +18518,7 @@ golang.org/x/tools/go/internal/gccgoimporter
 golang.org/x/tools/go/loader
 golang.org/x/tools/go/packages
 golang.org/x/tools/go/packages/gopackages
+golang.org/x/tools/go/packages/internal/linecount
 golang.org/x/tools/go/packages/internal/nodecount
 golang.org/x/tools/go/ssa
 golang.org/x/tools/go/ssa/interp

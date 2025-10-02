@@ -1,11 +1,11 @@
-GO_LIBRARY()
+GO_PROGRAM()
 
 LICENSE(BSD-3-Clause)
 
 VERSION(v0.36.0)
 
 SRCS(
-    tool.go
+    linecount.go
 )
 
 END()

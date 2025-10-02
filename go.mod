@@ -945,18 +945,18 @@ require (
 	go.withmatt.com/connect-brotli v0.4.0
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
-	golang.org/x/crypto v0.40.0
+	golang.org/x/crypto v0.42.0
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/image v0.25.0
-	golang.org/x/mod v0.26.0
-	golang.org/x/net v0.42.0
+	golang.org/x/mod v0.27.0
+	golang.org/x/net v0.44.0
 	golang.org/x/oauth2 v0.30.0
-	golang.org/x/sync v0.16.0
-	golang.org/x/sys v0.34.0
-	golang.org/x/term v0.33.0
-	golang.org/x/text v0.27.0
+	golang.org/x/sync v0.17.0
+	golang.org/x/sys v0.36.0
+	golang.org/x/term v0.35.0
+	golang.org/x/text v0.29.0
 	golang.org/x/time v0.11.0
-	golang.org/x/tools v0.35.1-0.20250728180453-01a3475a31bc
+	golang.org/x/tools v0.36.0
 	golang.org/x/tools/go/expect v0.1.1-deprecated
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 	golang.org/x/tools/gopls v0.20.0
@@ -2277,7 +2277,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
-	golang.org/x/telemetry v0.0.0-20250710130107-8d8967aff50b // indirect
+	golang.org/x/telemetry v0.0.0-20250807160809-1a19826ec488 // indirect
 	golang.org/x/vuln v1.1.4 // indirect
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f // indirect
 	gonum.org/v1/plot v0.14.0 // indirect
