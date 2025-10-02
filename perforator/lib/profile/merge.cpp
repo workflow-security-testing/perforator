@@ -134,6 +134,10 @@ public:
         return !DroppedLabelKeys_.contains(label.GetKey().GetIndex());
     }
 
+    bool AllowValueType(TValueType valueType) const {
+        return AllowedValueTypes_.empty() || AllowedValueTypes_.contains(valueType.GetIndex());
+    }
+
 private:
     bool SampleHasOneOfRequiredBinaries(TSample sample) const {
         if (RequiredOneOfBinaries_.empty()) {
@@ -174,6 +178,7 @@ private:
     void PopulateFilters() {
         PopulateSampleFilters();
         PopulateLabelFilters();
+        PopulateValueTypeFilters();
     }
 
     void PopulateSampleFilters() {
@@ -256,6 +261,23 @@ private:
         }
     }
 
+    void PopulateValueTypeFilters() {
+        if (Options_.value_type_filter().allowlist().empty()) {
+            return;
+        }
+
+        for (TValueType valueType : Profile_.ValueTypes()) {
+            for (TStringBuf allowedValueTypeName : Options_.value_type_filter().allowlist()) {
+                if (allowedValueTypeName.SkipPrefix(valueType.GetType().View()) &&
+                    allowedValueTypeName.SkipPrefix(".") &&
+                    allowedValueTypeName == valueType.GetUnit().View()
+                ) {
+                    AllowedValueTypes_.insert(valueType.GetIndex());
+                }
+            }
+        }
+    }
+
 private:
     TProfile Profile_;
     const NProto::NProfile::MergeOptions& Options_;
@@ -265,6 +287,7 @@ private:
     absl::flat_hash_map<TLabelId, ui32> RequiredAllOfLabels_;
     absl::flat_hash_set<TBinaryId> RequiredOneOfBinaries_;
     absl::flat_hash_set<TStringId> DroppedLabelKeys_;
+    absl::flat_hash_set<TValueTypeId> AllowedValueTypes_;
 };
 
 class TSingleProfileMerger {
@@ -297,6 +320,7 @@ public:
     void Merge() {
         MergeFeatures();
         MergeMetadata();
+        MergeBinaries();
         MergeSamples();
     }
 
@@ -326,6 +350,14 @@ private:
         }
     }
 
+    void MergeBinaries() {
+        // Some tools consider first binary/mapping as main.
+        // To improve stability we do something similar to how pprof merges profiles - main binary is inferred from first profile.
+        if (IsFirstProfile_ && Profile_.Binaries().Size() > 0) {
+            [[maybe_unused]] auto _ = MapBinary(Profile_.Binaries().Get(0));
+        }
+    }
+
     void MergeSamples() {
         for (TSample sample : Profile_.Samples()) {
             if (Policy_.AllowSample(sample)) {
@@ -344,16 +376,18 @@ private:
         builder.SetSampleKey(MapSampleKey(sample.GetKey()));
 
         for (i32 i = 0; i < sample.GetValueCount(); ++i) {
-            builder.AddValue(MapValueType(sample.GetValueType(i)), sample.GetValue(i));
+            auto valueType = sample.GetValueType(i);
+            if (Policy_.AllowValueType(valueType)) {
+                builder.AddValue(MapValueType(valueType), sample.GetValue(i));
+            }
         }
 
         builder.Finish();
     }
 
     TValueTypeId MapValueType(TValueType type) {
-        // TODO(sskvor): If different profiles have different value type sets,
-        // the process of merging should fail inside TProfileBuilder on the first
-        // call to "AddValueType" that follows calls to "AddSample".
+        // TODO(ayles) we do forbid appearance of new sample types after first sample,
+        // but it is still possible to consume sample with less value types that in previous one.
         return ValueTypes_.TryMap(type.GetIndex(), [&, this] {
             return Builder_.AddValueType(
                 MapString(type.GetType()),
@@ -493,9 +527,8 @@ private:
             auto builder = Builder_.AddBinary();
 
             builder.SetBuildId(MapString(binary.GetBuildId()));
-            if (!Policy_.IgnoreBinaryPaths()) {
-                builder.SetPath(MapString(binary.GetPath()));
-            }
+            builder.SetPath(MapString(binary.GetPath()));
+            builder.SetIgnoreBinaryPaths(Policy_.IgnoreBinaryPaths());
 
             return builder.Finish();
         });

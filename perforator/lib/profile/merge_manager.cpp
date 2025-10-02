@@ -25,8 +25,10 @@ NProto::NProfile::Profile TMergeSession::Finish() && {
 
 TMergeManager::TMergeManager(ui32 threadCount)
     : ThreadCount_{threadCount}
-    , Pool_{CreateThreadPool(threadCount)}
-{}
+    , Pool_{new TThreadPool()}
+{
+    Pool_->Start(threadCount);
+}
 
 THolder<TMergeSession> TMergeManager::StartSession(NProto::NProfile::MergeOptions options) {
     return THolder{new TMergeSession{{

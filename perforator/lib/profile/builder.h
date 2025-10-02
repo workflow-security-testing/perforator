@@ -238,7 +238,7 @@ public:
     TThreadId AddThread(const TThreadInfo& info);
 
     TBinaryBuilder AddBinary();
-    TBinaryId AddBinary(const TBinaryInfo& info);
+    TBinaryId AddBinary(const TBinaryInfo& key, const TBinaryInfo& value);
 
     TFunctionBuilder AddFunction();
     TFunctionId AddFunction(const TFunctionInfo& info);
@@ -391,11 +391,24 @@ public:
             return *this;
         }
 
+        TBinaryBuilder& SetIgnoreBinaryPaths(bool ignoreBinaryPaths) {
+            IgnoreBinaryPaths_ = ignoreBinaryPaths;
+            return *this;
+        }
+
         TBinaryId Finish() {
-            return Builder_.AddBinary(Info_);
+            if (IgnoreBinaryPaths_) {
+                return Builder_.AddBinary(TBinaryInfo {
+                    .BuildId = Info_.BuildId,
+                    .Path = Info_.BuildId == TStringId::Zero() ? Info_.Path : TStringId::Zero(),
+                }, Info_);
+            } else {
+                return Builder_.AddBinary(Info_, Info_);
+            }
         }
 
     private:
+        bool IgnoreBinaryPaths_ = false;
         TBinaryInfo Info_;
         TProfileBuilder& Builder_;
     };

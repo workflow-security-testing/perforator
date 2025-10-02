@@ -39,12 +39,13 @@ message MergeOptions {
     // multiple versions of similar binaries.
     optional bool merge_by_symbolized_names = 5 [default = false];
 
-    // If true, aggregate samples from binaries with the same build ID,
+    // If true (default), aggregate samples from binaries with the same build ID,
     // regardless of their file paths. The merged profile will not differentiate
-    // based on binary path if build IDs are identical. If false (default),
+    // based on binary path if build IDs are identical. If false,
     // binaries with different paths are treated as distinct, even with the same
     // build ID.
-    optional bool ignore_binary_paths = 6 [default = false];
+    // NOTE: Binaries without build IDs will still be differentiated by paths.
+    optional bool ignore_binary_paths = 6 [default = true];
 
     // If true (default), timestamps are disregarded during sample aggregation.
     // The resulting merged profile samples will not contain timestamps,
@@ -74,11 +75,11 @@ message MergeOptions {
     // limits.
     optional bool normalize_value_types = 100 [default = true];
 
-    // If true (default), sanitize thread and process names, e.g., by removing
+    // If true, sanitize thread and process names, e.g., by removing
     // trailing digits. This helps aggregate samples from thread/process pools
     // where names like "ThreadPoolWorker-123" would otherwise create many
     // unique entries.
-    optional bool cleanup_thread_names = 101 [default = true];
+    optional bool cleanup_thread_names = 101 [default = false];
 
     // Allows filtering of profile labels before merging. By default, sample
     // labels are stored as-is. Filtering can reduce merged profile size if
@@ -88,6 +89,9 @@ message MergeOptions {
     // Allows filtering of samples before merging, based on specific criteria.
     // This can reduce the final profile size and help focus on relevant data.
     optional SampleFilter sample_filter = 201;
+
+    // Allows filtering of value types before merging.
+    optional ValueTypeFilter value_type_filter = 202;
 }
 
 message LabelFilter {
@@ -112,4 +116,9 @@ message SampleFilter {
     // Samples will be included only if they contain all of these string labels
     // with the specified key-value pairs.
     map<string, string> required_all_of_string_labels = 3;
+}
+
+message ValueTypeFilter {
+  // Only specified value types will be merged to the final profile.
+  repeated string allowlist = 1;
 }

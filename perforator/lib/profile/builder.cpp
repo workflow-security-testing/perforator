@@ -200,8 +200,8 @@ public:
         return {Owner_};
     }
 
-    TBinaryId AddBinary(const TBinaryInfo& info) {
-        return Fetch(Binaries_, info);
+    TBinaryId AddBinary(const TBinaryInfo& key, const TBinaryInfo& value) {
+        return FetchImpl(Binaries_, key, value);
     }
 
     TFunctionBuilder AddFunction() {
@@ -255,7 +255,7 @@ public:
     TSampleKeyId AddSampleKey(const TSampleKeyInfo& info) {
         TSampleKeyId id = FetchHashedLossy(SampleKeyHashes_, info);
         if (ui32 idx = id.GetInternalIndex(); idx >= SampleByKeys_.size()) {
-            SampleByKeys_.resize(1 + id.GetInternalIndex() * 2, TSampleId::Invalid());
+            SampleByKeys_.resize(1 + idx * 2, TSampleId::Invalid());
         }
         return id;
     }
@@ -594,8 +594,8 @@ TProfileBuilder::TBinaryBuilder TProfileBuilder::AddBinary() {
     return Impl_->AddBinary();
 }
 
-TBinaryId TProfileBuilder::AddBinary(const TBinaryInfo& info) {
-    return Impl_->AddBinary(info);
+TBinaryId TProfileBuilder::AddBinary(const TBinaryInfo& key, const TBinaryInfo& value) {
+    return Impl_->AddBinary(key, value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

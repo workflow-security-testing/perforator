@@ -1240,7 +1240,7 @@ func (s *PerforatorServer) fetchAndRenderProfileFast(
 		return nil, fmt.Errorf("the new profile merger does not support sampling")
 	}
 
-	opts, err := makeMergeOptions(req, query)
+	opts, err := makeMergeOptions(req, query, eventType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build merge options: %w", err)
 	}
@@ -1291,15 +1291,28 @@ func (s *PerforatorServer) fetchAndRenderProfileFast(
 func makeMergeOptions(
 	req *perforator.MergeProfilesRequest,
 	query *meta.ProfileQuery,
+	targetEventType string,
 ) (*profileproto.MergeOptions, error) {
 	if req.MergeOptions == nil {
 		req.MergeOptions = &profileproto.MergeOptions{}
 	}
 	options := req.MergeOptions
 
+	if options.LabelFilter == nil {
+		options.LabelFilter = &profileproto.LabelFilter{}
+	}
+
 	if options.SampleFilter == nil {
 		options.SampleFilter = &profileproto.SampleFilter{}
 	}
+
+	if options.ValueTypeFilter == nil {
+		options.ValueTypeFilter = &profileproto.ValueTypeFilter{}
+	}
+
+	options.LabelFilter.SkippedKeyPrefixes = []string{"cgroup"}
+
+	options.ValueTypeFilter.Allowlist = []string{targetEventType}
 
 	err := samplefilter.FillProtoSampleFilter(query.Selector, options.SampleFilter)
 	if err != nil {
@@ -1323,6 +1336,7 @@ func (s *PerforatorServer) populateMergeSession(
 			if err != nil {
 				return err
 			}
+			// TODO(ayles) improve stability.
 			return session.AddPProfProfile(data)
 		})
 	}
