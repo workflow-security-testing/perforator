@@ -5512,7 +5512,7 @@
       "Docs": "https://pnpm.io/motivation",
       "pnpm in tier-0": "https://docs.yandex-team.ru/frontend-in-arcadia/references/toolchain_pnpm"
     },
-    "specifier": ">=10.12.3",
+    "specifier": "==10.14.0",
     "versions": {
       "10.14.0": {
         "add_date": "2025-09-02T06:39:40",
