@@ -1,5 +1,6 @@
 RECURSE(
     agent
+    binaryprocessor
     cli
     gc
     migrate

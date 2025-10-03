@@ -2,6 +2,7 @@ RECURSE(
     agent_gateway
     asyncfilecache
     asynctask
+    binaryprocessor
     buildinfo
     linguist
     logfield

@@ -255,7 +255,6 @@ func (s *Symbolizer) traceUnknownBinary(ctx context.Context, buildID string, ori
 func (s *Symbolizer) SymbolizeBatch(
 	ctx context.Context,
 	batch []*symbolizer.PerBinaryRequest,
-	opts *perforator.SymbolizeOptions,
 ) ([]*symbolizer.PerBinaryResponse, error) {
 	buildIDs, buildIDOffsets := getUniqueBuildIDsFromBatch(batch)
 
