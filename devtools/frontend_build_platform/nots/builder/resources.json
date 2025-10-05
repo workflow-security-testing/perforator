@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-09-18T17:21:59Z",
+    "created": "2025-10-05T17:00:50Z",
     "pr": {
-      "id": 9983120,
-      "author": "baymer",
-      "summary": "FBP-1978: nots: сделать `output.tar` как основной output сборочного модуля"
+      "id": 10227797,
+      "author": "vturov",
+      "summary": "FBP-2518: eslint / stylelint: extend node_path Изменения расширяют пути поиска модулей для eslint / stylelint, что позволит стилевым тестам работать нормально после выноса virtual store из node_modules. Необходимые изменения в jest будут внесены отдельно после дополнительных проверок."
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9760738429"
+      "uri": "sbr:9909041927"
     },
     "darwin-arm64": {
-      "uri": "sbr:9760736676"
+      "uri": "sbr:9909041240"
     },
     "linux": {
-      "uri": "sbr:9760741942"
+      "uri": "sbr:9909043206"
     },
     "linux-aarch64": {
-      "uri": "sbr:9760739881"
+      "uri": "sbr:9909042603"
     }
   }
 }
