@@ -10088,6 +10088,8 @@ github.com/hashicorp/terraform-exec/tfexec/internal/testutil
 # github.com/hashicorp/terraform-json v0.26.0
 ## explicit; go 1.21
 github.com/hashicorp/terraform-json
+github.com/hashicorp/terraform-json/cmd/round-trip-dumper
+github.com/hashicorp/terraform-json/sanitize
 # github.com/hashicorp/terraform-plugin-docs v0.15.0
 ## explicit; go 1.19
 github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
@@ -13998,6 +14000,7 @@ github.com/scim2/filter-parser/v2/internal/types
 github.com/sean-/seed
 # github.com/sebdah/goldie v1.0.0
 ## explicit; go 1.12
+github.com/sebdah/goldie
 # github.com/sebdah/goldie/v2 v2.7.1
 ## explicit; go 1.12
 github.com/sebdah/goldie/v2
