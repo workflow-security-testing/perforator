@@ -336,7 +336,9 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	// 2. sampling an AMD-specific event
 	// Thus, we have to create an additional perf-event, to which we only attach
 	// the LBR-collecting ebpf-program.
-	p.maybeInitializeAmdFam19hBRSPerfEvent()
+	if p.conf.BPF.TraceLBR != nil && *p.conf.BPF.TraceLBR && p.conf.BPF.TraceLBROnAMD != nil && *p.conf.BPF.TraceLBROnAMD {
+		p.maybeInitializeAmdFam19hBRSPerfEvent()
+	}
 
 	// Load common profile labels (e.g. nodename or cpu model).
 	err = p.setupCommonProfileLabels()

@@ -212,6 +212,9 @@ func (c *Config) FillDefault() {
 	if c.BPF.TraceLBR == nil {
 		c.BPF.TraceLBR = ptr.Bool(true)
 	}
+	if c.BPF.TraceLBROnAMD == nil {
+		c.BPF.TraceLBROnAMD = ptr.Bool(true)
+	}
 	if c.BPF.TraceWallTime == nil {
 		c.BPF.TraceWallTime = ptr.Bool(true)
 	}

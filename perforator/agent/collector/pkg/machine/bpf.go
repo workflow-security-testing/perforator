@@ -53,6 +53,8 @@ type Config struct {
 
 	// Collect LBR stacks.
 	TraceLBR *bool `yaml:"trace_lbr"`
+	// Collect BRS on AMD. Requires `trace_lbr`.
+	TraceLBROnAMD *bool `yaml:"trace_lbr_on_amd"`
 	// Trace potentially fatal signals.
 	TraceSignals *bool `yaml:"trace_signals"`
 	// Trace wall time.
