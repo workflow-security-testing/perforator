@@ -16021,6 +16021,11 @@ github.com/yandex-cloud/go-sdk/pkg/sdkerrors
 github.com/yandex-cloud/go-sdk/pkg/singleflight
 github.com/yandex-cloud/go-sdk/pkg/testutil
 github.com/yandex-cloud/go-sdk/sdkresolvers
+# github.com/yandex-cloud/kms-clients-go/yckmstink v0.0.0-20200608135605-a61de9ba71a6
+## explicit; go 1.13
+github.com/yandex-cloud/kms-clients-go/yckmstink
+github.com/yandex-cloud/kms-clients-go/yckmstink/examples/basic
+github.com/yandex-cloud/kms-clients-go/yckmstink/examples/envelope
 # github.com/yandex/pandora v0.5.3
 ## explicit; go 1.19
 github.com/yandex/pandora
