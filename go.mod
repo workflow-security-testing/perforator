@@ -233,7 +233,7 @@ require (
 	github.com/awalterschulze/gographviz v2.0.3+incompatible
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/aws/aws-sdk-go-v2 v1.39.0
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.3
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.4
 	github.com/aws/aws-sdk-go-v2/config v1.28.9
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.50
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.23
@@ -243,7 +243,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.24.3
 	github.com/aws/aws-sdk-go-v2/service/kms v1.31.0
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.23.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.58.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.60.1
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.28.6
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.64.4
 	github.com/aws/smithy-go v1.23.0
@@ -1200,7 +1200,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.15 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/appconfig v1.4.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.19.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.24.0 // indirect
@@ -1208,10 +1208,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.13.20 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.17 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.18 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.7.17 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.15 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.16 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.8 // indirect
