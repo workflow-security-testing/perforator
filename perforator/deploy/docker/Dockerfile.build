@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.ya/build,sharing=locked --mount=type=cache,
 
 ####################################################################################################################
 
-FROM ubuntu:24.04 AS autofdo_build
+FROM ubuntu:25.10 AS autofdo_build
 
 RUN apt update && \
  apt install -y libunwind-dev libgflags-dev libssl-dev libelf-dev protobuf-compiler \
