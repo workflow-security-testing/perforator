@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-10-05T17:00:50Z",
+    "created": "2025-10-07T04:25:28Z",
     "pr": {
-      "id": 10227797,
-      "author": "vturov",
-      "summary": "FBP-2518: eslint / stylelint: extend node_path Изменения расширяют пути поиска модулей для eslint / stylelint, что позволит стилевым тестам работать нормально после выноса virtual store из node_modules. Необходимые изменения в jest будут внесены отдельно после дополнительных проверок."
+      "id": 10210783,
+      "author": "zaverden",
+      "summary": "chore(conf+builder): remove experimental support for npm"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9909041927"
+      "uri": "sbr:9922627422"
     },
     "darwin-arm64": {
-      "uri": "sbr:9909041240"
+      "uri": "sbr:9922626501"
     },
     "linux": {
-      "uri": "sbr:9909043206"
+      "uri": "sbr:9922628663"
     },
     "linux-aarch64": {
-      "uri": "sbr:9909042603"
+      "uri": "sbr:9922628032"
     }
   }
 }
