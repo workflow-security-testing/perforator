@@ -54,6 +54,11 @@ COPY --from=autofdo_build /autofdo/autofdo/build/create_llvm_prof /perforator/cr
 
 ####################################################################################################################
 
+FROM base AS binproc
+COPY --from=build /out/perforator/bundle/binaryprocessor /perforator/binaryprocessor
+
+####################################################################################################################
+
 FROM base AS web
 COPY --from=build /out/perforator/bundle/web /perforator/web
 
