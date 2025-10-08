@@ -70,16 +70,19 @@ type Profiler struct {
 	eventListener  EventListener
 	initialTargets *initialTargets
 
-	bpf          *machine.BPF
-	eventmanager *perfevent.EventManager
-	mounts       *mountinfo.Watcher
-	kallsyms     *kallsyms.KallsymsResolver
-	events       map[perfevent.Type]*perfevent.EventBundle
-	debugmu      sync.Mutex
-	debugmode    bool
-	envWhitelist map[string]struct{}
-	progready    sync.Once
-	perfmap      *perfmap.Registry
+	bpf            *machine.BPF
+	eventmanager   *perfevent.EventManager
+	uprobeRegistry *uprobeRegistry
+	mounts         *mountinfo.Watcher
+	kallsyms       *kallsyms.KallsymsResolver
+	events         map[perfevent.Type]*perfevent.EventBundle
+	// uprobes which are created on Profiler startup
+	initialUprobes []*uprobeWrapper
+	debugmu        sync.Mutex
+	debugmode      bool
+	envWhitelist   map[string]struct{}
+	progready      sync.Once
+	perfmap        *perfmap.Registry
 
 	dsoStorage *dso.Storage
 	procs      *process.ProcessRegistry
@@ -316,11 +319,17 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to initialize perf event subsystem: %w", err)
 	}
 
+	// Prepare uprobe registry
+	p.uprobeRegistry = newUprobeRegistry(p.bpf)
+
 	// Setup system-wide perf events
 	err = p.setupPerfEvents()
 	if err != nil {
 		return fmt.Errorf("failed to setup perf events: %w", err)
 	}
+
+	// Setup configured uprobes
+	p.setupUprobes()
 
 	// Link perf events with the eBPF program.
 	err = p.installPerfEventBPF()
@@ -542,6 +551,18 @@ func (p *Profiler) installPerfEventBPF() error {
 	return nil
 }
 
+func (p *Profiler) setupUprobes() {
+	uprobeConfigs := p.conf.Uprobes
+	if len(uprobeConfigs) == 0 {
+		uprobeConfigs = p.conf.BPF.UprobesDeprecated
+	}
+
+	for _, conf := range uprobeConfigs {
+		uprobe := p.uprobeRegistry.create(conf)
+		p.initialUprobes = append(p.initialUprobes, uprobe)
+	}
+}
+
 func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
 	if !(cpuid.CPU.VendorID == cpuid.AMD && cpuid.CPU.Family == 0x19) {
 		// Family19h is Zen 3, Zen 3+ and Zen 4 (https://en.wikipedia.org/wiki/List_of_AMD_CPU_microarchitectures)
@@ -758,6 +779,11 @@ func (p *Profiler) Start(ctx context.Context) error {
 	err := p.enablePerfEvents()
 	if err != nil {
 		return fmt.Errorf("failed to enable perf events: %w", err)
+	}
+
+	err = p.uprobeRegistry.attachAll()
+	if err != nil {
+		return fmt.Errorf("failed to attach uprobes: %w", err)
 	}
 
 	p.wg, ctx = errgroup.WithContext(ctx)
@@ -1153,6 +1179,11 @@ func (p *Profiler) SetDebugMode(debug bool) (err error) {
 
 	p.log.Warn("Toggling debug mode", log.Bool("enabled", debug))
 
+	err = p.uprobeRegistry.detachAll()
+	if err != nil {
+		return fmt.Errorf("failed to detach uprobes: %w", err)
+	}
+
 	err = p.bpf.ReloadProgram(debug)
 	if err != nil {
 		return fmt.Errorf("failed to reload program: %w", err)
@@ -1166,6 +1197,11 @@ func (p *Profiler) SetDebugMode(debug bool) (err error) {
 	err = p.enablePerfEvents()
 	if err != nil {
 		return fmt.Errorf("failed to enable perf events: %w", err)
+	}
+
+	err = p.uprobeRegistry.attachAll()
+	if err != nil {
+		return fmt.Errorf("failed to attach uprobes: %w", err)
 	}
 
 	return err
@@ -1192,20 +1228,38 @@ func (p *Profiler) Storage() client.Storage {
 }
 
 func (p *Profiler) Close() error {
+	err := p.uprobeRegistry.detachAll()
+	if err != nil {
+		return fmt.Errorf("failed to detach uprobes: %w", err)
+	}
+
+	for _, uprobe := range p.initialUprobes {
+		err := uprobe.close()
+		if err != nil {
+			return fmt.Errorf("failed to close uprobe: %w", err)
+		}
+	}
+
 	return p.bpf.Close()
 }
 
 func (p *Profiler) Stop(ctx context.Context) error {
 	// Shutdown sequence:
 	// 1. Disable any active perf events.
-	// 2. Disable any active eBPF program.
-	// 3. Drain sample queue
-	// 4. Drain profile queue
-	// 5. Abort any running background job (e.g. process, mountinfo and cgroup pollers)
+	// 2. Detach any active uprobes
+	// 3. Disable any active eBPF program.
+	// 4. Drain sample queue
+	// 5. Drain profile queue
+	// 6. Abort any running background job (e.g. process, mountinfo and cgroup pollers)
 
 	err := p.disablePerfEvents()
 	if err != nil {
 		p.log.Error("Failed to disable perf events", log.Error(err))
+	}
+
+	err = p.uprobeRegistry.detachAll()
+	if err != nil {
+		return fmt.Errorf("failed to detach uprobes: %w", err)
 	}
 
 	err = p.bpf.UnlinkPrograms()

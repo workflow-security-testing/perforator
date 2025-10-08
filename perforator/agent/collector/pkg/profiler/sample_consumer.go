@@ -12,9 +12,9 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/uprobe"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -531,7 +531,7 @@ func (c *SampleConsumer) resolveUprobe(ctx context.Context) *uprobe.UprobeInfo {
 		return nil
 	}
 
-	return c.p.bpf.UprobeRegistry().ResolveUprobe(uprobe.Key{
+	return c.p.uprobeRegistry.Resolve(uprobe.BinaryInfo{
 		Offset:  topStackIP - mapping.Begin + mapping.Offset,
 		BuildID: mapping.BuildInfo.BuildID,
 	})

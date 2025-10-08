@@ -29,9 +29,9 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/config"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/uprobe"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/cli"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/server"
@@ -223,7 +223,7 @@ func parseSymbol(symbolNotation string) (symbol string, offset uint64, err error
 	return
 }
 
-func parseUprobeConfigsFromEvent(event string, pids []int) ([]machine.UprobeConfig, error) {
+func parseUprobeConfigsFromEvent(event string, pids []int) ([]uprobe.Config, error) {
 	uprobeStr := strings.TrimPrefix(event, sampletype.UprobeSampleTypePrefix)
 	parts := strings.SplitN(uprobeStr, ":", 2)
 	if len(parts) != 2 {
@@ -238,16 +238,14 @@ func parseUprobeConfigsFromEvent(event string, pids []int) ([]machine.UprobeConf
 		return nil, fmt.Errorf("failed to parse symbol: %w", err)
 	}
 
-	baseUprobeConfig := machine.UprobeConfig{
-		Config: uprobe.Config{
-			Path:        binaryPath,
-			Symbol:      symbol,
-			LocalOffset: offset,
-			SampleType:  event,
-		},
+	baseUprobeConfig := uprobe.Config{
+		Path:        binaryPath,
+		Symbol:      symbol,
+		LocalOffset: offset,
+		SampleType:  event,
 	}
 
-	result := make([]machine.UprobeConfig, 0, len(pids))
+	result := make([]uprobe.Config, 0, len(pids))
 	for _, pid := range pids {
 		result = append(result, baseUprobeConfig)
 		result[len(result)-1].Pid = pid
@@ -279,34 +277,9 @@ func parsePerfEvent(event string, opts *recordOptions) (*config.PerfEventConfig,
 	return &cfg, nil
 }
 
-func parseUprobeConfigFromEvent(event string) (machine.UprobeConfig, error) {
-	uprobeStr := strings.TrimPrefix(event, sampletype.UprobeSampleTypePrefix)
-	parts := strings.SplitN(uprobeStr, ":", 2)
-	if len(parts) != 2 {
-		return machine.UprobeConfig{}, ErrInvalidUprobeFormat
-	}
-
-	binaryPath := parts[0]
-	symbolPart := parts[1]
-
-	symbol, offset, err := parseSymbol(symbolPart)
-	if err != nil {
-		return machine.UprobeConfig{}, fmt.Errorf("failed to parse symbol: %w", err)
-	}
-
-	return machine.UprobeConfig{
-		Config: uprobe.Config{
-			Path:        binaryPath,
-			Symbol:      symbol,
-			LocalOffset: offset,
-			SampleType:  event,
-		},
-	}, nil
-}
-
 type events struct {
 	perfEvents []config.PerfEventConfig
-	uprobes    []machine.UprobeConfig
+	uprobes    []uprobe.Config
 }
 
 func parseEvents(opts *recordOptions) (events events, err error) {
@@ -346,7 +319,7 @@ func parseEvents(opts *recordOptions) (events events, err error) {
 	if len(events.uprobes) > 1 {
 		// Make single sample type for all uprobes for easier default sample type deduction
 		for i := 0; i < len(events.uprobes); i++ {
-			events.uprobes[i].Config.SampleType = sampletype.SampleTypeUprobe
+			events.uprobes[i].SampleType = sampletype.SampleTypeUprobe
 		}
 	}
 
@@ -373,7 +346,6 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 			TraceLBR:      ptr.Bool(false),
 			TraceSignals:  ptr.Bool(opts.signals),
 			TraceWallTime: ptr.Bool(opts.walltime),
-			Uprobes:       events.uprobes,
 		},
 		ProcessDiscovery: config.ProcessDiscoveryConfig{
 			IgnoreUnrelatedProcesses: true,
@@ -385,6 +357,7 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 			PerfBufferWatermark: ptr.Int(0),
 		},
 		PerfEvents:        events.perfEvents,
+		Uprobes:           events.uprobes,
 		EnablePerfMaps:    ptr.Bool(!opts.disablePerfMap),
 		EnablePerfMapsJVM: ptr.Bool(!opts.disablePerfMapJVM),
 		FeatureFlagsConfig: config.FeatureFlagsConfig{
