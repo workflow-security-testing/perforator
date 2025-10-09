@@ -799,6 +799,7 @@ require (
 	github.com/vrischmann/envconfig v1.3.0
 	github.com/wI2L/jsondiff v0.6.0
 	github.com/walkerus/go-wiremock v1.3.0
+	github.com/weppos/publicsuffix-go v0.50.0
 	github.com/wk8/go-win-iscsidsc v0.0.0-20190724224204-4e4ffe953c77
 	github.com/wneessen/go-mail v0.5.2
 	github.com/wundergraph/astjson v0.0.0-20250106123708-be463c97e083
@@ -2190,8 +2191,6 @@ require (
 	github.com/vultr/govultr v1.1.1 // indirect
 	github.com/vultr/govultr/v2 v2.17.2 // indirect
 	github.com/wadey/gocovmerge v0.0.0-20160331181800-b5bfa59ec0ad // indirect
-	github.com/weppos/publicsuffix-go v0.30.0 // indirect
-	github.com/weppos/publicsuffix-go/publicsuffix/generator v0.0.0-20220927085643-dc0d00c92642 // indirect
 	github.com/willf/bitset v1.1.11 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0 // indirect
