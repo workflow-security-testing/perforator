@@ -55,9 +55,10 @@ var (
 )
 
 type recordOptions struct {
-	logLevel string
-	duration time.Duration
-	debug    bool
+	logLevel  string
+	logFormat string
+	duration  time.Duration
+	debug     bool
 
 	pids        []int
 	tids        []int
@@ -87,6 +88,7 @@ type recordOptions struct {
 
 func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.logLevel, "log-level", "l", "info", "Set log level")
+	cmd.Flags().StringVar(&o.logFormat, "log-format", "text", "Set log format (text for human-readable output, json for newline-delimited JSON)")
 	cmd.Flags().IntSliceVarP(&o.pids, "pid", "p", nil, "Process id(s) to profile")
 	cmd.Flags().IntSliceVarP(&o.tids, "tid", "t", nil, "Thread id(s) to profile")
 	cmd.Flags().StringSliceVarP(&o.cgroups, "cgroup", "G", nil, "Paths of cgroups to profile")
@@ -142,6 +144,7 @@ func record(opts *recordOptions, args []string) error {
 			URL: opts.uploadURL,
 		}
 	}
+	cliconf.LogFormat = opts.logFormat
 
 	app, err := cli.New(cliconf)
 	if err != nil {
