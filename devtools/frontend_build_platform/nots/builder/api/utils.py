@@ -43,8 +43,11 @@ def extract_all_output_tars(moddir_abs: str, visited: set[str] = set()):
         return
 
     visited.add(moddir_abs)
-    _extract_output_tar(moddir_abs)
-    extract_peer_tars(moddir_abs, visited)
+    try:
+        _extract_output_tar(moddir_abs)
+        extract_peer_tars(moddir_abs, visited)
+    except Exception as e:
+        eprint(f"could not extract output tar for {moddir_abs}: {e}")
 
 
 @timeit
