@@ -7,6 +7,7 @@ RECURSE(
     linguist
     logfield
     offline_processing
+    servicediscovery
     symbolizer
     unwinder
     web

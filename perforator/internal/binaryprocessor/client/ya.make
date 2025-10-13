@@ -1,10 +1,8 @@
 GO_LIBRARY()
 
 SRCS(
-    binaryprocessor.go
+    client.go
     config.go
 )
 
 END()
-
-RECURSE(client)
