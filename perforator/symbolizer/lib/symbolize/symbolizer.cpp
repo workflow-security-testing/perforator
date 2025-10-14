@@ -2,14 +2,13 @@
 
 #include <perforator/lib/llvmex/llvm_elf.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
-#include <perforator/lib/rustc_demangle/demangle.h>
+#include <perforator/lib/demangle/demangle.h>
 
 #include <library/cpp/logger/global/global.h>
 #include <library/cpp/iterator/enumerate.h>
 
 #include <util/charset/wide.h>
 #include <util/generic/algorithm.h>
-#include <util/generic/deque.h>
 #include <util/generic/hash.h>
 #include <util/generic/vector.h>
 #include <util/stream/format.h>
@@ -84,38 +83,6 @@ ui64 CalcOffsetForModule(TStringBuf moduleName) {
 }
 
 } // anonymous namespace
-
-std::string DemangleFunctionName(const std::string& name) {
-    auto demangled = llvm::symbolize::LLVMSymbolizer::DemangleName(name, nullptr);
-    demangled = NDemangle::MaybeDemangleRustcName(std::move(demangled));
-    return demangled;
-}
-
-std::string CleanupFunctionName(std::string&& name) {
-    // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#mangling-structure
-    // If the name looks like a mangled name, remove vendor-specific suffix from it
-    // (for example, llvm's LTO adds .llvm.<sone hash>, gcc adds .isra/.part etc)
-    if (name.starts_with("_Z")) {
-        const auto vendorSpecificSuffixStart = name.find('.');
-        if (vendorSpecificSuffixStart != std::string::npos) {
-            name = name.substr(0, vendorSpecificSuffixStart);
-        }
-    } else {
-        // Otherwise, try to remove llvm's LTO suffix,
-        // which could be added to C (hence not mangled) names just as well
-        static const auto toErase = [] () {
-            std::deque<re2::RE2> patterns;
-            Y_ENSURE(patterns.emplace_back(R"(\.llvm\.[0-9a-f]+)").ok());
-            return patterns;
-        }();
-        for (const auto& pattern : toErase) {
-             Y_ENSURE(pattern.ok(), "Failed to compile regex");
-             re2::RE2::Replace(&name, pattern, "");
-        }
-    }
-
-    return std::move(name);
-}
 
 TCodeSymbolizer::TCodeSymbolizer()
     : Symbolizer_{llvm::symbolize::LLVMSymbolizer::Options{
@@ -300,11 +267,10 @@ ui64 TLocationSymbolizer::AddFunction(
     TString&& fileName,
     ui32 startLine
 ) {
-    std::string demangledName = DemangleFunctionName(functionName);
-    std::string cleanFunctionName = CleanupFunctionName(std::move(demangledName));
+    std::string demangledName = NDemangle::Demangle(functionName);
 
     Profile_.add_string_table(std::move(functionName));
-    Profile_.add_string_table(std::move(cleanFunctionName));
+    Profile_.add_string_table(std::move(demangledName));
     Profile_.add_string_table(std::move(fileName));
 
     NPerforator::NProto::NPProf::Function* func = Profile_.add_function();

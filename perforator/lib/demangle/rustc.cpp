@@ -1,4 +1,4 @@
-#include "demangle.h"
+#include "rustc.h"
 
 #include <util/charset/wide.h>
 #include <util/generic/algorithm.h>
@@ -13,7 +13,7 @@ namespace NPerforator::NDemangle {
 // See https://github.com/rust-lang/rustc-demangle/blob/main/src/legacy.rs
 static constexpr size_t rustcHashSuffixLength = 16 + 1 + 2; // ::h + 16 hex digits
 
-bool LooksLikeRustLegacySymbol(TStringBuf symbol) {
+static bool LooksLikeRustLegacySymbol(TStringBuf symbol) {
     TStringBuf hash = symbol.Last(rustcHashSuffixLength);
     if (hash.size() != rustcHashSuffixLength) {
         return false;
@@ -27,7 +27,7 @@ bool LooksLikeRustLegacySymbol(TStringBuf symbol) {
 }
 
 // See https://github.com/rust-lang/rustc-demangle/blob/83f1bbd6793a2dbd5fa94b185a0cd9bb98d8332f/src/legacy.rs#L144-L153
-TMaybe<char32_t> UnescapeDollaredChar(TStringBuf str) {
+static TMaybe<char32_t> UnescapeDollaredChar(TStringBuf str) {
     if (str.SkipPrefix("u")) {
         ui32 result{};
         if (TryIntFromString<16>(str, result)) {
@@ -60,7 +60,7 @@ struct TUndollaredCodepoint {
     char32_t Unescaped;
 };
 
-TMaybe<TUndollaredCodepoint> ChopDollaredChar(TStringBuf symbol) {
+static TMaybe<TUndollaredCodepoint> ChopDollaredChar(TStringBuf symbol) {
     if (!symbol.SkipPrefix("$")) {
         return Nothing();
     }
@@ -82,7 +82,7 @@ TMaybe<TUndollaredCodepoint> ChopDollaredChar(TStringBuf symbol) {
     };
 }
 
-std::string MaybeDemangleRustcName(std::string&& func) {
+std::string MaybePostprocessLegacyRustSymbol(std::string&& func) {
     if (!LooksLikeRustLegacySymbol(func)) {
         return std::move(func);
     }
@@ -102,6 +102,10 @@ std::string MaybeDemangleRustcName(std::string&& func) {
             } else {
                 func[pos++] = c;
             }
+        } else if (c == '.' && func[i + 1] == '.') {
+            func[pos++] = ':';
+            func[pos++] = ':';
+            i += 1;
         } else {
             func[pos++] = c;
         }
