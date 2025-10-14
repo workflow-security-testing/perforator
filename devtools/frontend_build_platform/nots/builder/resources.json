@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-10-07T04:25:28Z",
+    "created": "2025-10-10T19:32:25Z",
     "pr": {
-      "id": 10210783,
-      "author": "zaverden",
-      "summary": "chore(conf+builder): remove experimental support for npm"
+      "id": 10203687,
+      "author": "vturov",
+      "summary": "FBP-1712: jest: use install-node-modules recipe"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9922627422"
+      "uri": "sbr:9966719855"
     },
     "darwin-arm64": {
-      "uri": "sbr:9922626501"
+      "uri": "sbr:9966718795"
     },
     "linux": {
-      "uri": "sbr:9922628663"
+      "uri": "sbr:9966722192"
     },
     "linux-aarch64": {
-      "uri": "sbr:9922628032"
+      "uri": "sbr:9966720809"
     }
   }
 }
