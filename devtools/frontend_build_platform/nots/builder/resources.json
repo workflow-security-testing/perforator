@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-10-10T19:32:25Z",
+    "created": "2025-10-14T17:00:52Z",
     "pr": {
-      "id": 10203687,
-      "author": "vturov",
-      "summary": "FBP-1712: jest: use install-node-modules recipe"
+      "id": 10322765,
+      "author": "baymer",
+      "summary": "FBP-2518: remove the first pnpm install"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9966719855"
+      "uri": "sbr:9996279666"
     },
     "darwin-arm64": {
-      "uri": "sbr:9966718795"
+      "uri": "sbr:9996277905"
     },
     "linux": {
-      "uri": "sbr:9966722192"
+      "uri": "sbr:9996283158"
     },
     "linux-aarch64": {
-      "uri": "sbr:9966720809"
+      "uri": "sbr:9996281365"
     }
   }
 }
