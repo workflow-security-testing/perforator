@@ -188,6 +188,7 @@ require (
 	github.com/NVIDIA/mig-parted v0.8.0
 	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
+	github.com/NoL1m1ts/go-oapi-merge v1.1.2
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.31

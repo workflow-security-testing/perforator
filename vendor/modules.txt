@@ -3677,6 +3677,10 @@ github.com/Nerzal/gocloak/v13/pkg/jwx
 # github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 ## explicit; go 1.13
 github.com/Netflix/go-expect
+# github.com/NoL1m1ts/go-oapi-merge v1.1.2
+## explicit; go 1.23
+github.com/NoL1m1ts/go-oapi-merge
+github.com/NoL1m1ts/go-oapi-merge/merge
 # github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5
 ## explicit
 github.com/Nvveen/Gotty
