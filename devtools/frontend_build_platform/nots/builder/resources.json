@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-10-14T17:00:52Z",
+    "created": "2025-10-14T22:06:53.877Z",
     "pr": {
-      "id": 10322765,
+      "id": 10289610,
       "author": "baymer",
-      "summary": "FBP-2518: remove the first pnpm install"
+      "summary": "FBP-2579: другое: Вычислять папочку .nots на основе прав на запись"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9996279666"
+      "uri": "sbr:9998425429"
     },
     "darwin-arm64": {
-      "uri": "sbr:9996277905"
+      "uri": "sbr:9998424219"
     },
     "linux": {
-      "uri": "sbr:9996283158"
+      "uri": "sbr:9998427343"
     },
     "linux-aarch64": {
-      "uri": "sbr:9996281365"
+      "uri": "sbr:9998426333"
     }
   }
 }
