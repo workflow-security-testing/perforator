@@ -622,7 +622,7 @@ require (
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/olivere/elastic/v7 v7.0.32
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/ginkgo/v2 v2.22.1
+	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
 	github.com/open-policy-agent/opa v1.1.0
 	github.com/openai/openai-go v1.12.0
@@ -787,6 +787,8 @@ require (
 	github.com/urfave/cli v1.22.16
 	github.com/urfave/cli/v2 v2.27.6
 	github.com/valkey-io/valkey-go v1.0.60
+	github.com/valkey-io/valkey-go/mock v1.0.60
+	github.com/valkey-io/valkey-go/valkeycompat v1.0.60
 	github.com/valyala/fastjson v1.6.4
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vbauerster/mpb v3.4.0+incompatible

@@ -12290,7 +12290,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/ginkgo/v2 v2.22.1
+# github.com/onsi/ginkgo/v2 v2.22.2
 ## explicit; go 1.22.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -15448,6 +15448,12 @@ github.com/valkey-io/valkey-go/hack/cmds
 github.com/valkey-io/valkey-go/internal/cmds
 github.com/valkey-io/valkey-go/internal/util
 github.com/valkey-io/valkey-go/valkeylock
+# github.com/valkey-io/valkey-go/mock v1.0.60
+## explicit; go 1.23.0
+github.com/valkey-io/valkey-go/mock
+# github.com/valkey-io/valkey-go/valkeycompat v1.0.60
+## explicit; go 1.23.0
+github.com/valkey-io/valkey-go/valkeycompat
 # github.com/valyala/bytebufferpool v1.0.0
 ## explicit
 github.com/valyala/bytebufferpool
