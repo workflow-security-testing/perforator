@@ -64,6 +64,10 @@ var (
 			if err != nil {
 				return err
 			}
+			if err := conf.Validate(); err != nil {
+				return err
+			}
+			conf.FillDefault()
 
 			reg := xmetrics.NewRegistry(
 				xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),

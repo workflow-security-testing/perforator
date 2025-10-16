@@ -3,6 +3,7 @@ GO_LIBRARY()
 SRCS(
     config.go
     discoverer.go
+    dns.go
     newdiscoverer.go
     predefined.go
 )

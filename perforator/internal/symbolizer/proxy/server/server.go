@@ -169,8 +169,6 @@ func NewPerforatorServer(
 	l xlog.Logger,
 	reg xmetrics.Registry,
 ) (server *PerforatorServer, err error) {
-	conf.FillDefault()
-
 	ctx := context.Background()
 
 	// Setup OpenTelemetry tracing.

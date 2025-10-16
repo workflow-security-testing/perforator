@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -150,11 +151,19 @@ func (r *DistributingClient) excludeUndiscoveredEndpoints(ctx context.Context, d
 
 func (r *DistributingClient) Run(ctx context.Context) error {
 	for {
-		endpoints, err := r.discoverer.Discover(ctx)
+		discoverCtx, discoverCancel := context.WithTimeoutCause(
+			ctx,
+			r.c.ServiceDiscoveryConfig.DiscoverTimeout,
+			errors.New("binary processor distributing client: service discovery attempt's timeout exceeded"),
+		)
+		defer discoverCancel()
+		endpoints, err := r.discoverer.Discover(discoverCtx)
 
 		if err != nil {
-			r.l.Error(ctx, "Failed to discover endpoints", log.Error(err))
-		} else {
+			r.l.Error(ctx, "Error during service discovery", log.Error(err))
+		}
+
+		if endpoints != nil {
 			// add new endpoints
 			endpointClients := make([]*endpointClient, 0)
 			for _, endpoint := range endpoints {
@@ -185,7 +194,7 @@ func (r *DistributingClient) Run(ctx context.Context) error {
 		}
 
 		select {
-		case <-time.After(r.c.ServiceDiscoveryConfig.RequestInterval):
+		case <-time.After(r.c.ServiceDiscoveryConfig.DiscoverInterval):
 		case <-ctx.Done():
 			return ctx.Err()
 		}

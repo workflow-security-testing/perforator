@@ -17,3 +17,7 @@ func (c *Config) FillDefault() {
 		c.MaxRetries = defaultHopsLimit
 	}
 }
+
+func (c *Config) Validate() error {
+	return c.ServiceDiscoveryConfig.Validate()
+}

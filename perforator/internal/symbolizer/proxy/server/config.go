@@ -1,6 +1,8 @@
 package server
 
 import (
+	"errors"
+	"fmt"
 	"math"
 	"os"
 	"time"
@@ -130,4 +132,17 @@ func (c *Config) FillDefault() {
 		c.BinaryProcessorClientConfig != nil {
 		c.BinaryProcessorClientConfig.FillDefault()
 	}
+}
+
+func newInvalidFieldError(fieldName string, err error) error {
+	return fmt.Errorf("field `%s` is invalid: %w", fieldName, err)
+}
+
+func (c *Config) Validate() error {
+	var errs []error
+	if err := c.BinaryProcessorClientConfig.Validate(); err != nil {
+		errs = append(errs, newInvalidFieldError("binary_processor_client", err))
+	}
+
+	return errors.Join(errs...)
 }
