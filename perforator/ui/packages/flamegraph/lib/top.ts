@@ -1,3 +1,4 @@
+import { createCleanupFn } from './cleanup';
 import type { FormatNode, ProfileData, StringifiableFields } from './models/Profile';
 
 import { FlamegraphOffseter, type Coordinate, type H, type I } from './renderer';
@@ -45,7 +46,7 @@ function populateWithSelfEventCount(rows: ProfileData['rows']) {
     }
 }
 
-function populateWithChildren(rows: ProfileData['rows']) {
+export function populateWithChildrenSets(rows: ProfileData['rows']) {
     for (let h = rows.length - 1; h > 0; h--) {
         const row = rows[h];
         for (let i = 0; i < row.length; i++) {
@@ -57,6 +58,8 @@ function populateWithChildren(rows: ProfileData['rows']) {
         }
     }
 }
+
+const clearChildrenSets = createCleanupFn('childrenIndices')
 
 type FunctionTop = Record<TopKeys, number> & Pick<FormatNode, StringifiableFields | 'inlined'> &
 { shortestPath?: I[] }
@@ -98,12 +101,13 @@ export function calculateTop(rows: ProfileData['rows'], stringTableLength: numbe
     }
 
     populateWithSelfEventCount(rows);
-    populateWithChildren(rows);
+    populateWithChildrenSets(rows);
     fg.prerenderOffsets(1000, opts.rootCoords, opts.omitted, null, false, [{run: visitor}])
 
 
     calcTotalTime(res, rows, getNodeKey, opts.rootCoords);
 
+    clearChildrenSets(rows);
     const rootNode = rows[opts.rootCoords[0]][opts.rootCoords[1]];
     let currentH = opts.rootCoords[0] - 1;
     let currentI = rootNode.parentIndex;

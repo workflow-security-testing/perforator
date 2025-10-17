@@ -48,6 +48,7 @@ export type QueryKeys =
     | 'frameDepth'
     | 'tab'
     | 'topQuery'
+    | 'leftHeavy'
     | 'flameBase'
     | 'framePos';
 export type RenderFlamegraphOptions = {
