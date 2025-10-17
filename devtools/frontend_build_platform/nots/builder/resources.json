@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-10-15T07:59:13Z",
+    "created": "2025-10-17T08:23:20.104Z",
     "pr": {
-      "id": 10289610,
+      "id": 10310438,
       "author": "baymer",
-      "summary": "FBP-2579: другое: Вычислять папочку .nots на основе прав на запись"
+      "summary": "FBP-2040: pnpm: перейти на использование --config.prefer-symlinked-executables true"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10000912330"
+      "uri": "sbr:10025543324"
     },
     "darwin-arm64": {
-      "uri": "sbr:10000909695"
+      "uri": "sbr:10025540792"
     },
     "linux": {
-      "uri": "sbr:10000916880"
+      "uri": "sbr:10025548541"
     },
     "linux-aarch64": {
-      "uri": "sbr:10000914418"
+      "uri": "sbr:10025546025"
     }
   }
 }
