@@ -483,6 +483,10 @@ func (s *PerforatorServer) ListSuggestions(
 	}
 	parsedSelector = enrichCPOIDMatcher(parsedSelector)
 
+	parsedSelector = replaceSelectorTimeInterval(parsedSelector, &time_interval.TimeInterval{
+		From: timestamppb.New(time.Now().Add(-time.Hour * 24 * 14)),
+		To:   timestamppb.Now(),
+	})
 	query := &meta.SuggestionsQuery{
 		Field:    req.Field,
 		Regex:    req.Regex,
