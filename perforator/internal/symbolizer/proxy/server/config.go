@@ -140,8 +140,11 @@ func newInvalidFieldError(fieldName string, err error) error {
 
 func (c *Config) Validate() error {
 	var errs []error
-	if err := c.BinaryProcessorClientConfig.Validate(); err != nil {
-		errs = append(errs, newInvalidFieldError("binary_processor_client", err))
+	if c.BinaryProcessorClientConfig != nil {
+		err := c.BinaryProcessorClientConfig.Validate()
+		if err != nil {
+			errs = append(errs, newInvalidFieldError("binary_processor_client", err))
+		}
 	}
 
 	return errors.Join(errs...)

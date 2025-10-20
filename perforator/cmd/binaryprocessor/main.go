@@ -15,6 +15,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/maxprocs"
 	"github.com/yandex/perforator/perforator/pkg/mlock"
 	"github.com/yandex/perforator/perforator/pkg/must"
+	"github.com/yandex/perforator/perforator/pkg/validateconfig"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -117,6 +118,15 @@ func init() {
 		85,
 		"Port to start metrics server on",
 	)
+
+	binprocCmd.AddCommand(validateconfig.NewValidateConfigCmd(
+		"binproc",
+		validateconfig.ValidateConfigFunc(
+			func(configPath string) error {
+				_, err := binaryprocessor.ParseConfig(configPath)
+				return err
+			}),
+	))
 
 	cobrabuildinfo.Init(binprocCmd)
 }
