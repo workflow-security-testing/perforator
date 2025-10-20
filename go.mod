@@ -666,7 +666,7 @@ require (
 	github.com/pion/rtcp v1.2.15
 	github.com/pion/rtp v1.8.15
 	github.com/pion/sctp v1.8.39
-	github.com/pion/sdp/v3 v3.0.11
+	github.com/pion/sdp/v3 v3.0.16
 	github.com/pion/transport/v3 v3.0.7
 	github.com/pion/webrtc/v3 v3.3.3
 	github.com/pion/webrtc/v4 v4.1.0
@@ -750,7 +750,7 @@ require (
 	github.com/sqlc-dev/sqlc v1.29.0
 	github.com/ssgreg/nlreturn/v2 v2.2.1
 	github.com/streadway/amqp v1.0.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/stripe/krl v0.0.0-20220202203423-9dc12b164150
 	github.com/strongswan/govici v0.7.0
 	github.com/swaggo/echo-swagger v1.4.1
@@ -2508,6 +2508,8 @@ replace buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go => buf.build/
 replace github.com/bufbuild/protoyaml-go => buf.build/go/protoyaml v0.3.2
 
 replace golang.org/x/sync => golang.org/x/sync v0.15.0
+
+replace github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
 
 // Workaround weird go.mod shipped with k8s.io submodules.
 // For the reasoning see

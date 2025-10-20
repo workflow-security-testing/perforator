@@ -13168,8 +13168,8 @@ github.com/pion/rtp/pkg/obu
 # github.com/pion/sctp v1.8.39
 ## explicit; go 1.20
 github.com/pion/sctp
-# github.com/pion/sdp/v3 v3.0.11
-## explicit; go 1.20
+# github.com/pion/sdp/v3 v3.0.16
+## explicit; go 1.21
 github.com/pion/sdp/v3
 # github.com/pion/srtp/v2 v2.0.20
 ## explicit; go 1.14
@@ -14844,7 +14844,7 @@ github.com/streadway/amqp
 # github.com/stretchr/objx v0.5.2
 ## explicit; go 1.20
 github.com/stretchr/objx
-# github.com/stretchr/testify v1.10.0
+# github.com/stretchr/testify v1.11.1 => github.com/stretchr/testify v1.10.0
 ## explicit; go 1.17
 github.com/stretchr/testify
 github.com/stretchr/testify/assert
@@ -21052,6 +21052,7 @@ www.velocidex.com/golang/regparser
 # github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
 # github.com/prometheus/client_model => github.com/prometheus/client_model v0.6.1
 # github.com/prometheus/common => github.com/prometheus/common v0.62.0
+# github.com/stretchr/testify => github.com/stretchr/testify v1.10.0
 # github.com/temporalio/features => github.com/temporalio/features v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/features/features => github.com/temporalio/features/features v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/features/harness/go => github.com/temporalio/features/harness/go v0.0.0-20231218231852-27c681667dae
