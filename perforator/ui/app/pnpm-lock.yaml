@@ -187,6 +187,9 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
     devDependencies:
+      '@gravity-ui/eslint-config':
+        specifier: 3.1.1
+        version: 3.1.1(eslint@8.54.0)(prettier@3.2.5)(typescript@5.6.2)
       '@jest/globals':
         specifier: 29.7.0
         version: 29.7.0
@@ -205,6 +208,33 @@ importers:
       '@types/react-dom':
         specifier: 18.3.6
         version: 18.3.6(@types/react@18.3.20)
+      '@typescript-eslint/eslint-plugin':
+        specifier: 6.21.0
+        version: 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.54.0)(typescript@5.6.2))(eslint@8.54.0)(typescript@5.6.2)
+      '@typescript-eslint/parser':
+        specifier: 6.21.0
+        version: 6.21.0(eslint@8.54.0)(typescript@5.6.2)
+      eslint:
+        specifier: 8.54.0
+        version: 8.54.0
+      eslint-plugin-import:
+        specifier: 2.29.1
+        version: 2.29.1(@typescript-eslint/parser@6.21.0(eslint@8.54.0)(typescript@5.6.2))(eslint@8.54.0)
+      eslint-plugin-import-helpers:
+        specifier: 1.3.1
+        version: 1.3.1(eslint@8.54.0)
+      eslint-plugin-react:
+        specifier: 7.34.0
+        version: 7.34.0(eslint@8.54.0)
+      eslint-plugin-react-hooks:
+        specifier: 4.6.2
+        version: 4.6.2(eslint@8.54.0)
+      eslint-plugin-react-refresh:
+        specifier: 0.4.23
+        version: 0.4.23(eslint@8.54.0)
+      eslint-plugin-simple-import-sort:
+        specifier: 12.1.1
+        version: 12.1.1(eslint@8.54.0)
       fast-glob:
         specifier: 3.3.3
         version: 3.3.3
@@ -2037,6 +2067,11 @@ packages:
     peerDependencies:
       eslint: '>=8.40'
 
+  eslint-plugin-react-refresh@0.4.23:
+    resolution: {integrity: sha512-G4j+rv0NmbIR45kni5xJOrYvCtyD3/7LjpVH8MPPcudXDcNu8gv+4ATTDXTtbRR8rTCM5HxECvCSsRmxKnWDsA==}
+    peerDependencies:
+      eslint: '>=8.40'
+
   eslint-plugin-react-refresh@0.4.6:
     resolution: {integrity: sha512-NjGXdm7zgcKRkKMua34qVO9doI7VOxZ6ancSvBELJSSoX97jyndXcSoa8XBh69JoB31dNz3EEzlMcizZl7LaMA==}
     peerDependencies:
@@ -3844,9 +3879,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/eslint-parser@7.26.5(@babel/core@7.26.7)(eslint@8.54.0)':
+  '@babel/eslint-parser@7.26.5(@babel/core@7.28.0)(eslint@8.54.0)':
     dependencies:
-      '@babel/core': 7.26.7
+      '@babel/core': 7.28.0
       '@nicolo-ribaudo/eslint-scope-5-internals': 5.1.1-v1
       eslint: 8.54.0
       eslint-visitor-keys: 2.1.0
@@ -3870,7 +3905,7 @@ snapshots:
 
   '@babel/helper-annotate-as-pure@7.25.9':
     dependencies:
-      '@babel/types': 7.26.7
+      '@babel/types': 7.28.1
 
   '@babel/helper-compilation-targets@7.26.5':
     dependencies:
@@ -3996,6 +4031,11 @@ snapshots:
       '@babel/core': 7.26.7
       '@babel/helper-plugin-utils': 7.26.5
 
+  '@babel/plugin-syntax-jsx@7.25.9(@babel/core@7.28.0)':
+    dependencies:
+      '@babel/core': 7.28.0
+      '@babel/helper-plugin-utils': 7.26.5
+
   '@babel/plugin-syntax-logical-assignment-operators@7.10.4(@babel/core@7.26.7)':
     dependencies:
       '@babel/core': 7.26.7
@@ -4041,15 +4081,15 @@ snapshots:
       '@babel/core': 7.26.7
       '@babel/helper-plugin-utils': 7.26.5
 
-  '@babel/plugin-transform-react-display-name@7.25.9(@babel/core@7.26.7)':
+  '@babel/plugin-transform-react-display-name@7.25.9(@babel/core@7.28.0)':
     dependencies:
-      '@babel/core': 7.26.7
-      '@babel/helper-plugin-utils': 7.26.5
+      '@babel/core': 7.28.0
+      '@babel/helper-plugin-utils': 7.27.1
 
-  '@babel/plugin-transform-react-jsx-development@7.25.9(@babel/core@7.26.7)':
+  '@babel/plugin-transform-react-jsx-development@7.25.9(@babel/core@7.28.0)':
     dependencies:
-      '@babel/core': 7.26.7
-      '@babel/plugin-transform-react-jsx': 7.25.9(@babel/core@7.26.7)
+      '@babel/core': 7.28.0
+      '@babel/plugin-transform-react-jsx': 7.25.9(@babel/core@7.28.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -4063,32 +4103,32 @@ snapshots:
       '@babel/core': 7.28.0
       '@babel/helper-plugin-utils': 7.27.1
 
-  '@babel/plugin-transform-react-jsx@7.25.9(@babel/core@7.26.7)':
+  '@babel/plugin-transform-react-jsx@7.25.9(@babel/core@7.28.0)':
     dependencies:
-      '@babel/core': 7.26.7
+      '@babel/core': 7.28.0
       '@babel/helper-annotate-as-pure': 7.25.9
-      '@babel/helper-module-imports': 7.25.9
-      '@babel/helper-plugin-utils': 7.26.5
-      '@babel/plugin-syntax-jsx': 7.25.9(@babel/core@7.26.7)
-      '@babel/types': 7.26.7
+      '@babel/helper-module-imports': 7.27.1
+      '@babel/helper-plugin-utils': 7.27.1
+      '@babel/plugin-syntax-jsx': 7.25.9(@babel/core@7.28.0)
+      '@babel/types': 7.28.1
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/plugin-transform-react-pure-annotations@7.25.9(@babel/core@7.26.7)':
+  '@babel/plugin-transform-react-pure-annotations@7.25.9(@babel/core@7.28.0)':
     dependencies:
-      '@babel/core': 7.26.7
+      '@babel/core': 7.28.0
       '@babel/helper-annotate-as-pure': 7.25.9
-      '@babel/helper-plugin-utils': 7.26.5
+      '@babel/helper-plugin-utils': 7.27.1
 
-  '@babel/preset-react@7.26.3(@babel/core@7.26.7)':
+  '@babel/preset-react@7.26.3(@babel/core@7.28.0)':
     dependencies:
-      '@babel/core': 7.26.7
-      '@babel/helper-plugin-utils': 7.26.5
-      '@babel/helper-validator-option': 7.25.9
-      '@babel/plugin-transform-react-display-name': 7.25.9(@babel/core@7.26.7)
-      '@babel/plugin-transform-react-jsx': 7.25.9(@babel/core@7.26.7)
-      '@babel/plugin-transform-react-jsx-development': 7.25.9(@babel/core@7.26.7)
-      '@babel/plugin-transform-react-pure-annotations': 7.25.9(@babel/core@7.26.7)
+      '@babel/core': 7.28.0
+      '@babel/helper-plugin-utils': 7.27.1
+      '@babel/helper-validator-option': 7.27.1
+      '@babel/plugin-transform-react-display-name': 7.25.9(@babel/core@7.28.0)
+      '@babel/plugin-transform-react-jsx': 7.25.9(@babel/core@7.28.0)
+      '@babel/plugin-transform-react-jsx-development': 7.25.9(@babel/core@7.28.0)
+      '@babel/plugin-transform-react-pure-annotations': 7.25.9(@babel/core@7.28.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -4327,9 +4367,9 @@ snapshots:
 
   '@gravity-ui/eslint-config@3.1.1(eslint@8.54.0)(prettier@3.2.5)(typescript@5.6.2)':
     dependencies:
-      '@babel/core': 7.26.7
-      '@babel/eslint-parser': 7.26.5(@babel/core@7.26.7)(eslint@8.54.0)
-      '@babel/preset-react': 7.26.3(@babel/core@7.26.7)
+      '@babel/core': 7.28.0
+      '@babel/eslint-parser': 7.26.5(@babel/core@7.28.0)(eslint@8.54.0)
+      '@babel/preset-react': 7.26.3(@babel/core@7.28.0)
       '@typescript-eslint/eslint-plugin': 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.54.0)(typescript@5.6.2))(eslint@8.54.0)(typescript@5.6.2)
       '@typescript-eslint/parser': 6.21.0(eslint@8.54.0)(typescript@5.6.2)
       eslint: 8.54.0
@@ -5891,6 +5931,10 @@ snapshots:
       eslint: 8.54.0
 
   eslint-plugin-react-refresh@0.4.18(eslint@8.54.0):
+    dependencies:
+      eslint: 8.54.0
+
+  eslint-plugin-react-refresh@0.4.23(eslint@8.54.0):
     dependencies:
       eslint: 8.54.0
 

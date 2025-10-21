@@ -59,7 +59,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     onFrameClick,
     getHoverText,
     isLeftHeavy,
-    onChangeLeftHeavy
+    onChangeLeftHeavy,
 }) => {
     const flamegraphContainer = React.useRef<HTMLDivElement | null>(null);
     const flamegraphCanvas = React.useRef<HTMLCanvasElement | null>(null);
@@ -295,12 +295,12 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                             </Switch>
                             : null}
                         {
-                            isLeftHeavy !== undefined && onChangeLeftHeavy !== undefined ? 
-                            <Switch className="flamegraph__switch" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
-                                <Icon data={ArrowRightArrowLeft} />
+                            isLeftHeavy !== undefined && onChangeLeftHeavy !== undefined ?
+                                <Switch className="flamegraph__switch" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
+                                    <Icon data={ArrowRightArrowLeft} />
                                 Left-heavy
-                            </Switch>
-                            : null 
+                                </Switch>
+                                : null
                         }
                     </div>
                     <div className="flamegraph__frames-count">Showing {framesCount} frames</div>

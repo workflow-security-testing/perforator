@@ -1,4 +1,5 @@
-import { FormatNode, ProfileData } from "./models/Profile";
+import type { FormatNode, ProfileData } from './models/Profile';
+
 
 export const createCleanupFn = (cleanupKey: keyof FormatNode) => (rows: ProfileData['rows']): ProfileData['rows'] => {
     for (let h = 0; h < rows.length; h++) {

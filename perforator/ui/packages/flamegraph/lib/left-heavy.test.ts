@@ -1,6 +1,7 @@
-import { createLeftHeavy, inverseLeftHeavy } from './left-heavy'
-import { describe, expect, it } from '@jest/globals'
-import { ProfileData } from './models/Profile';
+import { describe, expect, it } from '@jest/globals';
+
+import { createLeftHeavy, inverseLeftHeavy } from './left-heavy';
+import type { ProfileData } from './models/Profile';
 
 
 const rows: ProfileData['rows'] = [
@@ -21,7 +22,7 @@ const profileData = { rows, stringTable: ['all', 'a', 'b', 'c', 'd', 'cycles', '
 
 describe('left-heavy', () => {
     it('should work for example data', () => {
-        const leftHeavy = createLeftHeavy(JSON.parse(JSON.stringify((profileData.rows))))
+        const leftHeavy = createLeftHeavy(JSON.parse(JSON.stringify((profileData.rows))));
         expect(leftHeavy).toMatchInlineSnapshot(`
 [
   [
@@ -61,11 +62,11 @@ describe('left-heavy', () => {
     },
   ],
 ]
-`)
-    })
+`);
+    });
     it('should be inversable', () => {
-        const leftHeavy = createLeftHeavy(JSON.parse(JSON.stringify((profileData.rows))))
-        const inversedLeftHeavy = inverseLeftHeavy(leftHeavy, profileData.stringTable)
-        expect(inversedLeftHeavy).toEqual(profileData.rows)
-    })
-})
+        const leftHeavy = createLeftHeavy(JSON.parse(JSON.stringify((profileData.rows))));
+        const inversedLeftHeavy = inverseLeftHeavy(leftHeavy, profileData.stringTable);
+        expect(inversedLeftHeavy).toEqual(profileData.rows);
+    });
+});

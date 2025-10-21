@@ -1,8 +1,6 @@
 import { createCleanupFn } from './cleanup';
 import type { FormatNode, ProfileData, StringifiableFields } from './models/Profile';
-
-import { FlamegraphOffseter, type Coordinate, type H, type I } from './renderer';
-
+import { type Coordinate, FlamegraphOffseter, type H, type I } from './renderer';
 import type { TopKeys } from './top-types';
 
 
@@ -59,7 +57,7 @@ export function populateWithChildrenSets(rows: ProfileData['rows']) {
     }
 }
 
-const clearChildrenSets = createCleanupFn('childrenIndices')
+const clearChildrenSets = createCleanupFn('childrenIndices');
 
 type FunctionTop = Record<TopKeys, number> & Pick<FormatNode, StringifiableFields | 'inlined'> &
 { shortestPath?: I[] }
@@ -68,10 +66,10 @@ function getNodeKeyFull(len: number, n: FormatNode) {
     return len ** 2 * (n.kind ?? 0) + (n.file ?? 0) * len + n.textId + (n.inlined ? 1 : 0);
 }
 
-export function calculateTop(rows: ProfileData['rows'], stringTableLength: number, opts: TopOpts = {omitted: [], rootCoords: [0, 0]}) {
+export function calculateTop(rows: ProfileData['rows'], stringTableLength: number, opts: TopOpts = { omitted: [], rootCoords: [0, 0] }) {
 
     const res: Map<number, FunctionTop> = new Map();
-    const fg = new FlamegraphOffseter(rows, {reverse: false, levelHeight: 20})
+    const fg = new FlamegraphOffseter(rows, { reverse: false, levelHeight: 20 });
     const getNodeKey = getNodeKeyFull.bind(null, stringTableLength);
 
     const visitor = (node: FormatNode) => {
@@ -98,11 +96,11 @@ export function calculateTop(rows: ProfileData['rows'], stringTableLength: numbe
         funcTopData['self.sampleCount'] += node.selfSampleCount - (node.omittedSampleCount ?? 0);
         funcTopData['diff.self.eventCount'] += (node.baseSelfEventCount ?? 0);
         funcTopData['diff.self.sampleCount'] += (node.baseSelfSampleCount ?? 0);
-    }
+    };
 
     populateWithSelfEventCount(rows);
     populateWithChildrenSets(rows);
-    fg.prerenderOffsets(1000, opts.rootCoords, opts.omitted, null, false, [{run: visitor}])
+    fg.prerenderOffsets(1000, opts.rootCoords, opts.omitted, null, false, [{ run: visitor }]);
 
 
     calcTotalTime(res, rows, getNodeKey, opts.rootCoords);
