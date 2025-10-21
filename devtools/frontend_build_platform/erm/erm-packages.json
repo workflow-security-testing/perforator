@@ -1648,7 +1648,7 @@
     "title": "ESLint",
     "description": "Статический анализатор кода (линтер).\n\nОсуществляет поиск, а иногда и исправление частых ошибок.\nМожет следить за стилем кода, форматированием.\n\nРасширяем плагинами (Typescript, Prettier, Stylelint).\n\n[Подробнее про линтинг в tier-0](https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint)",
     "type": "NPM_PACKAGE",
-    "default": "9.36.0",
+    "default": "9.37.0",
     "links": {
       "Home": "https://eslint.org",
       "Sources": "https://github.com/eslint/eslint",
@@ -1657,6 +1657,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "9.37.0": {
+        "add_date": "2025-10-21T05:30:43",
+        "resources": []
+      },
       "9.36.0": {
         "add_date": "2025-10-07T05:31:01",
         "resources": []
@@ -5486,7 +5490,7 @@
   "playwright": {
     "description": "Раннер для тестов Playwright, позволяет выполнять end-to-end тесты с учётом специфики различных браузеров и устройств",
     "type": "NPM_PACKAGE",
-    "default": "1.55.1",
+    "default": "1.56.0",
     "links": {
       "Home": "https://playwright.dev/",
       "Sources": "https://github.com/microsoft/playwright",
@@ -5496,6 +5500,10 @@
     "specifier": ">=1.41.2",
     "useDirectly": true,
     "versions": {
+      "1.56.0": {
+        "add_date": "2025-10-21T05:31:36",
+        "resources": []
+      },
       "1.55.1": {
         "add_date": "2025-10-14T05:37:26",
         "resources": []
@@ -5941,7 +5949,7 @@
     "title": "Stylelint",
     "description": "Инструмент для линтинга файлов стилей.\n\nИспользуется в макросе [TS_STYLELINT()](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint).",
     "type": "NPM_PACKAGE",
-    "default": "16.24.0",
+    "default": "16.25.0",
     "links": {
       "Home": "https://stylelint.io/",
       "Sources": "https://github.com/stylelint/stylelint",
@@ -5951,6 +5959,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "16.25.0": {
+        "add_date": "2025-10-21T05:31:44",
+        "resources": []
+      },
       "16.24.0": {
         "add_date": "2025-09-23T05:34:32",
         "resources": []
@@ -6105,7 +6117,7 @@
     "title": "TypeScript",
     "description": "Официальная реализация языка TypeScript\n\nВ проекте используется только `tsc` - компилятор/траспиллер TS в JS.\nТакже ожидается наличие `tsconfig.json` на проекте.\n\nВ tier-0 используется напрямую в модуле/макросе [`TS_TSC()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_TSC).\nНо опосредованно может использоваться и в других макросах.",
     "type": "NPM_PACKAGE",
-    "default": "5.9.2",
+    "default": "5.9.3",
     "links": {
       "Home": "https://www.typescriptlang.org",
       "Sources": "https://github.com/microsoft/TypeScript/",
@@ -6117,6 +6129,10 @@
     "useDirectly": true,
     "defaultBinName": "tsc",
     "versions": {
+      "5.9.3": {
+        "add_date": "2025-10-21T05:31:52",
+        "resources": []
+      },
       "5.9.2": {
         "add_date": "2025-08-19T05:36:53",
         "resources": []
@@ -6211,7 +6227,7 @@
     "title": "Vite",
     "description": "Современный сборщик frontend проектов\n\nПод капотом используется более низкоуровневый сборщик [rollup](https://rollupjs.org/).\n\nДля транспиляции TypeScript может использовать нативные способы: [esbuild](https://esbuild.github.io/), [SWC](https://swc.rs/)\n\nПоэтому, если требуется использовать `rollup` или `esbuild`/`SWC` на проекте - то `vite` - ваш выбор.\n\nВ tier-0 используется в модуле/макросе [`TS_VITE()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_VITE).",
     "type": "NPM_PACKAGE",
-    "default": "7.1.7",
+    "default": "7.1.9",
     "links": {
       "Home": "https://vitejs.dev/",
       "Sources": "https://github.com/vitejs/vite/tree/main",
@@ -6221,6 +6237,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "7.1.9": {
+        "add_date": "2025-10-21T05:32:03",
+        "resources": []
+      },
       "7.1.7": {
         "add_date": "2025-10-07T05:31:29",
         "resources": []
