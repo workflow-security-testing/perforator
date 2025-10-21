@@ -38,5 +38,14 @@
     "stylelint": "15.11.0",
     "typescript": "5.8.2",
     "vite": "6.3.5"
+  },
+  "pnpm": {
+    "packageExtensions": {
+      "@gravity-ui/uikit": {
+        "peerDependencies": {
+          "@types/react": "*"
+        }
+      }
+    }
   }
 }
