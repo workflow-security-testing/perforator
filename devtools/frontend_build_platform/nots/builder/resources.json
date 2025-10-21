@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-10-17T17:00:21Z",
+    "created": "2025-10-21T11:47:08Z",
     "pr": {
-      "id": 10310438,
-      "author": "baymer",
-      "summary": "FBP-2040: pnpm: перейти на использование --config.prefer-symlinked-executables true"
+      "id": 9961292,
+      "author": "khoden",
+      "summary": "FBP-2517: nots/builder: Убрать слишком подробный трейсинг рекурсивного копирования"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10031962474"
+      "uri": "sbr:10057919999"
     },
     "darwin-arm64": {
-      "uri": "sbr:10031960786"
+      "uri": "sbr:10057916635"
     },
     "linux": {
-      "uri": "sbr:10031965034"
+      "uri": "sbr:10057926803"
     },
     "linux-aarch64": {
-      "uri": "sbr:10031963765"
+      "uri": "sbr:10057923083"
     }
   }
 }
