@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	defaultUprobeSampleType  = sampletype.SampleTypeUprobeCount
+	defaultUprobeSampleKind  = sampletype.SampleTypeUprobe
 	defaultUprobeProfileName = sampletype.SampleTypeUprobe
 )
 
@@ -25,9 +25,9 @@ type Config struct {
 	// If Pid equals to 0, the uprobe can be triggered by any process.
 	Pid int `yaml:"pid,omitempty"`
 
-	// SampleType which will be used for samples caused by this uprobe
-	// If not set the default sample type "uprobes.count" will be used
-	SampleType string `yaml:"sample_type"`
+	// SampleKind which will be used for samples caused by this uprobe
+	// If not set the default sample kind "uprobe" will be used
+	SampleKind string `yaml:"sample_type"`
 
 	// OutputProfileName specifies the name of the profile to collect samples into.
 	// If not set the default profile name "uprobe" will be used.
@@ -35,8 +35,8 @@ type Config struct {
 }
 
 func (c *Config) fillDefault() {
-	if c.SampleType == "" {
-		c.SampleType = defaultUprobeSampleType
+	if c.SampleKind == "" {
+		c.SampleKind = defaultUprobeSampleKind
 	}
 	if c.OutputProfileName == "" {
 		c.OutputProfileName = defaultUprobeProfileName
@@ -100,7 +100,7 @@ func (u *uprobe) Info() *UprobeInfo {
 		},
 		OutputInfo: OutputInfo{
 			ProfileName: u.config.OutputProfileName,
-			SampleType:  u.config.SampleType,
+			SampleKind:  u.config.SampleKind,
 		},
 	}
 }

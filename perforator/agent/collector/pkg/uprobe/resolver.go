@@ -17,7 +17,7 @@ type BinaryInfo struct {
 
 type OutputInfo struct {
 	ProfileName string
-	SampleType  string
+	SampleKind  string
 }
 
 type UprobeInfo struct {

@@ -9,6 +9,28 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 )
 
+// Uprobe is a Profiler's user interface for a single uprobe.
+// Not guaranteed to be thread-safe.
+type Uprobe interface {
+	// Attach attaches the uprobe to the bpf program which collects samples. Must be called on detached uprobe.
+	// Attach is safe to call multiple times during Uprobe lifetime,
+	Attach() error
+
+	// Detach detaches the uprobe from the bpf program. Must be called on attached uprobe.
+	// Detach is safe to call multiple times during Uprobe lifetime,
+	Detach() error
+
+	// Close detaches the uprobe from the bpf program and releases the resources.
+	// It is safe to close both attached and detached uprobe.
+	Close() error
+}
+
+// UprobeManager is a Profiler's user interface for
+// dynamic uprobe creation and deletion.
+type UprobeManager interface {
+	Create(config uprobe.Config) Uprobe
+}
+
 // uprobeRegistry is a container which stores all the created uprobes.
 // It provides these functions:
 // 1. Create uprobe
@@ -39,7 +61,7 @@ func (r *uprobeRegistry) detachAll() error {
 
 	var errs []error
 	for _, uprobe := range r.uprobes {
-		err := uprobe.detach()
+		err := uprobe.Detach()
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -54,7 +76,7 @@ func (r *uprobeRegistry) attachAll() error {
 
 	var errs []error
 	for _, uprobe := range r.uprobes {
-		err := uprobe.attach()
+		err := uprobe.Attach()
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -67,10 +89,11 @@ func (r *uprobeRegistry) register(uprobe *uprobeWrapper) (id uint64) {
 	r.Lock()
 	defer r.Unlock()
 
-	r.uprobes[r.id] = uprobe
+	id = r.id
 	r.id++
+	r.uprobes[id] = uprobe
 
-	return r.id
+	return
 }
 
 func (r *uprobeRegistry) unregister(id uint64) {
@@ -92,7 +115,7 @@ type uprobeWrapper struct {
 	registry   *uprobeRegistry
 }
 
-func (u *uprobeWrapper) attach() error {
+func (u *uprobeWrapper) Attach() error {
 	program := u.registry.bpf.GenericUprobeProgram()
 	if program == nil {
 		// sanity check
@@ -110,7 +133,7 @@ func (u *uprobeWrapper) attach() error {
 	return nil
 }
 
-func (u *uprobeWrapper) detach() error {
+func (u *uprobeWrapper) Detach() error {
 	if !u.attached {
 		return nil
 	}
@@ -126,8 +149,8 @@ func (u *uprobeWrapper) detach() error {
 	return nil
 }
 
-func (u *uprobeWrapper) close() error {
-	err := u.detach()
+func (u *uprobeWrapper) Close() error {
+	err := u.Detach()
 	if err != nil {
 		return fmt.Errorf("failed to detach uprobe: %w", err)
 	}
@@ -136,7 +159,7 @@ func (u *uprobeWrapper) close() error {
 	return nil
 }
 
-func (r *uprobeRegistry) create(config uprobe.Config) *uprobeWrapper {
+func (r *uprobeRegistry) Create(config uprobe.Config) Uprobe {
 	uprobe := &uprobeWrapper{
 		uprobe:   uprobe.NewUprobe(config),
 		registry: r,

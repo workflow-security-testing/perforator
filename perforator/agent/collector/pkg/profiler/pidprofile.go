@@ -10,6 +10,7 @@ import (
 type trackedProcess struct {
 	pid     linux.ProcessID
 	builder *multiProfileBuilder
+	bpf     *machine.BPF
 }
 
 func newTrackedProcess(
@@ -22,11 +23,15 @@ func newTrackedProcess(
 		return nil, err
 	}
 
-	profiler := &trackedProcess{
+	return &trackedProcess{
 		pid:     pid,
 		builder: newMultiProfileBuilder(labels),
-	}
-	return profiler, nil
+		bpf:     bpf,
+	}, nil
+}
+
+func (t *trackedProcess) close() error {
+	return t.bpf.RemoveTracedProcess(t.pid)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

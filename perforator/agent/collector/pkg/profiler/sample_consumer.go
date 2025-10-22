@@ -546,17 +546,14 @@ func (c *SampleConsumer) recordUprobeSample(ctx context.Context) {
 
 	c.p.log.Debug("Resolved uprobe info", log.Any("uprobe_info", uprobeInfo))
 
-	sampleTypeKind := uprobeInfo.SampleType
+	sampleTypeKind := uprobeInfo.SampleKind
 	if sampleTypeKind == "" {
-		// fallback to "uprobe.count"
+		// fallback to "uprobe"
 		sampleTypeKind = sampletype.SampleTypeUprobe
 	}
 	sampleTypes := []profile.SampleType{{Kind: sampleTypeKind, Unit: "count"}}
 
-	// We create a separate profile for each sample type kind.
-	// If multiple uprobes are configured with different samples types -> samples will be in different profiles
-	// If not sample type is specified for each uprobe -> all samples will be in the same profile
-	builder := c.initBuilderCommon(sampleTypeKind, sampleTypes)
+	builder := c.initBuilderCommon(uprobeInfo.ProfileName, sampleTypes)
 
 	builder.AddValue(1)
 	c.collectStacksInto(ctx, builder)

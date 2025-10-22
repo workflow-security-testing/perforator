@@ -1,7 +1,7 @@
 GO_LIBRARY()
 
 SRCS(
-    service.go
+    models.go
 )
 
 END()

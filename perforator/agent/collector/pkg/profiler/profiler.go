@@ -77,7 +77,7 @@ type Profiler struct {
 	kallsyms       *kallsyms.KallsymsResolver
 	events         map[perfevent.Type]*perfevent.EventBundle
 	// uprobes which are created on Profiler startup
-	initialUprobes []*uprobeWrapper
+	initialUprobes []Uprobe
 	debugmu        sync.Mutex
 	debugmode      bool
 	envWhitelist   map[string]struct{}
@@ -476,7 +476,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 
 func (p *Profiler) initializeTargets() error {
 	if p.initialTargets.selfTargetLabels != nil {
-		err := p.TraceSelf(p.initialTargets.selfTargetLabels)
+		_, err := p.TraceSelf(p.initialTargets.selfTargetLabels)
 		if err != nil {
 			return fmt.Errorf("failed to initialize self tracing: %w", err)
 		}
@@ -491,7 +491,7 @@ func (p *Profiler) initializeTargets() error {
 
 	for _, target := range p.initialTargets.processTargets {
 		p.log.Info("Registering process", log.Int("pid", target.pid))
-		err := p.TracePid(linux.ProcessID(target.pid), target.labels)
+		_, err := p.TracePid(linux.ProcessID(target.pid), target.labels)
 		if err != nil {
 			return fmt.Errorf("failed to initialize pid %d tracing: %w", target.pid, err)
 		}
@@ -499,7 +499,7 @@ func (p *Profiler) initializeTargets() error {
 
 	for _, target := range p.initialTargets.threadTargets {
 		p.log.Info("Registering thread", log.Int("tid", target.tid))
-		err := p.TracePid(linux.ProcessID(target.tid), target.labels)
+		_, err := p.TracePid(linux.ProcessID(target.tid), target.labels)
 		if err != nil {
 			return fmt.Errorf("failed to initialize tid %d tracing: %w", target.tid, err)
 		}
@@ -558,9 +558,13 @@ func (p *Profiler) setupUprobes() {
 	}
 
 	for _, conf := range uprobeConfigs {
-		uprobe := p.uprobeRegistry.create(conf)
+		uprobe := p.uprobeRegistry.Create(conf)
 		p.initialUprobes = append(p.initialUprobes, uprobe)
 	}
+}
+
+func (p *Profiler) UprobeManager() UprobeManager {
+	return p.uprobeRegistry
 }
 
 func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
@@ -1114,16 +1118,34 @@ func (p *Profiler) TraceWholeSystem(labels map[string]string) error {
 	})
 }
 
-func (p *Profiler) TraceSelf(labels map[string]string) error {
+func (p *Profiler) TraceSelf(labels map[string]string) (Closer, error) {
 	return p.TracePid(linux.ProcessID(os.Getpid()), labels)
 }
 
-func (p *Profiler) TracePid(pid linux.ProcessID, labels map[string]string) error {
+type Closer interface {
+	Close() error
+}
+
+type pidTracingCloser struct {
+	profiler *Profiler
+	pid      linux.ProcessID
+}
+
+func (p *pidTracingCloser) Close() error {
+	trackedProcess := p.profiler.removeTracedPid(p.pid)
+	if trackedProcess == nil {
+		return nil
+	}
+
+	return trackedProcess.close()
+}
+
+func (p *Profiler) TracePid(pid linux.ProcessID, labels map[string]string) (Closer, error) {
 	labels = p.enrichProfileLabels(labels)
 
 	trackedProcess, err := newTrackedProcess(pid, labels, p.bpf)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	p.pidsmu.Lock()
@@ -1131,7 +1153,23 @@ func (p *Profiler) TracePid(pid linux.ProcessID, labels map[string]string) error
 	p.pidsmu.Unlock()
 
 	p.log.Info("Registered process", logfield.Pid(pid))
-	return nil
+	return &pidTracingCloser{
+		profiler: p,
+		pid:      pid,
+	}, nil
+}
+
+func (p *Profiler) removeTracedPid(pid linux.ProcessID) *trackedProcess {
+	p.pidsmu.Lock()
+	defer p.pidsmu.Unlock()
+
+	trackedProcess, ok := p.pids[pid]
+	if !ok {
+		return nil
+	}
+
+	delete(p.pids, pid)
+	return trackedProcess
 }
 
 func (p *Profiler) DeleteCgroup(name string) error {
@@ -1234,7 +1272,7 @@ func (p *Profiler) Close() error {
 	}
 
 	for _, uprobe := range p.initialUprobes {
-		err := uprobe.close()
+		err := uprobe.Close()
 		if err != nil {
 			return fmt.Errorf("failed to close uprobe: %w", err)
 		}
