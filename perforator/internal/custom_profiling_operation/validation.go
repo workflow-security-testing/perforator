@@ -105,14 +105,6 @@ func ValidateOperationSpec(spec *cpo_proto.OperationSpec) error {
 		return errors.New("perf event is not supported yet")
 	}
 
-	for _, feature := range spec.Features {
-		switch feature.Feature.(type) {
-		case *cpo_proto.Feature_CollectStackTimestamps:
-			// Not implemented yet
-			return errors.New("collect stack timestamps feature is not supported yet")
-		}
-	}
-
 	err := validateTimeInterval(spec.TimeInterval)
 	if err != nil {
 		return err

@@ -413,7 +413,7 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	if len(args) > 0 {
 		g.Go(func() error {
 			err := runSubProcess(ctx, args, func(pid int) error {
-				_, err := prof.TracePid(linux.ProcessID(pid), map[string]string{"pid": fmt.Sprint(pid)})
+				_, err := prof.TracePid(linux.ProcessID(pid), profiler.WithProfileLabels(map[string]string{"pid": fmt.Sprint(pid)}))
 				return err
 			})
 			if err != nil {

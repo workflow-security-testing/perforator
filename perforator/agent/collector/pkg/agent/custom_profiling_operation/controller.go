@@ -13,6 +13,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	cpo_internal "github.com/yandex/perforator/perforator/internal/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
@@ -35,6 +36,15 @@ func newOperationController(l xlog.Logger, profiler *profiler.Profiler, id model
 	err := cpo_internal.ValidateOperationSpec(spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to validate spec: %w", err)
+	}
+
+	for _, feature := range spec.Features {
+		switch feature.Feature.(type) {
+		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
+			if _, err := procfs.GetBootTime(); err != nil {
+				return nil, fmt.Errorf("failed to get host boot time: %w", err)
+			}
+		}
 	}
 
 	c := &operationController{
@@ -120,9 +130,19 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 	}
 	profileLabels[profilequerylang.CPOIDLabel] = string(o.id)
 
+	traceOpts := []profiler.TraceOption{
+		profiler.WithProfileLabels(profileLabels),
+	}
+	for _, feature := range o.spec.Features {
+		switch feature.Feature.(type) {
+		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
+			traceOpts = append(traceOpts, profiler.WithAbsoluteSampleTimeCollection())
+		}
+	}
+
 	switch target := o.spec.Target.Target.(type) {
 	case *cpo_proto.Target_NodeProcess:
-		closer, err := o.profiler.TracePid(linux.ProcessID(target.NodeProcess.ProcessID), profileLabels)
+		closer, err := o.profiler.TracePid(linux.ProcessID(target.NodeProcess.ProcessID), traceOpts...)
 		if err != nil {
 			return fmt.Errorf("failed to trace pid %d: %w", target.NodeProcess.ProcessID, err)
 		}

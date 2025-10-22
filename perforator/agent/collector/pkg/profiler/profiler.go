@@ -491,7 +491,7 @@ func (p *Profiler) initializeTargets() error {
 
 	for _, target := range p.initialTargets.processTargets {
 		p.log.Info("Registering process", log.Int("pid", target.pid))
-		_, err := p.TracePid(linux.ProcessID(target.pid), target.labels)
+		_, err := p.TracePid(linux.ProcessID(target.pid), WithProfileLabels(target.labels))
 		if err != nil {
 			return fmt.Errorf("failed to initialize pid %d tracing: %w", target.pid, err)
 		}
@@ -499,7 +499,7 @@ func (p *Profiler) initializeTargets() error {
 
 	for _, target := range p.initialTargets.threadTargets {
 		p.log.Info("Registering thread", log.Int("tid", target.tid))
-		_, err := p.TracePid(linux.ProcessID(target.tid), target.labels)
+		_, err := p.TracePid(linux.ProcessID(target.tid), WithProfileLabels(target.labels))
 		if err != nil {
 			return fmt.Errorf("failed to initialize tid %d tracing: %w", target.tid, err)
 		}
@@ -1119,7 +1119,7 @@ func (p *Profiler) TraceWholeSystem(labels map[string]string) error {
 }
 
 func (p *Profiler) TraceSelf(labels map[string]string) (Closer, error) {
-	return p.TracePid(linux.ProcessID(os.Getpid()), labels)
+	return p.TracePid(linux.ProcessID(os.Getpid()), WithProfileLabels(labels))
 }
 
 type Closer interface {
@@ -1140,10 +1140,51 @@ func (p *pidTracingCloser) Close() error {
 	return trackedProcess.close()
 }
 
-func (p *Profiler) TracePid(pid linux.ProcessID, labels map[string]string) (Closer, error) {
-	labels = p.enrichProfileLabels(labels)
+type traceFeatures struct {
+	enableSampleTimeCollection bool
+}
 
-	trackedProcess, err := newTrackedProcess(pid, labels, p.bpf)
+func defaultTraceFeatures() traceFeatures {
+	return traceFeatures{
+		enableSampleTimeCollection: false,
+	}
+}
+
+type traceOptions struct {
+	profileLabels map[string]string
+	features      traceFeatures
+}
+
+func defaultTraceOptions() *traceOptions {
+	return &traceOptions{
+		features:      defaultTraceFeatures(),
+		profileLabels: make(map[string]string),
+	}
+}
+
+type TraceOption func(o *traceOptions)
+
+func WithAbsoluteSampleTimeCollection() TraceOption {
+	return func(o *traceOptions) {
+		o.features.enableSampleTimeCollection = true
+	}
+}
+
+func WithProfileLabels(labels map[string]string) TraceOption {
+	return func(o *traceOptions) {
+		o.profileLabels = labels
+	}
+}
+
+func (p *Profiler) TracePid(pid linux.ProcessID, optAppliers ...TraceOption) (Closer, error) {
+	opts := defaultTraceOptions()
+	for _, optApplier := range optAppliers {
+		optApplier(opts)
+	}
+
+	labels := p.enrichProfileLabels(opts.profileLabels)
+
+	trackedProcess, err := newTrackedProcess(pid, labels, opts.features, p.bpf)
 	if err != nil {
 		return nil, err
 	}
