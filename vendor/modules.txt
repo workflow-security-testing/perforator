@@ -15363,6 +15363,9 @@ github.com/uber-go/tally/v4/statsd
 github.com/uber-go/tally/v4/statsd/example
 github.com/uber-go/tally/v4/tallymock
 github.com/uber-go/tally/v4/thirdparty/github.com/apache/thrift/lib/go/thrift
+# github.com/uber/h3-go/v4 v4.3.0
+## explicit; go 1.22
+github.com/uber/h3-go/v4
 # github.com/uber/jaeger-client-go v2.30.0+incompatible
 ## explicit
 github.com/uber/jaeger-client-go

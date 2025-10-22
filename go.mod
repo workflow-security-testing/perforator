@@ -780,6 +780,7 @@ require (
 	github.com/twmb/murmur3 v1.1.8
 	github.com/uber-go/tally v3.5.0+incompatible
 	github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
+	github.com/uber/h3-go/v4 v4.3.0
 	github.com/uber/jaeger-client-go v2.30.0+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/ugorji/go/codec v1.3.0
