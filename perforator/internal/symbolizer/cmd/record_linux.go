@@ -375,14 +375,14 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	defer prof.Close()
 
 	for _, pid := range opts.pids {
-		_, err = prof.TracePid(linux.ProcessID(pid), nil)
+		_, err = prof.TracePid(linux.ProcessID(pid))
 		if err != nil {
 			return nil, fmt.Errorf("failed to trace pid %d: %w", pid, err)
 		}
 	}
 
 	for _, tid := range opts.tids {
-		_, err = prof.TracePid(linux.ProcessID(tid), nil)
+		_, err = prof.TracePid(linux.ProcessID(tid))
 		if err != nil {
 			return nil, fmt.Errorf("failed to trace tid %d: %w", tid, err)
 		}
