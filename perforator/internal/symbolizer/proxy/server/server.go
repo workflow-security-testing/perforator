@@ -76,13 +76,6 @@ import (
 
 var (
 	ErrFailedGetProfile = errors.New("failed to get profile")
-
-	ValidTargetEventTypes = map[string]struct{}{
-		sampletype.SampleTypeCPUCycles:   struct{}{},
-		sampletype.SampleTypeLbrStacks:   struct{}{},
-		sampletype.SampleTypeSignalCount: struct{}{},
-		sampletype.SampleTypeWallSeconds: struct{}{},
-	}
 )
 
 // TODO(itrofimow): make this 8 configurable?
@@ -1245,11 +1238,6 @@ func (s *PerforatorServer) MergeProfiles(
 	targetEventType, err := deriveEventTypeFromSelector(query.Selector)
 	if err != nil {
 		return nil, fmt.Errorf("failed to derive target event type from selector: %w", err)
-	}
-
-	// some validation here
-	if _, ok := ValidTargetEventTypes[targetEventType]; !ok {
-		return nil, fmt.Errorf("event type %s is not valid", targetEventType)
 	}
 
 	if query.MaxSamples == 0 {
