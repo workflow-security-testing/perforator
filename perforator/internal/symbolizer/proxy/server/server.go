@@ -2220,15 +2220,17 @@ func (s *PerforatorServer) Run(ctx context.Context, conf *RunConfig) error {
 		return err
 	})
 
-	g.Go(func() error {
-		s.l.Info(ctx, "Starting binary processor client")
-		err := s.bpClient.Run(ctx)
-		if err != nil {
-			s.l.Error(ctx, "Binary processor client failed", log.Error(err))
-		}
+	if s.bpClient != nil {
+		g.Go(func() error {
+			s.l.Info(ctx, "Starting binary processor client")
+			err := s.bpClient.Run(ctx)
+			if err != nil {
+				s.l.Error(ctx, "Binary processor client failed", log.Error(err))
+			}
 
-		return err
-	})
+			return err
+		})
+	}
 
 	g.Go(func() error {
 		err := s.runAsyncTasks(ctx)
