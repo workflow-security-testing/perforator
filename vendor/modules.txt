@@ -15444,7 +15444,7 @@ github.com/urfave/cli/v2/internal/example-cli
 github.com/urfave/cli/v2/internal/example-hello-world
 # github.com/urfave/negroni v1.0.0
 ## explicit
-# github.com/valkey-io/valkey-go v1.0.60
+# github.com/valkey-io/valkey-go v1.0.66
 ## explicit; go 1.23.0
 github.com/valkey-io/valkey-go
 github.com/valkey-io/valkey-go/hack/cmds
@@ -15457,6 +15457,9 @@ github.com/valkey-io/valkey-go/mock
 # github.com/valkey-io/valkey-go/valkeycompat v1.0.60
 ## explicit; go 1.23.0
 github.com/valkey-io/valkey-go/valkeycompat
+# github.com/valkey-io/valkey-go/valkeyotel v1.0.66
+## explicit; go 1.23.0
+github.com/valkey-io/valkey-go/valkeyotel
 # github.com/valyala/bytebufferpool v1.0.0
 ## explicit
 github.com/valyala/bytebufferpool

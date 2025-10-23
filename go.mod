@@ -787,9 +787,10 @@ require (
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli v1.22.16
 	github.com/urfave/cli/v2 v2.27.6
-	github.com/valkey-io/valkey-go v1.0.60
+	github.com/valkey-io/valkey-go v1.0.66
 	github.com/valkey-io/valkey-go/mock v1.0.60
 	github.com/valkey-io/valkey-go/valkeycompat v1.0.60
+	github.com/valkey-io/valkey-go/valkeyotel v1.0.66
 	github.com/valyala/fastjson v1.6.4
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vbauerster/mpb v3.4.0+incompatible
