@@ -60,7 +60,7 @@ static std::string CleanupNonMangledName(std::string&& name) {
          re2::RE2::Replace(&name, pattern, "");
     }
 
-    return std::move(name);
+    return name;
 }
 
 // This piece of code is inspired by llvm::demangle source.
