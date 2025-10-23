@@ -21,7 +21,7 @@ BUNDLE(
     NAME
     proxy
 
-    perforator/cmd/binaryprocessor
+    perforator/cmd/binproc
     NAME
     binproc
 

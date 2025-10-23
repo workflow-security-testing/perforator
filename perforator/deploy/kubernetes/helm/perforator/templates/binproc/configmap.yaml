@@ -8,6 +8,6 @@ data:
 {{- if .Values.binproc.config.useCustom }}  
   config.yaml: |- {{- tpl .Values.binproc.config.custom . | nindent 4 }}
 {{- else }}
-  config.yaml: |- {{- tpl (.Files.Get "config/binaryprocessor.yaml") . | nindent 4 }}
+  config.yaml: |- {{- tpl (.Files.Get "config/binproc.yaml") . | nindent 4 }}
 {{- end }}
 {{- end }}
