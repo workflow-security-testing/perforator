@@ -7693,13 +7693,18 @@ github.com/go-faster/city/internal/citygen
 # github.com/go-faster/errors v0.7.1
 ## explicit; go 1.20
 github.com/go-faster/errors
+github.com/go-faster/errors/cmd/gowrapper
 # github.com/go-faster/jx v1.1.0
 ## explicit; go 1.18
 github.com/go-faster/jx
 github.com/go-faster/jx/internal/byteseq
+github.com/go-faster/jx/tools/mkint
 # github.com/go-faster/xor v1.0.0
 ## explicit; go 1.15
 github.com/go-faster/xor
+# github.com/go-faster/yaml v0.4.6
+## explicit; go 1.18
+github.com/go-faster/yaml
 # github.com/go-fed/httpsig v1.1.0
 ## explicit; go 1.13
 # github.com/go-fonts/dejavu v0.3.2
@@ -12215,6 +12220,67 @@ github.com/oasdiff/yaml
 # github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90
 ## explicit; go 1.22.5
 github.com/oasdiff/yaml3
+# github.com/ogen-go/ogen v1.14.0
+## explicit; go 1.23.0
+github.com/ogen-go/ogen
+github.com/ogen-go/ogen/cmd/jschemagen
+github.com/ogen-go/ogen/cmd/ogen
+github.com/ogen-go/ogen/conv
+github.com/ogen-go/ogen/gen
+github.com/ogen-go/ogen/gen/genfs
+github.com/ogen-go/ogen/gen/ir
+github.com/ogen-go/ogen/http
+github.com/ogen-go/ogen/internal/bitset
+github.com/ogen-go/ogen/internal/httpcookie
+github.com/ogen-go/ogen/internal/integration
+github.com/ogen-go/ogen/internal/integration/cmd/techempower
+github.com/ogen-go/ogen/internal/integration/referenced_path_item
+github.com/ogen-go/ogen/internal/integration/sample_api
+github.com/ogen-go/ogen/internal/integration/sample_api_nc
+github.com/ogen-go/ogen/internal/integration/sample_api_no_otel
+github.com/ogen-go/ogen/internal/integration/sample_api_ns
+github.com/ogen-go/ogen/internal/integration/sample_api_nsnc
+github.com/ogen-go/ogen/internal/integration/sample_err
+github.com/ogen-go/ogen/internal/integration/security_reentrant
+github.com/ogen-go/ogen/internal/integration/techempower
+github.com/ogen-go/ogen/internal/integration/test_additionalpropertiespatternproperties
+github.com/ogen-go/ogen/internal/integration/test_allof
+github.com/ogen-go/ogen/internal/integration/test_anyof
+github.com/ogen-go/ogen/internal/integration/test_client_options
+github.com/ogen-go/ogen/internal/integration/test_discriminator_mapping
+github.com/ogen-go/ogen/internal/integration/test_enum_naming
+github.com/ogen-go/ogen/internal/integration/test_form
+github.com/ogen-go/ogen/internal/integration/test_http_requests
+github.com/ogen-go/ogen/internal/integration/test_http_responses
+github.com/ogen-go/ogen/internal/integration/test_issue1161
+github.com/ogen-go/ogen/internal/integration/test_naming_extensions
+github.com/ogen-go/ogen/internal/integration/test_parameters
+github.com/ogen-go/ogen/internal/integration/test_security
+github.com/ogen-go/ogen/internal/integration/test_servers
+github.com/ogen-go/ogen/internal/integration/test_single_endpoint
+github.com/ogen-go/ogen/internal/integration/test_time_extension
+github.com/ogen-go/ogen/internal/integration/test_webhooks
+github.com/ogen-go/ogen/internal/naming
+github.com/ogen-go/ogen/internal/ogenversion
+github.com/ogen-go/ogen/internal/ogenzap
+github.com/ogen-go/ogen/internal/testutil
+github.com/ogen-go/ogen/internal/urlpath
+github.com/ogen-go/ogen/internal/xmaps
+github.com/ogen-go/ogen/internal/xslices
+github.com/ogen-go/ogen/json
+github.com/ogen-go/ogen/jsonpointer
+github.com/ogen-go/ogen/jsonschema
+github.com/ogen-go/ogen/location
+github.com/ogen-go/ogen/middleware
+github.com/ogen-go/ogen/ogenerrors
+github.com/ogen-go/ogen/ogenregex
+github.com/ogen-go/ogen/openapi
+github.com/ogen-go/ogen/openapi/parser
+github.com/ogen-go/ogen/otelogen
+github.com/ogen-go/ogen/tools/mkformattest
+github.com/ogen-go/ogen/tools/sgcollector
+github.com/ogen-go/ogen/uri
+github.com/ogen-go/ogen/validate
 # github.com/ohler55/ojg v1.26.1
 ## explicit; go 1.21
 github.com/ohler55/ojg
@@ -15463,12 +15529,13 @@ github.com/valkey-io/valkey-go/valkeyotel
 # github.com/valyala/bytebufferpool v1.0.0
 ## explicit
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v1.40.0
-## explicit; go 1.15
+# github.com/valyala/fasthttp v1.62.0
+## explicit; go 1.23.0
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/reuseport
 github.com/valyala/fasthttp/stackless
+github.com/valyala/fasthttp/tcplisten
 # github.com/valyala/fastjson v1.6.4
 ## explicit; go 1.12
 github.com/valyala/fastjson

@@ -383,6 +383,8 @@ require (
 	github.com/go-critic/go-critic v0.9.0
 	github.com/go-delve/delve v1.25.2
 	github.com/go-faster/city v1.0.1
+	github.com/go-faster/errors v0.7.1
+	github.com/go-faster/jx v1.1.0
 	github.com/go-git/go-billy/v5 v5.6.2
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/go-ldap/ldap/v3 v3.4.5
@@ -618,6 +620,7 @@ require (
 	github.com/nxadm/tail v1.4.8
 	github.com/oapi-codegen/oapi-codegen/v2 v2.5.0
 	github.com/oapi-codegen/runtime v1.1.1
+	github.com/ogen-go/ogen v1.14.0
 	github.com/ohler55/ojg v1.26.1
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/olivere/elastic/v7 v7.0.32
@@ -1499,9 +1502,8 @@ require (
 	github.com/go-delve/liner v1.2.3-0.20231231155935-4726ab1d7f62 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-faker/faker/v4 v4.6.0 // indirect
-	github.com/go-faster/errors v0.7.1 // indirect
-	github.com/go-faster/jx v1.1.0 // indirect
 	github.com/go-faster/xor v1.0.0 // indirect
+	github.com/go-faster/yaml v0.4.6 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect
 	github.com/go-fonts/dejavu v0.3.2 // indirect
 	github.com/go-fonts/latin-modern v0.3.2 // indirect
@@ -2179,7 +2181,7 @@ require (
 	github.com/ugorji/go v1.2.7 // indirect
 	github.com/urfave/negroni v1.0.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.40.0 // indirect
+	github.com/valyala/fasthttp v1.62.0 // indirect
 	github.com/valyala/fastrand v1.1.0 // indirect
 	github.com/valyala/histogram v1.2.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
