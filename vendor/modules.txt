@@ -15789,7 +15789,7 @@ github.com/xuri/nfp
 # github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0
 ## explicit
 github.com/yalp/jsonpath
-# github.com/yandex-cloud/go-genproto v0.24.0
+# github.com/yandex-cloud/go-genproto v0.32.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-genproto
 github.com/yandex-cloud/go-genproto/yandex/cloud
@@ -15904,6 +15904,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/oauth
 github.com/yandex-cloud/go-genproto/yandex/cloud/operation
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/idp
+github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/idp/application/oauth
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/saml
 github.com/yandex-cloud/go-genproto/yandex/cloud/quota
 github.com/yandex-cloud/go-genproto/yandex/cloud/quotamanager/v1
@@ -15932,7 +15933,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1/privatelink
 github.com/yandex-cloud/go-genproto/yandex/cloud/ydb/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/ytsaurus/v1
-# github.com/yandex-cloud/go-sdk v0.0.0
+# github.com/yandex-cloud/go-sdk v0.26.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-sdk
 github.com/yandex-cloud/go-sdk/dial
@@ -15960,14 +15961,18 @@ github.com/yandex-cloud/go-sdk/gen/apigateway/websocket
 github.com/yandex-cloud/go-sdk/gen/apploadbalancer
 github.com/yandex-cloud/go-sdk/gen/audittrails
 github.com/yandex-cloud/go-sdk/gen/backup
+github.com/yandex-cloud/go-sdk/gen/baremetal
 github.com/yandex-cloud/go-sdk/gen/billing
 github.com/yandex-cloud/go-sdk/gen/cdn
 github.com/yandex-cloud/go-sdk/gen/certificatemanager
 github.com/yandex-cloud/go-sdk/gen/certificatemanagerdata
 github.com/yandex-cloud/go-sdk/gen/cic
+github.com/yandex-cloud/go-sdk/gen/clouddesktop
+github.com/yandex-cloud/go-sdk/gen/cloudregistry
 github.com/yandex-cloud/go-sdk/gen/cloudrouter
 github.com/yandex-cloud/go-sdk/gen/compute
 github.com/yandex-cloud/go-sdk/gen/compute/instancegroup
+github.com/yandex-cloud/go-sdk/gen/connectionmanager
 github.com/yandex-cloud/go-sdk/gen/containerregistry
 github.com/yandex-cloud/go-sdk/gen/containers
 github.com/yandex-cloud/go-sdk/gen/dataproc
@@ -15976,6 +15981,7 @@ github.com/yandex-cloud/go-sdk/gen/datatransfer
 github.com/yandex-cloud/go-sdk/gen/dns
 github.com/yandex-cloud/go-sdk/gen/eventrouter
 github.com/yandex-cloud/go-sdk/gen/functions
+github.com/yandex-cloud/go-sdk/gen/gitlab
 github.com/yandex-cloud/go-sdk/gen/iam
 github.com/yandex-cloud/go-sdk/gen/iam/awscompatibility
 github.com/yandex-cloud/go-sdk/gen/iam/workload
@@ -16012,11 +16018,15 @@ github.com/yandex-cloud/go-sdk/gen/mdb/mysql
 github.com/yandex-cloud/go-sdk/gen/mdb/opensearch
 github.com/yandex-cloud/go-sdk/gen/mdb/postgresql
 github.com/yandex-cloud/go-sdk/gen/mdb/redis
+github.com/yandex-cloud/go-sdk/gen/mdb/spqr
 github.com/yandex-cloud/go-sdk/gen/mdb/sqlserver
 github.com/yandex-cloud/go-sdk/gen/mdbproxy
+github.com/yandex-cloud/go-sdk/gen/metastore
 github.com/yandex-cloud/go-sdk/gen/monitoring
 github.com/yandex-cloud/go-sdk/gen/operation
 github.com/yandex-cloud/go-sdk/gen/organizationmanager
+github.com/yandex-cloud/go-sdk/gen/organizationmanager/idp
+github.com/yandex-cloud/go-sdk/gen/organizationmanager/idp/application/oauth
 github.com/yandex-cloud/go-sdk/gen/organizationmanager/saml
 github.com/yandex-cloud/go-sdk/gen/quotamanager
 github.com/yandex-cloud/go-sdk/gen/resourcemanager
@@ -16027,10 +16037,12 @@ github.com/yandex-cloud/go-sdk/gen/smartwebsecurity/waf
 github.com/yandex-cloud/go-sdk/gen/spark
 github.com/yandex-cloud/go-sdk/gen/storage-api
 github.com/yandex-cloud/go-sdk/gen/triggers
+github.com/yandex-cloud/go-sdk/gen/trino
 github.com/yandex-cloud/go-sdk/gen/vpc
 github.com/yandex-cloud/go-sdk/gen/vpc/privatelink
 github.com/yandex-cloud/go-sdk/gen/workflows
 github.com/yandex-cloud/go-sdk/gen/ydb
+github.com/yandex-cloud/go-sdk/gen/ytsaurus
 github.com/yandex-cloud/go-sdk/iamkey
 github.com/yandex-cloud/go-sdk/operation
 github.com/yandex-cloud/go-sdk/pkg/grpcclient
