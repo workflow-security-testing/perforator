@@ -476,7 +476,7 @@ static NOINLINE int profiler_stage_collect_stack(void* ctx, struct user_regs* re
         try_get_stack(ctx, &state->userstack, BPF_F_USER_STACK);
         break;
     case UNWIND_TYPE_DWARF:
-        dwarf_collect_stack(regs, &state->userstack);
+        dwarf_collect_stack(regs, &state->userstack, state->sample.pid);
         break;
     case UNWIND_TYPE_DISABLED:
         break;

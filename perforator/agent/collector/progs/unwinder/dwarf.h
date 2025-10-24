@@ -411,9 +411,10 @@ static ALWAYS_INLINE void dwarf_unwind_setup_userspace_registers(
 // Initialize @ctx.
 static NOINLINE bool dwarf_unwind_init(
     struct dwarf_unwind_context* ctx,
-    struct user_regs* regs
+    struct user_regs* regs,
+    u32 pid
 ) {
-    ctx->pid = bpf_get_current_pid_tgid() >> 32;
+    ctx->pid = pid;
     ctx->error = DWARF_UNWIND_ERROR_NONE;
     ctx->framepointers = 0;
 
@@ -698,14 +699,14 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static ALWAYS_INLINE int dwarf_collect_stack(struct user_regs* regs, struct stack* stack) {
+static ALWAYS_INLINE int dwarf_collect_stack(struct user_regs* regs, struct stack* stack, u32 pid) {
     struct dwarf_unwind_context* ctx = dwarf_get_context();
     if (ctx == NULL) {
         DWARF_TRACE("failed to load unwinder state from heap\n");
         return 0;
     }
 
-    if (!dwarf_unwind_init(ctx, regs)) {
+    if (!dwarf_unwind_init(ctx, regs, pid)) {
         DWARF_TRACE("failed to retrieve userspace registers\n");
         return 0;
     }
