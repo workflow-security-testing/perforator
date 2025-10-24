@@ -27,6 +27,14 @@ IF (OS_LINUX)
     GO_TEST_SRCS(dial_socketopt_test.go)
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        dial_socketopt.go
+    )
+
+    GO_TEST_SRCS(dial_socketopt_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

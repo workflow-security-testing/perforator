@@ -48,6 +48,12 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        mmap_unix.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

@@ -73,6 +73,15 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        ssl_permissions.go
+        user_other.go
+    )
+
+    GO_TEST_SRCS(ssl_permissions_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

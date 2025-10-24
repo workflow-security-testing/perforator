@@ -66,6 +66,14 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        conncheck.go
+    )
+
+    GO_TEST_SRCS(conncheck_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

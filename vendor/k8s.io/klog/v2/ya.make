@@ -54,6 +54,12 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        klog_file_others.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

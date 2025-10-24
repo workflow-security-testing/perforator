@@ -68,6 +68,12 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        connect_check.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

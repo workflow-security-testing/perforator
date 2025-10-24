@@ -34,6 +34,14 @@ IF (OS_WINDOWS)
     GO_TEST_SRCS(isatty_windows_test.go)
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        isatty_tcgets.go
+    )
+
+    GO_TEST_SRCS(isatty_others_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

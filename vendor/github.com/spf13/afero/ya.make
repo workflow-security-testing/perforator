@@ -58,6 +58,12 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        const_win_unix.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

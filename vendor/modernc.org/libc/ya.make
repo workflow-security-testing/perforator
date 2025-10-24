@@ -150,6 +150,30 @@ IF (OS_WINDOWS AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        aliases.go
+        atomic.go
+        atomic64.go
+        builtin.go
+        builtin64.go
+        capi_linux_arm64.go
+        ccgo_linux_arm64.go
+        etc_musl.go
+        libc_musl.go
+        libc_musl_linux_arm64.go
+        mem_musl.go
+        pthread_musl.go
+        rtl.go
+        syscall_musl.go
+    )
+
+    GO_TEST_SRCS(
+        # all_musl_test.go
+        unix_test.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

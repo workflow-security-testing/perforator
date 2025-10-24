@@ -66,4 +66,11 @@ IF (OS_WINDOWS AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        hooks_linux_arm64.go
+        sqlite_linux_arm64.go
+    )
+ENDIF()
+
 END()

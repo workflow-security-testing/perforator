@@ -28,4 +28,10 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        invoke_unix.go
+    )
+ENDIF()
+
 END()

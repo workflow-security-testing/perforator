@@ -42,6 +42,13 @@ IF (OS_WINDOWS)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        bind_blob_musl.go
+        rulimit.go
+    )
+ENDIF()
+
 GO_TEST_EMBED_PATTERN(embed.db)
 
 GO_TEST_EMBED_PATTERN(embed2.db)

@@ -53,4 +53,11 @@ IF (OS_WINDOWS AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        capi_linux_arm64.go
+        types_linux_arm64.go
+    )
+ENDIF()
+
 END()

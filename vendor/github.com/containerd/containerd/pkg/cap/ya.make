@@ -12,6 +12,14 @@ IF (OS_LINUX)
     GO_TEST_SRCS(cap_linux_test.go)
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        cap_linux.go
+    )
+
+    GO_TEST_SRCS(cap_linux_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

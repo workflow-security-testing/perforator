@@ -57,6 +57,13 @@ IF (OS_WINDOWS AND ARCH_ARM64)
     )
 ENDIF()
 
+IF (OS_ANDROID)
+    SRCS(
+        os_linux_arm64.go
+        os_unsafe_linux_arm64.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(
