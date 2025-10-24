@@ -15109,6 +15109,9 @@ github.com/temporalio/ui-server/v2/ui
 ## explicit; go 1.15
 # github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3
 ## explicit; go 1.13
+# github.com/terminalstatic/go-xsd-validate v0.1.6
+## explicit; go 1.16
+github.com/terminalstatic/go-xsd-validate
 # github.com/testcontainers/testcontainers-go v0.33.0 => github.com/testcontainers/testcontainers-go v0.31.0
 ## explicit; go 1.21
 github.com/testcontainers/testcontainers-go
