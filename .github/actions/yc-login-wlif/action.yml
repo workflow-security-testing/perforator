@@ -1,0 +1,38 @@
+name: 'Login to YC'
+description: 'Get YC IAM token using github OIDC token'
+inputs:
+  service_account_id:
+    required: true
+    description: 'ID of the YC SA to use'
+outputs:
+  token:
+    description: 'Obtained IAM token'
+    value: ${{ steps.iam_token.outputs.token }}
+runs:
+  using: composite
+  steps:
+    - name: Obtain ID token
+      # https://docs.github.com/en/actions/how-tos/security-for-github-actions/security-hardening-your-deployments/configuring-openid-connect-in-cloud-providers#requesting-the-jwt-using-the-actions-core-toolkit
+      uses: actions/github-script@v7
+      id: id_token
+      with:
+        script: |
+          let id_token = await core.getIDToken('cloud-ci')
+          core.setOutput('token', id_token)
+    - name: Print id token info
+      if: ${{ runner.debug }}
+      env:
+        ID_TOKEN: ${{ steps.id_token.outputs.token }}
+      run: |
+        python3 '${{ github.action_path }}/../../../perforator/ci/id-token-info.py' || echo 'Failed to inspect token'
+      shell: bash
+    - name: Authenticate in cloud
+      id: iam_token
+      env:
+        ID_TOKEN: ${{ steps.id_token.outputs.token }}
+        SA_ID: ${{ inputs.service_account_id }}
+      run: |
+        IAM_TOKEN=$(curl --fail -sH "Content-Type: application/x-www-form-urlencoded" -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange&requested_token_type=urn:ietf:params:oauth:token-type:access_token&audience=${SA_ID}&subject_token=${ID_TOKEN}&subject_token_type=urn:ietf:params:oauth:token-type:id_token" -X POST https://auth.yandex.cloud/oauth/token | jq -r '.access_token')
+        echo "::add-mask::${IAM_TOKEN}"
+        echo "token=${IAM_TOKEN}" >> $GITHUB_OUTPUT
+      shell: bash

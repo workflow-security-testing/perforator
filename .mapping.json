@@ -1,6 +1,8 @@
 {
   ".":"perforator/opensource/github_toplevel",
   ".gitattributes":"perforator/opensource/github_toplevel/.gitattributes",
+  ".github/actions/remote-run/action.yml":"perforator/opensource/github_toplevel/.github/actions/remote-run/action.yml",
+  ".github/actions/yc-login-wlif/action.yml":"perforator/opensource/github_toplevel/.github/actions/yc-login-wlif/action.yml",
   ".github/workflows/postcommit.yaml":"perforator/opensource/github_toplevel/.github/workflows/postcommit.yaml",
   ".github/workflows/release.yaml":"perforator/opensource/github_toplevel/.github/workflows/release.yaml",
   ".github/workflows/ui-release.yaml":"perforator/opensource/github_toplevel/.github/workflows/ui-release.yaml",
