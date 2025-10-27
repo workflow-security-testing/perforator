@@ -7,9 +7,12 @@ ADDINCL(
 SRCS(
     analyze.cpp
     ehframe.cpp
+    sframe.cpp
 )
 
 PEERDIR(
+    perforator/agent/preprocessing/lib/llvm
+
     contrib/libs/llvm18/include
     contrib/libs/llvm18/lib/DebugInfo/DWARF
     contrib/libs/llvm18/lib/DebugInfo/Symbolize
