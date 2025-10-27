@@ -13,10 +13,11 @@
 
 #include <util/generic/algorithm.h>
 #include <util/generic/maybe.h>
-#include <util/generic/xrange.h>
 #include <util/generic/vector.h>
+#include <util/generic/xrange.h>
 #include <util/generic/yexception.h>
 
+#include <llvm/ADT/AddressRanges.h>
 #include <llvm/DebugInfo/DWARF/DWARFContext.h>
 #include <llvm/DebugInfo/DWARF/DWARFDebugFrame.h>
 #include <llvm/MC/MCRegisterInfo.h>
@@ -201,6 +202,67 @@ void RemapRules(google::protobuf::RepeatedField<ui32>* rules, const NUnwind::TRu
     }
 }
 
+
+template<typename T>
+class TAddressRangeMapBuilder {
+public:
+    TAddressRangeMapBuilder() = default;
+
+    TAddressRangeMapBuilder(size_t capacity) {
+        Values_.reserve(capacity);
+        Events_.reserve(capacity * 2);
+    }
+
+    void Insert(llvm::AddressRange range, T value) {
+        size_t index = Values_.size();
+        Values_.push_back(std::move(value));
+        Events_.push_back({range.start(), index});
+        Events_.push_back({range.end(), index});
+    }
+
+    std::vector<std::pair<llvm::AddressRange, T>> Finish() && {
+        std::vector<std::pair<llvm::AddressRange, T>> res;
+
+        Sort(Events_);
+
+        std::set<size_t> activeIndices;
+        uint64_t startAddress = 0;
+        std::optional<size_t> currentIndex;
+
+        auto updateCurrent = [&](uint64_t address) {
+            std::optional<size_t> newIndex;
+            if (!activeIndices.empty()) {
+                newIndex = *activeIndices.begin();
+            }
+            if (currentIndex != newIndex) {
+                if (currentIndex.has_value()) {
+                    res.emplace_back(llvm::AddressRange{startAddress, address}, Values_[*currentIndex]);
+                }
+                currentIndex = newIndex;
+                startAddress = address;
+            }
+        };
+
+        for (auto&& [address, index] : Events_) {
+            auto it = activeIndices.lower_bound(index);
+            if (it != activeIndices.end() && *it == index) {
+                activeIndices.erase(it);
+                updateCurrent(address);
+            } else {
+                activeIndices.insert(it, index);
+                updateCurrent(address);
+            }
+        }
+
+        return res;
+    }
+
+private:
+    std::vector<T> Values_;
+    std::vector<std::pair<uint64_t, size_t>> Events_;
+};
+
+
 UnwindTable BuildUnwindTable(llvm::object::ObjectFile* objectFile) {
     auto dwarfContext = llvm::DWARFContext::create(*objectFile);
 
@@ -213,23 +275,32 @@ UnwindTable BuildUnwindTable(llvm::object::ObjectFile* objectFile) {
     }
     Y_ENSURE(ehFrame);
 
+    // Some DWARFs (of BOLTed binaries, in particular), can contain overlapping ranges.
+    // We try to mimic libunwind behavior and choose first matching FDE for pc.
+    // It is better to just use some kind of interval_map, but llvm::AddressRangesMap is backed by SmallVector and can cause performance issues.
+    auto entries = ehFrame->entries();
+    TAddressRangeMapBuilder<const llvm::dwarf::FDE*> fdeRangesMap;
+    for (auto&& entry : entries) {
+        const llvm::dwarf::FDE* fde = llvm::dyn_cast<llvm::dwarf::FDE>(&entry);
+        if (fde == nullptr) {
+            Y_ENSURE(llvm::isa<llvm::dwarf::CIE>(&entry), "Unknown eh frame kind " << (int)entry.getKind());
+            continue;
+        }
+        fdeRangesMap.Insert(llvm::AddressRange{fde->getInitialLocation(), fde->getInitialLocation() + fde->getAddressRange()}, fde);
+    }
+    auto fdeEntries = std::move(fdeRangesMap).Finish();
+
     NUnwind::TRuleDictBuilder dictBuilder;
     NPerforator::NBinaryProcessing::NUnwind::UnwindTable unwtable;
 
-    for (auto&& frame : ehFrame->entries()) {
-        const llvm::dwarf::FDE* fde = llvm::dyn_cast<llvm::dwarf::FDE>(&frame);
-        if (fde == nullptr) {
-            Y_ENSURE(llvm::isa<llvm::dwarf::CIE>(&frame), "Unknown eh frame kind " << (int)frame.getKind());
-            continue;
-        }
-
+    for (auto&& [fdeAddressRange, fde] : fdeEntries) {
         const llvm::dwarf::CIE* cie = fde->getLinkedCIE();
-        Y_ENSURE(cie, "Empty CIE for FDE at " << frame.getOffset());
+        Y_ENSURE(cie, "Empty CIE for FDE at " << fde->getOffset());
 
         llvm::dwarf::UnwindTable table = Y_LLVM_RAISE(llvm::dwarf::UnwindTable::create(fde));
 
         for (const auto& [i, row] : Enumerate(table)) {
-            auto pcAddressAndRange = [&]() -> TMaybe<std::pair<uint64_t, uint64_t>> {
+            auto rowAddressRange = [&]() -> TMaybe<llvm::AddressRange> {
                 auto startAddress = row.getAddress();
                 auto endAddress = [&]() -> uint64_t {
                     if (i + 1 < table.size()) {
@@ -245,15 +316,22 @@ UnwindTable BuildUnwindTable(llvm::object::ObjectFile* objectFile) {
                 if (startAddress == endAddress) {
                     return Nothing();
                 }
-                return {{startAddress, endAddress - startAddress}};
+
+                // Bind range to precalculated boundaries of FDE (if FDEs do overlap).
+                startAddress = Max(startAddress, fdeAddressRange.start());
+                endAddress = Min(endAddress, fdeAddressRange.end());
+                if (startAddress >= endAddress) {
+                    return Nothing();
+                }
+
+                return llvm::AddressRange{startAddress, endAddress};
             }();
 
-            if (!pcAddressAndRange) {
+            if (!rowAddressRange) {
                 continue;
             }
-            auto [pcAddress, pcRange] = *pcAddressAndRange;
-            unwtable.add_start_pc(pcAddress);
-            unwtable.add_pc_range(pcRange);
+            unwtable.add_start_pc(rowAddressRange->start());
+            unwtable.add_pc_range(rowAddressRange->size());
 
             NUnwind::UnwindRule cfa;
             NUnwind::UnwindRule rbp;
