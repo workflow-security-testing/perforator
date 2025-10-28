@@ -1,0 +1,19 @@
+.highlight__veil {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+}
+
+/* --g-color-sfx-veil is 600 in dark and 250 in light */
+/* the 600 is too dark, you can't see what's behind it */
+
+.g-root_theme_dark .highlight__veil {
+    background-color: var(--g-color-private-black-400);
+}
+
+.g-root_theme_light .highlight__veil {
+    background-color: var(--g-color-private-black-250);
+}

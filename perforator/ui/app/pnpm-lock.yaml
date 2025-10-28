@@ -14,6 +14,15 @@ importers:
       '@discoveryjs/json-ext':
         specifier: 0.6.3
         version: 0.6.3
+      '@floating-ui/core':
+        specifier: 1.7.2
+        version: 1.7.2
+      '@floating-ui/react':
+        specifier: 0.27.13
+        version: 0.27.13(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@floating-ui/react-dom':
+        specifier: 2.1.4
+        version: 2.1.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/components':
         specifier: 4.7.1
         version: 4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -29,6 +38,9 @@ importers:
       '@gravity-ui/navigation':
         specifier: 3.4.0
         version: 3.4.0(@bem-react/classname@1.6.0)(@gravity-ui/components@4.7.1(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@gravity-ui/icons@2.15.0(react@18.3.1))(@gravity-ui/uikit@7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@gravity-ui/onboarding':
+        specifier: 1.11.4
+        version: 1.11.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@gravity-ui/uikit':
         specifier: 7.16.2
         version: 7.16.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -852,6 +864,12 @@ packages:
       '@gravity-ui/uikit': ^7.2.0
       react: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@gravity-ui/onboarding@1.11.4':
+    resolution: {integrity: sha512-WrTvRcJQG8m0+oLvy8YmrhuGq4qz1N6Az0pDwggEMjK0ruy/vQ6RQquuekcrIjTlqoRvBRKQ42vg+v/bIvxdcQ==}
+    peerDependencies:
+      react: ^18.0.0
+      react-dom: ^18.0.0
 
   '@gravity-ui/stylelint-config@4.0.1':
     resolution: {integrity: sha512-Yn5gnfnLt46e0XqTAt41c7OTEMGVt2Cx7cLv1awTKYo7GLTyWuW3Ir7zx5N0J2QiC/LWfouwglOF+KqwVUkXug==}
@@ -1766,6 +1784,9 @@ packages:
 
   dayjs@1.11.10:
     resolution: {integrity: sha512-vjAczensTgRcqDERK0SR2XMwsF/tSvnvlv6VcF2GIhg6Sx4yOIt/irsr1RDJsKiIyBzJDpCoXiWWq28MqH2cnQ==}
+
+  dayjs@1.11.13:
+    resolution: {integrity: sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==}
 
   debug@3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
@@ -4279,6 +4300,12 @@ snapshots:
       react-transition-group: 4.4.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       tslib: 2.8.1
 
+  '@gravity-ui/onboarding@1.11.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      dayjs: 1.11.13
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   '@gravity-ui/stylelint-config@4.0.1(postcss@8.5.1)(prettier@3.2.5)(stylelint@15.11.0(typescript@5.6.2))':
     dependencies:
       postcss: 8.5.1
@@ -5393,6 +5420,8 @@ snapshots:
       is-data-view: 1.0.2
 
   dayjs@1.11.10: {}
+
+  dayjs@1.11.13: {}
 
   debug@3.2.7:
     dependencies:

@@ -2,12 +2,14 @@ import React from 'react';
 
 import BarsDescendingAlignLeftIcon from '@gravity-ui/icons/svgs/bars-descending-align-left.svg?raw';
 import ClockArrowRotateLeftIcon from '@gravity-ui/icons/svgs/clock-arrow-rotate-left.svg?raw';
+import GraduationCapIcon from '@gravity-ui/icons/svgs/graduation-cap.svg?raw';
 import ScalesUnbalancedIcon from '@gravity-ui/icons/svgs/scales-unbalanced.svg?raw';
-import type { MenuItem } from '@gravity-ui/navigation';
+import type { DrawerItemProps, MenuItem } from '@gravity-ui/navigation';
 import { PageLayoutAside } from '@gravity-ui/navigation';
 
 import PerforatorLogo from 'src/assets/perforator.svg?raw';
 import { Link } from 'src/components/Link/Link';
+import { Tutorials } from 'src/components/Tutorials/Tutorials';
 import { uiFactory } from 'src/factory';
 
 import { NavigationFooter } from '../NavigationFooter/NavigationFooter';
@@ -55,18 +57,39 @@ const makeMenuItem = (link: MenuLink): MenuItem => ({
     ),
 });
 
+const menuLinkItems = menuLinks.map(makeMenuItem);
+
+type PanelItems = 'settings' | 'tutorials';
+
 export const Aside: React.FC<AsideProps> = (props) => {
     const asideRef = React.useRef<HTMLDivElement>(null);
 
-    const [showSettings, setShowSettings] = React.useState<boolean>(false);
+    const [showPanel, setShowPanel] = React.useState<PanelItems | null>(null);
 
     const panelItems = React.useMemo(() => [
         {
             id: 'settings',
             content: <SettingsPanel />,
-            visible: showSettings,
+            visible: showPanel === 'settings',
         },
-    ], [showSettings]);
+        {
+            id: 'tutorials',
+            children: <Tutorials onItemClick={() => setShowPanel(null)} />,
+            visible: showPanel === 'tutorials',
+        },
+    ] as DrawerItemProps[], [showPanel]);
+
+    const items = menuLinkItems.concat(
+        [{
+            title: 'Learn',
+            icon: GraduationCapIcon,
+            id: 'tutorials',
+            current: showPanel === 'tutorials' || window.location.pathname.startsWith('/tutorials'),
+            onItemClick: () => setShowPanel(
+                showPanel ? null : 'tutorials',
+            ),
+        }],
+    );
 
     return (
         <PageLayoutAside
@@ -77,16 +100,17 @@ export const Aside: React.FC<AsideProps> = (props) => {
                 iconSize: 32,
                 href: '/',
             }}
+            multipleTooltip
             headerDecoration
             onChangeCompact={props.setCompact}
             subheaderItems={uiFactory().useSubheaderItems(asideRef)}
-            menuItems={menuLinks.map(makeMenuItem)}
+            menuItems={items}
             panelItems={panelItems}
-            onClosePanel={() => setShowSettings(false)}
+            onClosePanel={() => setShowPanel(null)}
             renderFooter={({ compact }) => (
                 <NavigationFooter
                     compact={compact}
-                    toggleSettings={() => setShowSettings(settings => !settings)}
+                    toggleSettings={() => setShowPanel(settings => settings ? null : 'settings')}
                 />
             )}
         />

@@ -4,6 +4,7 @@ import { PageLayout } from '@gravity-ui/navigation';
 import { Container } from '@gravity-ui/uikit';
 
 import { ErrorBoundary } from 'src/components/ErrorBoundary/ErrorBoundary';
+import { OnboardingPopup } from 'src/components/OnboardingPopup/OnboardingPopup';
 import { LocalStorageKey } from 'src/const/localStorage';
 import { cn } from 'src/utils/cn';
 import { setPageTitle } from 'src/utils/title';
@@ -60,6 +61,7 @@ export const PageContainer: React.FC<PageContainerProps> = props => {
                     </Container>
                 </PageLayout.Content>
             </PageLayout>
+            <OnboardingPopup/>
         </ErrorBoundary>
     );
 };

@@ -1,0 +1,15 @@
+.aside-tutorials__item {
+    padding: var(--g-spacing-2);
+    background-color: var(--g-color-base-generic);
+    display: flex;
+    align-items: center;
+    gap: var(--g-spacing-1);
+}
+
+.aside-tutorials__item:hover {
+    background-color: var(--g-color-base-generic-hover);
+}
+
+.aside-tutorials__icon {
+    color: var(--g-color-line-positive);
+}

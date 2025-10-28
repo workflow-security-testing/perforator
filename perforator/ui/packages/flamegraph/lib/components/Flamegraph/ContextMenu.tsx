@@ -12,6 +12,8 @@ import { parseStacks, stringifyStacks } from '../../query-utils';
 import type { QueryKeys } from '../../renderer';
 import { Hotkey } from '../Hotkey/Hotkey';
 
+import { ContextMenuItems } from './ContextMenuItems';
+
 
 export type PopupData = { offset: [number, number]; node: StringifiedNode; coords: [number, number] };
 
@@ -24,8 +26,20 @@ export type ContextMenuProps = {
     getQuery: GetStateFromQuery<QueryKeys>;
     goToDefinitionHref: GoToDefinitionHref;
     onSuccess: (options: Pick<ToastProps, 'renderIcon' | 'name' | 'content'>) => void;
+    onContextItemClick?: (frame: StringifiedNode, item: string) => void;
 };
-export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, onClosePopup, setQuery, getQuery, goToDefinitionHref, onSuccess }) => {
+
+
+export const ContextMenu: React.FC<ContextMenuProps> = ({
+    popupData,
+    anchorRef,
+    onClosePopup,
+    setQuery,
+    getQuery,
+    goToDefinitionHref,
+    onSuccess,
+    onContextItemClick,
+}) => {
     const href = goToDefinitionHref(popupData.node);
     const hasFile = Boolean(popupData.node.file);
     const shouldShowGoTo = (
@@ -52,6 +66,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, 
                     onClick={() => {
                         onSuccess({ renderIcon: () => <Icon data={CopyCheck}/>, name: 'copy', content: 'Name copied to clipboard' });
                         onClosePopup();
+                        onContextItemClick?.(popupData.node, ContextMenuItems.CopyName);
                     }}
                 >
 
@@ -75,6 +90,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, 
                         onClick={() => {
                             onSuccess({ renderIcon: () => <Icon data={CopyCheck}/>, name: 'copy', content: 'File path copied to clipboard' });
                             onClosePopup();
+                            onContextItemClick?.(popupData.node, ContextMenuItems.CopyFile);
                         }}
                     >
                     Copy file path
@@ -89,6 +105,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, 
                         flamegraphQuery: popupData.node.textId,
                     });
                     onClosePopup();
+                    onContextItemClick?.(popupData.node, ContextMenuItems.FindExact);
                 }}>
                 Find similar nodes
             </Menu.Item>
@@ -100,6 +117,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ popupData, anchorRef, 
                         omitted.push(popupData.coords);
                         setQuery({ omittedIndexes: stringifyStacks(omitted) });
                         onClosePopup();
+                        onContextItemClick?.(popupData.node, ContextMenuItems.Omit);
                     }}
                 >
             Omit stack

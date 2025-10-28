@@ -1,0 +1,14 @@
+.onboarding-hint__index{
+    margin: 0;
+    margin-top: var(--g-spacing-2);
+}
+
+.onboarding-hint__actions {
+    display: flex;
+    justify-content: end;
+}
+
+.onboarding-hint__action-button {
+    margin-right: 4px;
+    margin-top: 4px;
+}

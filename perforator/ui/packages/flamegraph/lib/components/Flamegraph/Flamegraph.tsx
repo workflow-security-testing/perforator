@@ -28,6 +28,11 @@ import './Flamegraph.css';
 
 const b = cn('flamegraph');
 
+export type ExternalFlamegraphApi = {
+    offsetter: FlamegraphOffseter;
+    canvas: HTMLCanvasElement;
+};
+
 export interface FlamegraphProps extends Pick<RenderFlamegraphOptions, 'onFinishRendering'> {
     isDiff: boolean;
     theme: 'light' | 'dark';
@@ -39,9 +44,18 @@ export interface FlamegraphProps extends Pick<RenderFlamegraphOptions, 'onFinish
     setState: SetStateFromQuery<QueryKeys>;
     className?: string;
     onFrameClick?: (event: React.MouseEvent, frame: StringifiedNode) => void;
+    onFrameAltClick?: (event: React.MouseEvent, frame: StringifiedNode) => void;
+    onContextClick?: (event: React.MouseEvent, frame: StringifiedNode) => void;
+    onContextItemClick?: (frame: StringifiedNode, item: string) => void;
     getHoverText?: (coord: Coordinate) => string;
     isLeftHeavy?: boolean;
     onChangeLeftHeavy?: (leftHeavy: boolean) => void;
+    disableHoverPopup?: boolean;
+    setOffsetterRef?: (args: ExternalFlamegraphApi | null) => void;
+    onResetOmitted?: () => void;
+    onSearch?: (search: string) => void;
+    onSearchReset?: () => void;
+    onKeepOnlyFound?: (value: boolean) => void;
 }
 
 
@@ -60,6 +74,15 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     getHoverText,
     isLeftHeavy,
     onChangeLeftHeavy,
+    disableHoverPopup: disableHoverPopup,
+    onContextClick,
+    onFrameAltClick,
+    onContextItemClick,
+    setOffsetterRef,
+    onResetOmitted,
+    onSearch,
+    onKeepOnlyFound,
+    onSearchReset,
 }) => {
     const flamegraphContainer = React.useRef<HTMLDivElement | null>(null);
     const flamegraphCanvas = React.useRef<HTMLCanvasElement | null>(null);
@@ -73,9 +96,11 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     const reverse = (getQuery('flamegraphReverse') ?? String(userSettings.reverseFlameByDefault)) === 'true';
     const isDiffSwitchingSupported = profileData.meta.version > 1;
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
         if (profileData) {
-            flamegraphOffsets.current = new FlamegraphOffseter(profileData.rows, { reverse, levelHeight });
+            const offsetter = new FlamegraphOffseter(profileData.rows, { reverse, levelHeight });
+            flamegraphOffsets.current = offsetter;
+            setOffsetterRef?.({ offsetter, canvas: flamegraphCanvas.current });
         }
     }, [profileData, reverse, levelHeight]);
 
@@ -98,27 +123,36 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
 
     const handleSearchReset = React.useCallback(() => {
         setQuery({ flamegraphQuery: false });
+        onSearchReset?.();
     }, [setQuery]);
     const haveOmittedNodes = Boolean(getQuery('omittedIndexes'));
     const keepOnlyFound = getQuery('keepOnlyFound') === 'true';
     const switchKeepOnlyFound = React.useCallback(() => {
-        setQuery({ keepOnlyFound: !keepOnlyFound ? 'true' : false });
+        onKeepOnlyFound?.(!keepOnlyFound);
+        const newValue = !keepOnlyFound ? 'true' : false;
+        setQuery({ keepOnlyFound: newValue });
     }, [keepOnlyFound, setQuery]);
     const handleOmittedNodesReset = React.useCallback(() => {
         setQuery({ omittedIndexes: false });
+        onResetOmitted?.();
     }, [setQuery]);
 
     const handleSearchUpdate = (text: string, exactMatch?: boolean) => {
         setQuery({ 'flamegraphQuery': encodeURIComponent(text), exactMatch: exactMatch ? 'true' : undefined });
+        onSearch?.(text);
         setShowDialog(false);
     };
     const exactMatch = getQuery('exactMatch');
 
 
     React.useEffect(() => {
-        if (flamegraphContainer.current && profileData && flamegraphOffsets.current) {
+        if (flamegraphContainer.current) {
             flamegraphContainer.current.style.setProperty('--flamegraph-font', userSettings.monospace === 'system' ? 'monospace' : 'var(--g-font-family-monospace)');
+        }
+    }, [userSettings.monospace]);
 
+    React.useEffect(() => {
+        if (flamegraphContainer.current && profileData && flamegraphOffsets.current) {
             const renderOptions = {
                 setState: setQuery,
                 getState: getQuery,
@@ -152,6 +186,12 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
 
         const stringifiedNode = readNodeStrings(profileData, coordsClient);
         setPopupData({ offset: [offsetX, -offsetY], node: stringifiedNode, coords: [coordsClient.h, coordsClient.i] });
+
+        if (!onContextClick) {
+            return;
+        }
+
+        onContextClick(event, stringifiedNode);
     }, [profileData]);
 
     const handleOnClick: React.MouseEventHandler = React.useCallback((e) => {
@@ -183,6 +223,9 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
         const stringifiedNode = readNodeStrings(profileData, coordsClient);
         if (stringifiedNode) {
             onFrameClick(e, stringifiedNode);
+            if (e.altKey) {
+                onFrameAltClick?.(e, stringifiedNode);
+            }
         }
     }, [profileData, onFrameClick, popupData]);
 
@@ -192,7 +235,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
         const fg = flamegraphOffsets.current!;
         const coordsClient = fg.getCoordsByPosition(offsetX, offsetY);
 
-        if (!coordsClient) {
+        if (!coordsClient || disableHoverPopup) {
             setHoverData(null);
             return;
         }
@@ -282,7 +325,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                             <Hotkey value="cmd+F" />
                         </Button>
                         {search ?
-                            <Button onClick={switchKeepOnlyFound}>
+                            <Button className="flamegraph__button flamegraph__button_keep-only-found" onClick={switchKeepOnlyFound}>
                                 <Icon data={keepOnlyFound ? FunnelXmark : Funnel} />
                                 {keepOnlyFound ? 'Show all stacks' : 'Show matched stacks'}
                                 <Hotkey value="alt+F" />
@@ -296,7 +339,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                             : null}
                         {
                             isLeftHeavy !== undefined && onChangeLeftHeavy !== undefined ?
-                                <Switch className="flamegraph__switch" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
+                                <Switch className="flamegraph__switch flamegraph__switch_left-heavy" checked={isLeftHeavy} onUpdate={onChangeLeftHeavy}>
                                     <Icon data={ArrowRightArrowLeft} />
                                 Left-heavy
                                 </Switch>
@@ -352,11 +395,13 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     getQuery={getQuery}
                     setQuery={setQuery}
                     goToDefinitionHref={goToDefinitionHref}
+                    onContextItemClick={onContextItemClick}
                 />
             )}
             {
-                hoverData && <HoverPopup hoverData={hoverData} anchorRef={canvasRef} getText={getHoverText || getHoverTitle}/>
+                hoverData && !disableHoverPopup && <HoverPopup hoverData={hoverData} anchorRef={canvasRef} getText={getHoverText || getHoverTitle}/>
             }
+
         </>
     );
 };

@@ -2,6 +2,7 @@ import { createBrowserRouter, Outlet } from 'react-router-dom';
 
 import type { PageComponent, PageProps } from 'src/components/Page/Page';
 import { PageContainer } from 'src/components/Page/PageContainer/PageContainer';
+import { DemoPage } from 'src/pages/DemoPage';
 
 import {
     BuildProfile,
@@ -56,6 +57,10 @@ export const getRouter = (pageProps: PageProps) => {
                 {
                     path: 'tasks',
                     element: makePage(History, 'History'),
+                },
+                {
+                    path: '/tutorials/basics',
+                    element: makePage(DemoPage, 'Demo'),
                 },
             ],
         },

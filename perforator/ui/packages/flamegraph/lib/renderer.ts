@@ -104,7 +104,7 @@ export class FlamegraphOffseter {
     private widthRatio: number | undefined;
     private minVisibleEv: number | undefined;
     private reverse: boolean;
-    private levelHeight: number;
+    levelHeight: number;
     private shouldReverseDiff = false;
 
     constructor(rows: ProfileData['rows'], options: { reverse: boolean; levelHeight: number }) {

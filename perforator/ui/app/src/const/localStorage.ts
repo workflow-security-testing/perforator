@@ -4,4 +4,6 @@ export enum LocalStorageKey {
     QueryInputKind = 'queryInputKind',
     ShareFormat = 'shareFormat',
     UserSettings = 'userSettings',
+    TutorialProgress = 'tutorialProgress',
+    TutorialBase = 'tutorialBase'
 }

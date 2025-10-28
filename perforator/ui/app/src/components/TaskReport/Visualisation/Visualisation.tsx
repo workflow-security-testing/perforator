@@ -61,6 +61,17 @@ export interface VisualisationProps extends Pick<FlamegraphProps,
  | 'isDiff'
  | 'theme'
  | 'userSettings'
+ | 'disableHoverPopup'
+ | 'onFrameClick'
+ | 'onFrameAltClick'
+ | 'onContextClick'
+ | 'onContextItemClick'
+ | 'onResetOmitted'
+ | 'onSearch'
+ | 'onKeepOnlyFound'
+ | 'onSearchReset'
+ | 'setOffsetterRef'
+ | 'onChangeLeftHeavy'
  > {
     loading: boolean;
 }
@@ -79,8 +90,9 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
     const { setEnabled } = useFullscreen();
     const isLeftHeavy = getQuery('leftHeavy', 'false') === 'true';
     const setIsLeftHeavy = React.useCallback((value: boolean) => {
+        props.onChangeLeftHeavy?.(value);
         setQuery({ 'leftHeavy': value ? 'true' : 'false' });
-    }, [setQuery]);
+    }, [setQuery, props.onChangeLeftHeavy]);
 
 
     const rowsRef = React.useRef(profileData?.rows);
@@ -177,8 +189,8 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             onSuccess: createSuccessToast,
             goToDefinitionHref: uiFactory().goToDefinitionHref,
             isLeftHeavy,
-            onChangeLeftHeavy: setIsLeftHeavy,
             ...props,
+            onChangeLeftHeavy: setIsLeftHeavy,
         };
         const topTableProps: TopTableProps | null = topData && profileData ? {
             topData,
