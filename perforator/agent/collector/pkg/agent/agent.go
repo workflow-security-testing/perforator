@@ -113,7 +113,7 @@ func NewPerforatorAgent(
 
 	if options.cpoServiceConfig != nil {
 		registry := custom_profiling_operation.NewOperationExecutionRegistry(xLogger, r, agent.profiler, agent.agentGatewayClient.CustomProfilingOperationClient)
-		handler := custom_profiling_operation.NewCPOHandler(xLogger, registry)
+		handler := custom_profiling_operation.NewHandler(xLogger, registry, agent.agentGatewayClient.CustomProfilingOperationClient)
 		agent.cpoService, err = custom_profiling_operation.NewService(xLogger, r, options.cpoServiceConfig, agent.agentGatewayClient.CustomProfilingOperationClient, handler)
 		if err != nil {
 			return nil, err
