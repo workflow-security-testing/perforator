@@ -11,6 +11,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/quality_monitoring/internal/config"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/quality_monitoring/internal/service"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
+	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
 func main() {
@@ -24,6 +25,7 @@ func main() {
 	if err != nil {
 		standardLog.Fatalf("can't create logger: %s", err)
 	}
+	ctx := context.Background()
 
 	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {
@@ -32,23 +34,23 @@ func main() {
 
 	reg := xmetrics.NewRegistry()
 
-	serv, err := service.NewMonitoringService(cfg, logger, reg)
+	serv, err := service.NewMonitoringService(ctx, cfg, logger, reg)
 	if err != nil {
 		standardLog.Fatalf("can't create monitoring server: %s", err)
 	}
 
 	err = serv.Run(
-		context.Background(),
+		ctx,
 		logger,
 		&service.RunConfig{
 			MetricsPort: *metricsPort,
 		})
 	if err != nil {
-		logger.Error("Service is stopping", log.Error(err))
+		logger.Error(ctx, "Service is stopping", log.Error(err))
 	}
 }
 
-func setupLogger(logLevel string) (log.Logger, error) {
+func setupLogger(logLevel string) (xlog.Logger, error) {
 	level, err := log.ParseLevel(logLevel)
 	if err != nil {
 		return nil, err
@@ -59,5 +61,5 @@ func setupLogger(logLevel string) (log.Logger, error) {
 		return nil, fmt.Errorf("can't create logger: %w", err)
 	}
 
-	return logger, nil
+	return xlog.New(logger), nil
 }

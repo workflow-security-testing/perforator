@@ -50,6 +50,8 @@ type Config struct {
 
 	// OAuth token with perforator:api scope.
 	Insecure bool
+	// TokenEnv and Token are mutually exclusive.
+	TokenEnv string
 	Token    string
 }
 
@@ -87,8 +89,12 @@ func NewClient(ctx context.Context, c *Config, l xlog.Logger) (*Client, error) {
 		c.URL = fmt.Sprintf("%s:%d", endpoint.host, endpoint.port)
 		c.Insecure = !endpoint.secure
 	}
+	if c.Token != "" && c.TokenEnv != "" {
+		return nil, fmt.Errorf("both token and token_env are set")
+	}
+	hasToken := (c.Token != "") || (c.TokenEnv != "")
 
-	if requireToken && c.Token == "" && os.Getenv("PERFORATOR_FORCE_DISABLE_TOKEN") != "yes" {
+	if requireToken && !hasToken && os.Getenv("PERFORATOR_FORCE_DISABLE_TOKEN") != "yes" {
 		return nil, fmt.Errorf("no OAuth token found")
 	}
 
@@ -111,11 +117,20 @@ func NewClient(ctx context.Context, c *Config, l xlog.Logger) (*Client, error) {
 		grpc.WithUserAgent(makeUserAgentString()),
 	}
 
-	if c.Token != "" {
+	if hasToken {
+		var token string
+		if c.TokenEnv != "" {
+			token = os.Getenv(c.TokenEnv)
+			if token == "" {
+				return nil, fmt.Errorf("token_env %s is not set", c.TokenEnv)
+			}
+		} else {
+			token = c.Token
+		}
 		l.Debug(context.Background(), "Using provided OAuth token")
 		opts = append(opts, grpc.WithPerRPCCredentials(oauth.TokenSource{
 			TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
-				AccessToken: c.Token,
+				AccessToken: token,
 			}),
 		}))
 	} else if !c.Insecure {

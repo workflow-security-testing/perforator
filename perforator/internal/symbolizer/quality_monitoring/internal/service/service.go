@@ -16,7 +16,6 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/library/go/ptr"
-	"github.com/yandex/perforator/perforator/internal/symbolizer/cli"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/pprofmetrics"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/quality_monitoring/internal/config"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
@@ -67,9 +66,9 @@ func (s *MonitoringService) registerMetrics() {
 }
 
 type MonitoringService struct {
-	cfg *config.Config
-	reg xmetrics.Registry
-	cli *cli.App
+	cfg         *config.Config
+	reg         xmetrics.Registry
+	proxyClient *client.Client
 
 	// Defines the base URL prefix used to generate task URLs (e.g., "my.perforator/task/<taskID>")
 	uiURLPrefix string
@@ -78,12 +77,11 @@ type MonitoringService struct {
 }
 
 func NewMonitoringService(
+	ctx context.Context,
 	cfg *config.Config,
-	logger log.Logger,
+	logger xlog.Logger,
 	reg xmetrics.Registry,
 ) (service *MonitoringService, err error) {
-	ctx := context.Background()
-
 	host, _, err := net.SplitHostPort(cfg.Client.URL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get perforator host: %w", err)
@@ -97,7 +95,7 @@ func NewMonitoringService(
 		return nil, fmt.Errorf("failed to initialize tracing span exporter: %w", err)
 	}
 
-	shutdown, _, err := tracing.Initialize(ctx, logger.WithName("tracing"), exporter, "perforator", "monitoring")
+	shutdown, _, err := tracing.Initialize(ctx, logger.WithName("tracing").Logger(), exporter, "perforator", "monitoring")
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize tracing: %w", err)
 	}
@@ -106,17 +104,18 @@ func NewMonitoringService(
 			_ = shutdown(ctx)
 		}
 	}()
-	logger.Info("Successfully initialized tracing")
+	logger.Info(ctx, "Successfully initialized tracing")
 
-	cli, err := cli.New(&cli.Config{Client: &cfg.Client})
+	client, err := client.NewClient(ctx, &cfg.Client, logger.WithName("client"))
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize perforator CLI: %s", err)
+		return nil, fmt.Errorf("failed to initialize perforator client: %s", err)
 	}
-	logger.Info("Created perforator CLI")
+	logger.Info(ctx, "Created perforator client")
 
 	service = &MonitoringService{
 		cfg:         cfg,
-		cli:         cli,
+		proxyClient: client,
 		reg:         reg,
 		uiURLPrefix: uiURLPrefix,
 	}
@@ -131,16 +130,16 @@ func serviceToSelectorService(service string) (string, error) {
 	return profilequerylang.SelectorToString(profilequerylang.NewBuilder().Services(service).Build())
 }
 
-func (s *MonitoringService) gatherServicesMetrics(ctx context.Context, logger log.Logger, format *client.RenderFormat) error {
+func (s *MonitoringService) gatherServicesMetrics(ctx context.Context, logger xlog.Logger, format *client.RenderFormat) error {
 	listServicesCtx, cancel := context.WithTimeout(ctx, s.cfg.Timeout)
 	defer cancel()
-	services, err := s.cli.Client().ListServices(listServicesCtx, s.cfg.ServicesOffset, s.cfg.ServicesNumberToCheck, nil, nil, orderByProfiles)
+	services, err := s.proxyClient.ListServices(listServicesCtx, s.cfg.ServicesOffset, s.cfg.ServicesNumberToCheck, nil, nil, orderByProfiles)
 	if err != nil {
-		logger.Error("failed to list services", log.Error(err))
+		logger.Error(ctx, "failed to list services", log.Error(err))
 		return err
 	}
 
-	logger.Debug("Number of services", log.Int("number of services", len(services)))
+	logger.Debug(ctx, "Number of services", log.Int("number of services", len(services)))
 
 	var wg sync.WaitGroup
 	servicesCh := make(chan *proto.ServiceMeta)
@@ -151,10 +150,10 @@ func (s *MonitoringService) gatherServicesMetrics(ctx context.Context, logger lo
 			defer wg.Done()
 
 			for service := range servicesCh {
-				logger.Info("Gathering metrics", log.String("service id", service.ServiceID))
+				logger.Info(ctx, "Gathering metrics", log.String("service id", service.ServiceID))
 				err := s.gatherServiceProfilesMetrics(ctx, logger, service.ServiceID, format, s.cfg.MaxSamplesToMerge)
 				if err != nil {
-					logger.Error("failed to gather metrics", log.Error(err), log.String("service id", service.ServiceID))
+					logger.Error(ctx, "failed to gather metrics", log.Error(err), log.String("service id", service.ServiceID))
 					continue
 				}
 			}
@@ -167,7 +166,7 @@ func (s *MonitoringService) gatherServicesMetrics(ctx context.Context, logger lo
 	close(servicesCh)
 
 	wg.Wait()
-	logger.Info("Finisned current iteration", log.Time("time", time.Now()))
+	logger.Info(ctx, "Finisned current iteration", log.Time("time", time.Now()))
 
 	return nil
 }
@@ -180,10 +179,10 @@ func (s *MonitoringService) taskIDtoUIURL(taskID string) string {
 
 // This function makes merge profiles request for a service in some time interval and gathers metrics such as
 // max stack depth, average frames number and unsymbolised locations number.
-func (s *MonitoringService) gatherServiceProfilesMetrics(ctx context.Context, logger log.Logger, service string, format *client.RenderFormat, maxSamples uint32) error {
+func (s *MonitoringService) gatherServiceProfilesMetrics(ctx context.Context, logger xlog.Logger, service string, format *client.RenderFormat, maxSamples uint32) error {
 	ctx, cancel := context.WithTimeout(ctx, s.cfg.Timeout)
 	defer cancel()
-	logger = log.With(logger, log.String("service id", service))
+	logger = logger.With(log.String("service id", service))
 
 	ToTS := time.Now()
 	FromTS := ToTS.Add(-s.cfg.CheckQualityInterval)
@@ -195,14 +194,14 @@ func (s *MonitoringService) gatherServiceProfilesMetrics(ctx context.Context, lo
 
 	selector, err := profilequerylang.SelectorToString(builder.Build())
 	if err != nil {
-		logger.Error("Failed to create selector for service", log.Error(err))
+		logger.Error(ctx, "Failed to create selector for service", log.Error(err))
 		return err
 	}
 
 	start := time.Now()
-	logger.Info("Merging profile")
+	logger.Info(ctx, "Merging profile")
 
-	taskId, res, err := s.cli.Client().MergeProfilesProto(
+	taskId, res, err := s.proxyClient.MergeProfilesProto(
 		ctx,
 		&proto.MergeProfilesRequest{
 			Query: &proto.ProfileQuery{
@@ -220,16 +219,16 @@ func (s *MonitoringService) gatherServiceProfilesMetrics(ctx context.Context, lo
 	if err != nil {
 		s.metrics.mergeProfilesRequests.fails.Inc()
 		s.reg.WithTags(Tags{"user_service": service, "status": "fail"}).Counter("requests.merge_profiles").Inc()
-		logger.Error("failed to merge Profiles", log.Error(err), log.String("selector", selector))
+		logger.Error(ctx, "failed to merge Profiles", log.Error(err), log.String("selector", selector))
 		return err
 	}
 
-	logger.Info("Downloading profile")
-	data, err := s.cli.Client().GetProfileByURL(res.GetProfileURL())
+	logger.Info(ctx, "Downloading profile")
+	data, err := s.proxyClient.GetProfileByURL(res.GetProfileURL())
 	if err != nil {
 		s.metrics.mergeProfilesRequests.fails.Inc()
 		s.reg.WithTags(Tags{"user_service": service, "status": "fail"}).Counter("requests.merge_profiles").Inc()
-		logger.Error("failed to download Profile", log.Error(err), log.String("selector", selector), log.String("url", res.GetProfileURL()))
+		logger.Error(ctx, "failed to download Profile", log.Error(err), log.String("selector", selector), log.String("url", res.GetProfileURL()))
 		return err
 	}
 
@@ -240,19 +239,19 @@ func (s *MonitoringService) gatherServiceProfilesMetrics(ctx context.Context, lo
 	s.reg.WithTags(Tags{"user_service": service}).Timer("profile.merge").RecordDuration(time.Since(start))
 
 	if len(res.ProfileMeta) == 0 {
-		logger.Warn("There are no profiles to merge")
+		logger.Warn(ctx, "There are no profiles to merge")
 		return nil
 	}
 
 	if len(data) == 0 {
-		logger.Warn("Merged profile is empty")
+		logger.Warn(ctx, "Merged profile is empty")
 		return nil
 	}
 
-	logger.Info("Parsing profile")
+	logger.Info(ctx, "Parsing profile")
 	p, err := profile.Parse(bytes.NewBuffer(data))
 	if err != nil {
-		logger.Error("failed to parse profile", log.Error(err), log.String("selector", selector))
+		logger.Error(ctx, "failed to parse profile", log.Error(err), log.String("selector", selector))
 		return err
 	}
 	accum := pprofmetrics.NewProfileMetricsAccumulator(p)
@@ -278,9 +277,9 @@ func (s *MonitoringService) gatherServiceProfilesMetrics(ctx context.Context, lo
 	}
 
 	if accum.UnsymbolizedNumberSum() == 0 {
-		logger.Info("Succesfully parsed profile", logfields...)
+		logger.Info(ctx, "Succesfully parsed profile", logfields...)
 	} else {
-		logger.Warn("Parsed profile has unsymbolized locations", logfields...)
+		logger.Warn(ctx, "Parsed profile has unsymbolized locations", logfields...)
 	}
 
 	return nil
@@ -292,14 +291,13 @@ type RunConfig struct {
 	MetricsPort uint
 }
 
-func (s *MonitoringService) runMetricsServer(ctx context.Context, logger log.Logger, port uint) error {
-	logger.Infof("Starting metrics server on port %d", port)
-	http.Handle("/metrics", s.reg.HTTPHandler(ctx, xlog.New(logger)))
+func (s *MonitoringService) runMetricsServer(ctx context.Context, logger xlog.Logger, port uint) error {
+	logger.Info(ctx, "Starting metrics server", log.UInt("port", port))
+	http.Handle("/metrics", s.reg.HTTPHandler(ctx, logger))
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
-func (s *MonitoringService) runProfileChecker(ctx context.Context, logger log.Logger) error {
-	defer s.Shutdown()
+func (s *MonitoringService) runProfileChecker(ctx context.Context, logger xlog.Logger) error {
 	logger = logger.WithName("ProfileChecker")
 
 	var (
@@ -316,22 +314,22 @@ func (s *MonitoringService) runProfileChecker(ctx context.Context, logger log.Lo
 	ticker := time.NewTicker(s.cfg.IterationSplay)
 	defer ticker.Stop()
 
-	logger.Info("Entering the loop")
+	logger.Info(ctx, "Entering the loop")
 	for {
 		//TODO: add human readable time
-		logger.Info("Starting a new iteration", log.Time("time", time.Now()))
+		logger.Info(ctx, "Starting a new iteration", log.Time("time", time.Now()))
 		err := s.gatherServicesMetrics(ctx, logger, format)
 		if err != nil {
-			logger.Error("failed to gather services metrics", log.Error(err))
-			logger.Info("Finisned current iteration", log.Time("time", time.Now()))
+			logger.Error(ctx, "failed to gather services metrics", log.Error(err))
+			logger.Info(ctx, "Finisned current iteration", log.Time("time", time.Now()))
 			time.Sleep(s.cfg.SleepAfterFailedServicesChecking)
 			continue
 		}
-		logger.Info("Finisned current iteration", log.Time("time", time.Now()))
+		logger.Info(ctx, "Finisned current iteration", log.Time("time", time.Now()))
 
 		select {
 		case <-ctx.Done():
-			logger.Info("Exiting the loop")
+			logger.Info(ctx, "Exiting the loop")
 			return ctx.Err()
 		case <-ticker.C:
 			continue
@@ -339,17 +337,13 @@ func (s *MonitoringService) runProfileChecker(ctx context.Context, logger log.Lo
 	}
 }
 
-func (s *MonitoringService) Shutdown() {
-	s.cli.Shutdown()
-}
-
-func (s *MonitoringService) Run(ctx context.Context, logger log.Logger, conf *RunConfig) error {
+func (s *MonitoringService) Run(ctx context.Context, logger xlog.Logger, conf *RunConfig) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
 		err := s.runMetricsServer(ctx, logger, conf.MetricsPort)
 		if err != nil {
-			logger.Error("failed metrics server", log.Error(err))
+			logger.Error(ctx, "failed metrics server", log.Error(err))
 		}
 		return err
 	})
@@ -357,7 +351,7 @@ func (s *MonitoringService) Run(ctx context.Context, logger log.Logger, conf *Ru
 	g.Go(func() error {
 		err := s.runProfileChecker(ctx, logger)
 		if err != nil {
-			logger.Error("profile checker stoped with error", log.Error(err))
+			logger.Error(ctx, "profile checker stoped with error", log.Error(err))
 		}
 		return err
 	})
