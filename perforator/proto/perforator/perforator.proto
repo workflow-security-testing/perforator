@@ -5,6 +5,7 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 import "perforator/proto/lib/time_interval/time_interval.proto";
+import "perforator/proto/lib/pagination/pagination.proto";
 import "perforator/proto/profile/merge_options.proto";
 
 package NPerforator.NProto;
@@ -61,11 +62,6 @@ service Perforator {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-message Paginated {
-    uint64 Offset = 1;
-    uint64 Limit = 2;
-}
-
 message SortOrder {
     enum SortDirection {
         Ascending = 0;
@@ -79,7 +75,7 @@ message SortOrder {
 ////////////////////////////////////////////////////////////////////////////////
 
 message ListServicesRequest {
-    Paginated Paginated = 1;
+    NPerforator.NProto.NPagination.Paginated Paginated = 1;
     string Prefix = 2;
     optional string Regex = 3;
     optional ListServicesOrderByClause OrderBy = 4;
@@ -109,7 +105,7 @@ message ListSuggestionsRequest {
     string Field = 1;
     optional string Regex = 2;
     optional string Selector = 3;
-    Paginated Paginated = 4;
+    NPerforator.NProto.NPagination.Paginated Paginated = 4;
 }
 
 message ListSuggestionsResponse {
@@ -125,7 +121,7 @@ message Suggestion {
 
 message ListProfilesRequest {
     ProfileQuery Query = 1;
-    Paginated Paginated = 2;
+    NPerforator.NProto.NPagination.Paginated Paginated = 2;
     SortOrder OrderBy = 3;
 }
 

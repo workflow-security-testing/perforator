@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -39,8 +40,11 @@ func NewStorage(
 	}
 }
 
-func (s *Storage) InsertOperation(ctx context.Context, id custom_profiling_operation.OperationID, spec *cpo_proto.OperationSpec) (*cpo_proto.Operation, error) {
-	if spec == nil {
+func (s *Storage) InsertOperation(ctx context.Context, params *custom_profiling_operation.OperationCreateParams) (*cpo_proto.Operation, error) {
+	if params == nil {
+		return nil, errors.New("nil params")
+	}
+	if params.Spec == nil {
 		return nil, errors.New("nil spec")
 	}
 
@@ -51,11 +55,12 @@ func (s *Storage) InsertOperation(ctx context.Context, id custom_profiling_opera
 
 	createdAt := timestamppb.Now()
 	operation := &cpo_proto.Operation{
-		ID: string(id),
+		ID: string(params.ID),
 		Meta: &cpo_proto.OperationMeta{
-			CreatedAt: createdAt,
+			CreatedAt:   createdAt,
+			Annotations: params.Annotations,
 		},
-		Spec: spec,
+		Spec: params.Spec,
 	}
 
 	row, err := operationToRow(operation)
@@ -169,7 +174,7 @@ func (s *Storage) ListOperations(ctx context.Context, filter *custom_profiling_o
 
 	query := psql.Select("id", "meta", "spec", "status", "target_state").
 		From(operationsTable).
-		OrderBy("(meta->>'CreatedAt') DESC")
+		OrderBy("(meta->>'CreatedAt')::timestamptz DESC")
 
 	if filter != nil {
 		if filter.EndsAfter != nil {
@@ -187,6 +192,15 @@ func (s *Storage) ListOperations(ctx context.Context, filter *custom_profiling_o
 			}
 			// Use COALESCE to convert NULL to empty string for Unknown state matching
 			query = query.Where(squirrel.Eq{"COALESCE(status->>'State', '')": stateStrings})
+		}
+
+		if len(filter.Annotations) > 0 {
+			annotationsJSON, err := json.Marshal(filter.Annotations)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal annotations filter: %w", err)
+			}
+			// Use PostgreSQL JSONB @> operator to check if meta->'Annotations' contains all specified key-value pairs
+			query = query.Where("meta->'Annotations' @> ?", annotationsJSON)
 		}
 	}
 

@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "perforator/proto/custom_profiling_operation/custom_profiling_operation.proto";
+import "perforator/proto/lib/pagination/pagination.proto";
 
 package NPerforator.NProto.NCustomProfilingOperation;
 
@@ -11,10 +12,16 @@ service CustomProfilingOperationAPI {
     rpc Schedule(ScheduleProfilingOperationRequest) returns (ScheduleProfilingOperationResponse) {}
     rpc Stop(StopProfilingOperationRequest) returns (StopProfilingOperationResponse) {}
     rpc Get(GetProfilingOperationRequest) returns(GetProfilingOperationResponse) {}
+    
+    // List returns profiling operations filtered by annotations.
+    // Operations are sorted by creation time in descending order (newest first).
+    // Supports pagination via Paginated parameter.
+    rpc List(ListProfilingOperationsRequest) returns(ListProfilingOperationsResponse) {}
 }
 
 message ScheduleProfilingOperationRequest {
     NPerforator.NProto.NCustomProfilingOperation.OperationSpec OperationSpec = 1;
+    map<string, string> Annotations = 2;
 }
 
 message ScheduleProfilingOperationResponse {
@@ -33,4 +40,13 @@ message GetProfilingOperationRequest {
 
 message GetProfilingOperationResponse {
     NPerforator.NProto.NCustomProfilingOperation.Operation Operation = 1;
+}
+
+message ListProfilingOperationsRequest {
+    map<string, string> Annotations = 1;
+    NPerforator.NProto.NPagination.Paginated Paginated = 2;
+}
+
+message ListProfilingOperationsResponse {
+    repeated NPerforator.NProto.NCustomProfilingOperation.Operation Operations = 1;
 }

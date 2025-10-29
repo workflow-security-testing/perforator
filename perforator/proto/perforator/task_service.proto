@@ -4,6 +4,7 @@ import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "perforator/proto/perforator/perforator.proto";
 import "perforator/proto/perforator/record_remote.proto";
+import "perforator/proto/lib/pagination/pagination.proto";
 
 package NPerforator.NProto;
 
@@ -62,7 +63,7 @@ message GetTaskResponse {
 
 message ListTasksRequest {
     TaskQuery Query = 1;
-    Paginated Pagination = 2;
+    NPagination.Paginated Pagination = 2;
 }
 
 message ListTasksResponse {

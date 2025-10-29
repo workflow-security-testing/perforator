@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package NPerforator.NProto.NPagination;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/lib/pagination";
+
+message Paginated {
+    uint64 Offset = 1;
+    uint64 Limit = 2;
+}

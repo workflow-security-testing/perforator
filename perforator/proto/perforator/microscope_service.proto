@@ -3,6 +3,7 @@ syntax = "proto3";
 import "google/protobuf/timestamp.proto";
 
 import "perforator/proto/lib/time_interval/time_interval.proto";
+import "perforator/proto/lib/pagination/pagination.proto";
 import "perforator/proto/perforator/perforator.proto";
 
 package NPerforator.NProto;
@@ -31,7 +32,7 @@ message SetMicroscopeResponse {
 }
 
 message ListMicroscopesRequest {
-    Paginated Paginated = 1;
+    NPagination.Paginated Paginated = 1;
     // if user is empty return all microscopes
     string User = 2;
     google.protobuf.Timestamp StartsAfter = 3;

@@ -16,7 +16,7 @@ const (
 
 type Storage interface {
 	// Returns operation if it already exists, otherwise creates a new one.
-	InsertOperation(ctx context.Context, id OperationID, spec *cpo_proto.OperationSpec) (*cpo_proto.Operation, error)
+	InsertOperation(ctx context.Context, params *OperationCreateParams) (*cpo_proto.Operation, error)
 
 	GetOperation(ctx context.Context, id OperationID) (*cpo_proto.Operation, error)
 
@@ -33,10 +33,17 @@ type Storage interface {
 
 type OperationID string
 
+type OperationCreateParams struct {
+	ID          OperationID
+	Spec        *cpo_proto.OperationSpec
+	Annotations map[string]string
+}
+
 type OperationFilter struct {
 	EndsAfter    *time.Time
 	StartsBefore *time.Time
 	States       []cpo_proto.OperationState
+	Annotations  map[string]string
 }
 
 func IsTerminalState(state cpo_proto.OperationState) bool {

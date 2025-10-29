@@ -25,6 +25,7 @@ import (
 	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/pkg/endpointsetresolver"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
+	"github.com/yandex/perforator/perforator/proto/lib/pagination"
 	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
@@ -214,7 +215,7 @@ func (c *Client) ListServices(
 	}
 
 	req := &perforator.ListServicesRequest{
-		Paginated: &perforator.Paginated{
+		Paginated: &pagination.Paginated{
 			Offset: offset,
 			Limit:  limit,
 		},
@@ -264,7 +265,7 @@ func (c *Client) ListProfiles(
 					To:   timestamppb.New(filters.ToTS),
 				},
 			},
-			Paginated: &perforator.Paginated{
+			Paginated: &pagination.Paginated{
 				Offset: offset,
 				Limit:  limit,
 			},
@@ -300,7 +301,7 @@ func (c *Client) ListMicroscopes(
 	)
 
 	req := &perforator.ListMicroscopesRequest{
-		Paginated: &perforator.Paginated{
+		Paginated: &pagination.Paginated{
 			Offset: offset,
 			Limit:  limit,
 		},

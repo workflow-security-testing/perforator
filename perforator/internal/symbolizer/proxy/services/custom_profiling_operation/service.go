@@ -13,6 +13,7 @@ import (
 	cpo_internal "github.com/yandex/perforator/perforator/internal/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
+	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	perforator_proto "github.com/yandex/perforator/perforator/proto/perforator"
 )
@@ -77,7 +78,11 @@ func (s *APIService) Schedule(ctx context.Context, req *perforator_proto.Schedul
 		return nil, status.Errorf(codes.Internal, "failed to generate operation ID: %v", err)
 	}
 
-	operation, err := s.operationStorage.InsertOperation(ctx, operationID, req.OperationSpec)
+	operation, err := s.operationStorage.InsertOperation(ctx, &custom_profiling_operation.OperationCreateParams{
+		ID:          operationID,
+		Spec:        req.OperationSpec,
+		Annotations: req.Annotations,
+	})
 	if err != nil {
 		s.metrics.failedSchedules.Inc()
 		s.l.Error(ctx, "Failed to insert operation", log.Any("operation_spec", req.OperationSpec), log.Error(err))
@@ -117,5 +122,32 @@ func (s *APIService) Get(ctx context.Context, req *perforator_proto.GetProfiling
 
 	return &perforator_proto.GetProfilingOperationResponse{
 		Operation: operation,
+	}, nil
+}
+
+func (s *APIService) List(ctx context.Context, req *perforator_proto.ListProfilingOperationsRequest) (*perforator_proto.ListProfilingOperationsResponse, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "req is nil")
+	}
+
+	pagination := &util.Pagination{}
+	if req.Paginated != nil {
+		pagination.Offset = req.Paginated.Offset
+		pagination.Limit = req.Paginated.Limit
+	}
+
+	operations, err := s.operationStorage.ListOperations(
+		ctx,
+		&custom_profiling_operation.OperationFilter{
+			Annotations: req.Annotations,
+		},
+		pagination,
+	)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to list operations: %v", err)
+	}
+
+	return &perforator_proto.ListProfilingOperationsResponse{
+		Operations: operations,
 	}, nil
 }
