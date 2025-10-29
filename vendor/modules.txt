@@ -12198,6 +12198,9 @@ github.com/nxadm/tail/ratelimiter
 github.com/nxadm/tail/util
 github.com/nxadm/tail/watch
 github.com/nxadm/tail/winfile
+# github.com/oapi-codegen/nullable v1.1.0
+## explicit; go 1.20
+github.com/oapi-codegen/nullable
 # github.com/oapi-codegen/oapi-codegen/v2 v2.5.0
 ## explicit; go 1.22.5
 github.com/oapi-codegen/oapi-codegen/v2
