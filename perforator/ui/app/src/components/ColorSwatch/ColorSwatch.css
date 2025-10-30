@@ -1,0 +1,6 @@
+.color-swatch {
+    display: inline-block;
+    height: 8px;
+    width: 8px;
+    outline: 2px solid var(--g-color-line-generic);
+}

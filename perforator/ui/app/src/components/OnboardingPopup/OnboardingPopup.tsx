@@ -30,11 +30,11 @@ export const OnboardingPopup = () => {
                 floatingMiddlewares={floatingMiddlewares}
                 anchorElement={anchorRef.current}
                 open={open}
-                style={{ padding: '4px 8px 8px' }}
+                className={'onboarding-hint'}
                 disableEscapeKeyDown
             >
                 <Text as="div" variant="subheader-2">{hint?.step.name}</Text>
-                {hint?.step.description}
+                {hint?.step.hintParams?.children ?? hint?.step.description}
                 <div className="onboarding-hint__actions">
                     {hint?.step.hintParams?.actions?.map((action, i) => {
                         return (

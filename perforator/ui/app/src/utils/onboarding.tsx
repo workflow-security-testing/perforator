@@ -2,7 +2,9 @@ import type { Coordinate } from '@perforator/flamegraph';
 
 import type { PresetStep } from '@gravity-ui/onboarding';
 import { createOnboarding, createPreset } from '@gravity-ui/onboarding';
+import { Text } from '@gravity-ui/uikit';
 
+import { ColorSwatch } from 'src/components/ColorSwatch/ColorSwatch';
 import { LocalStorageKey } from 'src/const/localStorage';
 
 import { createSuccessToast } from './toaster';
@@ -50,11 +52,11 @@ export const demoFlamegraphPreset = createPreset(
             {
                 slug: FlamegraphSteps.FlamegraphOverview,
                 name: 'Flamegraph overview',
-                description:
-                    'This is a flamegraph. It includes both the library code and your code, it also includes the kernel-space functions. \
-            The native code is shades of orange, the kernel-space code is shades of blue. For interpreted and JITed languages with first-class support we use special colors, like green for python and purple for PHP. However perf-map data is orange.',
-                // highlight all the flamegraph?
+                description: '',
                 hintParams: {
+                    children:
+                    <>This is a flamegraph. It includes both the library code and your code, it also includes the kernel-space functions.
+            The code is by default shades of <ColorSwatch color={'rgb(205, 0, 0)'}/> orange, the kernel-space code is shades of <ColorSwatch color={'rgb(96, 96, 205)'}/> blue. For some languages with specialised instrumentation and first-class support we use special colors, like <ColorSwatch color="rgb(103, 178, 120)"/> green for python.</>,
                     actions: [
                         {
                             children: 'Go next',
@@ -69,20 +71,11 @@ export const demoFlamegraphPreset = createPreset(
             {
                 slug: FlamegraphSteps.FlamegraphClick,
                 name: 'Flamegraph click',
-                description:
-                    'Let\'s try moving around flamegraph a bit. Click inefficient_calc_sum rectangle to stretch it to 100%.',
+                description: '',
                 hintParams: {
+                    children:
+                        <>Let's try moving around flamegraph a bit. Click <Text variant={'code-1'}>inefficient_calc_sum</Text> rectangle to stretch it to 100%.</>,
                     highlightCoordinate: [8, 0] as Coordinate,
-                },
-                hooks: progressSuccessToastHooks,
-            },
-            {
-                slug: FlamegraphSteps.FlamegraphAltClick,
-                name: 'Flamegraph alt click',
-                description:
-                    'We can use context menu to omit unneeded nodes (like this system interrupt)\n Let\'s click it with right mouse button and delete it.',
-                hintParams: {
-                    highlightCoordinate: [9, 0] as Coordinate,
                 },
                 hooks: progressSuccessToastHooks,
             },
@@ -97,10 +90,20 @@ export const demoFlamegraphPreset = createPreset(
                 hooks: progressSuccessToastHooks,
             },
             {
+                slug: FlamegraphSteps.FlamegraphAltClick,
+                name: 'Flamegraph alt click',
+                description: '',
+                hintParams: {
+                    children: <>We can use context menu to omit unneeded nodes like this function <Text variant={'code-1'}>shuffle_some_array</Text>.<br/> It uses standard library, probably efficient enough not to focus on it<br/> Let's click it with right mouse button and delete it.</>,
+                    highlightCoordinate: [8, 1] as Coordinate,
+                },
+                hooks: progressSuccessToastHooks,
+            },
+            {
                 slug: FlamegraphSteps.ResetOmit,
                 name: 'Reset omit',
                 description:
-                    'We\'ve omitted some nodes on previous steps. Let\'s reset them and return the flamegraph back to its original form',
+                    'We\'ve omitted some nodes on previous steps. Let\'s reset them and return the flamegraph back to its original form with the button to the right',
                 hintParams: {
                     className: '.flamegraph__clear-deletion',
                 },
@@ -109,9 +112,10 @@ export const demoFlamegraphPreset = createPreset(
             {
                 slug: FlamegraphSteps.Search,
                 name: 'Search',
-                description:
-                    'We can search for a node by its name. Let\'s search for "kernel"',
+                description: '',
                 hintParams: {
+                    children:
+                        <>We can search for a node by its name. Let's search for "<Text variant="code-1">kernel</Text>"</>,
                     className: '.flamegraph__button_search',
                 },
                 hooks: progressSuccessToastHooks,
@@ -133,7 +137,7 @@ export const demoFlamegraphPreset = createPreset(
                     className: '.flamegraph__clear',
                 },
                 description:
-                    'Let\'s reset the search with this button (you can also do it with Esc)',
+                    'Let\'s reset the search with this button to the right (you can also do it with Esc)',
                 hooks: progressSuccessToastHooks,
             },
             {
@@ -148,7 +152,7 @@ export const demoFlamegraphPreset = createPreset(
             },
             {
                 slug: FlamegraphSteps.Final,
-                name: 'The flamegraph tutorial is now compleeted',
+                name: 'The flamegraph tutorial is now completed',
                 description:
                     'Congratulations, you\'ve completed the flamegraph tutorial.',
                 hintParams: {
@@ -172,7 +176,7 @@ export const demoFlamegraphPreset = createPreset(
             enabled: true,
             name: OnboardingNames.Basics,
             visibility: 'visible',
-            steps: steps.map((step, i) => setIndexes(step, i, steps.length)),
+            steps: steps.map((step, i) => setIndexes(step, i, steps.length - 1)),
         };
     },
 );

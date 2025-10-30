@@ -1,3 +1,9 @@
+.onboarding-hint {
+    padding: 16px 20px 16px 16px;
+    white-space: pre-line;
+    max-width: 800px;
+}
+
 .onboarding-hint__index{
     margin: 0;
     margin-top: var(--g-spacing-2);
