@@ -1286,6 +1286,10 @@ func (s *PerforatorServer) fetchAndRenderProfileFast(
 		return nil, fmt.Errorf("failed to select profiles: %w", err)
 	}
 
+	if len(profiles) == 0 {
+		return nil, status.Errorf(codes.NotFound, "no profiles found")
+	}
+
 	err = s.populateMergeSession(ctx, profiles, session)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download profiles: %w", err)
