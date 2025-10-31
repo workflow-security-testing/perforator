@@ -97,13 +97,19 @@ func visit(log io.Writer, name string, symbols map[string]*symbol, depth, stack 
 			return 0, err
 		}
 	}
+	var ansiPref, ansiSuf string
+	if stack > 512 {
+		ansiPref = "\033[31;1m"
+		ansiSuf = "\033[0m"
+	}
 
 	var err error
-	if stack >= 512 {
-		_, err = fmt.Fprintf(log, "fn <%s> with stack usage of %d bytes (%d bytes before rounding, \033[31;1m%d\033[0m bytes total, %d instructions)\n", name, usage, sym.maxstack, stack, sym.insn)
-	} else {
-		_, err = fmt.Fprintf(log, "fn <%s> with stack usage of %d bytes (%d bytes before rounding, %d bytes total, %d instructions)\n", name, usage, sym.maxstack, stack, sym.insn)
-	}
+
+	_, err = fmt.Fprintf(
+		log,
+		"fn <%s> with stack usage of %d bytes (%d bytes before rounding, %s%d%s bytes total, %d instructions)\n",
+		name, usage, sym.maxstack, ansiPref, stack, ansiSuf, sym.insn,
+	)
 	if err != nil {
 		return 0, err
 	}
