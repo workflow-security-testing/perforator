@@ -174,6 +174,7 @@ func run() error {
 	}
 	agentOpts := []agent.Option{
 		agent.WithDebugModeToggler(c.DebugModeToggler),
+		agent.WithAgentGateway(c.AgentGateway),
 	}
 	if c.CPOService != nil {
 		agentOpts = append(agentOpts, agent.WithCPOService(c.CPOService))
