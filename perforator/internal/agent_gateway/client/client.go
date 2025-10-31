@@ -18,6 +18,10 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
+const (
+	defaultCPOCallTimeout = time.Minute
+)
+
 type StorageClient = *storage.Client
 type CustomProfilingOperationClient = *custom_profiling_operation.Client
 
@@ -53,11 +57,11 @@ func NewGatewayClient(conf *Config, l xlog.Logger) (*GatewayClient, error) {
 
 	var opts []grpc.DialOption
 
-	retryOpt, err := setupRetryPolicy(conf.Retry)
+	serviceConfigOpts, err := setupServiceConfig(conf.Retry)
 	if err != nil {
-		return nil, fmt.Errorf("failed to configure retry policy: %w", err)
+		return nil, fmt.Errorf("failed to configure service config: %w", err)
 	}
-	opts = append(opts, retryOpt...)
+	opts = append(opts, serviceConfigOpts...)
 
 	tlsOpts, err := conf.TLS.GRPCDialOptions()
 	if err != nil {
@@ -133,25 +137,33 @@ func formatDurationForGRPC(d time.Duration) string {
 	return fmt.Sprintf("%.6fs", d.Seconds())
 }
 
-// setupRetryPolicy creates a gRPC dial option with the specified retry policy
+// setupServiceConfig creates a gRPC dial option with the specified service config
 // See:
 // https://github.com/grpc/grpc/blob/master/doc/service_config.md
 // https://github.com/grpc/grpc-proto/blob/master/grpc/service_config/service_config.proto
-func setupRetryPolicy(retryConfig RetryConfig) ([]grpc.DialOption, error) {
+func setupServiceConfig(retryConfig RetryConfig) ([]grpc.DialOption, error) {
+	retryPolicy := map[string]interface{}{
+		"maxAttempts":          int(retryConfig.MaxAttempts),
+		"initialBackoff":       formatDurationForGRPC(retryConfig.InitialBackoff),
+		"maxBackoff":           formatDurationForGRPC(retryConfig.MaxBackoff),
+		"backoffMultiplier":    retryConfig.BackoffMultiplier,
+		"retryableStatusCodes": retryConfig.RetryableStatusCodes,
+	}
+
 	serviceConfig := map[string]interface{}{
 		"methodConfig": []map[string]interface{}{
 			{
 				"name": []map[string]interface{}{
 					{"service": "NPerforator.NProto.PerforatorStorage"},
+				},
+				"retryPolicy": retryPolicy,
+			},
+			{
+				"name": []map[string]interface{}{
 					{"service": "NPerforator.NProto.NCustomProfilingOperation.CustomProfilingOperationService"},
 				},
-				"retryPolicy": map[string]interface{}{
-					"maxAttempts":          int(retryConfig.MaxAttempts),
-					"initialBackoff":       formatDurationForGRPC(retryConfig.InitialBackoff),
-					"maxBackoff":           formatDurationForGRPC(retryConfig.MaxBackoff),
-					"backoffMultiplier":    retryConfig.BackoffMultiplier,
-					"retryableStatusCodes": retryConfig.RetryableStatusCodes,
-				},
+				"retryPolicy": retryPolicy,
+				"timeout":     formatDurationForGRPC(defaultCPOCallTimeout),
 			},
 		},
 	}
