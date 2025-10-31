@@ -64,6 +64,9 @@ func New(config *Config) (*App, error) {
 		logFormat = LogFormatText
 	case "json":
 		logFormat = LogFormatJson
+	case "":
+		// TODO: add --log-format flag to all subcommands and remove this case
+		logFormat = LogFormatText
 	default:
 		return nil, fmt.Errorf("unknown log format %q", config.LogFormat)
 	}
