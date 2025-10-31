@@ -611,6 +611,13 @@ func enrichCPOIDMatcher(selector *querylang.Selector) *querylang.Selector {
 		if matcher.Field == profilequerylang.CPOIDLabel {
 			return selector
 		}
+
+		// If concrete profile is requested via `{id = "xxx"}` we must not add CPOID matcher,
+		if matcher.Field == profilequerylang.ProfileIDLabel &&
+			len(matcher.Conditions) == 1 &&
+			matcher.Conditions[0].Operator == operator.Eq {
+			return selector
+		}
 	}
 
 	// Add matcher for empty cpo_id
