@@ -3,5 +3,5 @@ LIBRARY()
 END()
 
 RECURSE(
-    x86-64
+    x86
 )

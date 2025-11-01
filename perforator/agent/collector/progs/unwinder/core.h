@@ -2,6 +2,8 @@
 
 #include <bpf/bpf.h>
 
+#include "linux.h"
+
 ////////////////////////////////////////////////////////////////////////////////
 
 enum cgroup_subsys_id {
@@ -54,10 +56,6 @@ struct css_set {
 
 enum process_flags {
     PF_KTHREAD = 0x00200000,
-};
-
-struct thread_struct {
-    unsigned long fsbase;
 };
 
 enum {

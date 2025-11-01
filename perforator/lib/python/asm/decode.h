@@ -1,14 +1,5 @@
 #pragma once
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-#include <contrib/libs/llvm18/lib/Target/X86/X86InstrInfo.h>
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/MC/MCDisassembler/MCDisassembler.h>
 #include <llvm/MC/MCContext.h>
@@ -34,14 +25,14 @@
 #include <util/generic/hash.h>
 #include <util/generic/vector.h>
 
-#include <perforator/lib/asm/x86/evaluator.h>
+#include <perforator/lib/asm/evaluator.h>
 
 namespace NPerforator::NLinguist::NPython::NAsm {
     using ThreadImageOffsetType = i64;
 } // namespace NPerforator::NLinguist::NPython::NAsm
 
 
-namespace NPerforator::NLinguist::NPython::NAsm::NX86 {
+namespace NPerforator::NLinguist::NPython::NAsm {
 
 TMaybe<ThreadImageOffsetType> DecodePyThreadStateGetCurrent(
     const llvm::Triple& triple,
@@ -71,5 +62,5 @@ TMaybe<ui64> DecodeInterpHeadAddress(
     TConstArrayRef<ui8> bytecode
 );
 
-} // namespace NPerforator::NLinguist::NPython::NAsm::NX86
+} // namespace NPerforator::NLinguist::NPython::NAsm
 

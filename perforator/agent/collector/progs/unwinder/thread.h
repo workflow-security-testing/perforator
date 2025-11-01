@@ -1,9 +1,11 @@
 #pragma once
 
-#include "core.h"
+#ifdef __aarch64__
 
-// Returns pointer to TCB (Thread Control Block) structure
-static ALWAYS_INLINE unsigned long get_tcb_pointer() {
-    struct task_struct* task = (void*)bpf_get_current_task();
-    return BPF_CORE_READ(task, thread.fsbase);
-}
+#include "arch/arm/thread.h"
+
+#else
+
+#include "arch/x86/thread.h"
+
+#endif

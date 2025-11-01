@@ -579,7 +579,7 @@ func (b *pageTableBuilder) flushNodes() error {
 }
 
 // FIXME(sskvor): Generate this from the BTF
-const dwarfUnwindRBPRuleUndefined = 0x7f
+const dwarfUnwindRuleUndefined = 0x7f
 
 func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int) {
 	rule := unwinder.UnwindRule{}
@@ -588,8 +588,10 @@ func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int) {
 	if rbp := row.RBP(); rbp != nil && rbp.GetCfaPlusOffset() != nil {
 		offset := rbp.GetCfaPlusOffset().GetOffset()
 		rule.Rbp = unwinder.RbpUnwindRule{Offset: int8(offset)}
+	} else if rbp != nil && rbp.GetCfaMinus8() != nil {
+		rule.Rbp = unwinder.RbpUnwindRule{Offset: int8(-8)}
 	} else {
-		rule.Rbp = unwinder.RbpUnwindRule{Offset: dwarfUnwindRBPRuleUndefined}
+		rule.Rbp = unwinder.RbpUnwindRule{Offset: dwarfUnwindRuleUndefined}
 	}
 
 	// Fill CFA rule
@@ -599,6 +601,16 @@ func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int) {
 		rule.Cfa.Offset = cfa.GetRegisterOffset().GetOffset()
 	} else {
 		rule.Cfa.Kind = unwinder.UnwindRuleUnsupported
+	}
+
+	// Should we really use separate rule for CfaMinus8?
+	if ra := row.RA(); ra != nil && ra.GetCfaPlusOffset() != nil {
+		offset := ra.GetCfaPlusOffset().GetOffset()
+		rule.Ra = unwinder.RaUnwindRule{Offset: int8(offset)}
+	} else if ra != nil && ra.GetCfaMinus8() != nil {
+		rule.Ra = unwinder.RaUnwindRule{Offset: int8(-8)}
+	} else {
+		rule.Ra = unwinder.RaUnwindRule{Offset: dwarfUnwindRuleUndefined}
 	}
 
 	page.Pc[idx] = uint32(row.StartPC())

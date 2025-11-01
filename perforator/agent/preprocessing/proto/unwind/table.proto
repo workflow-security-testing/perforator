@@ -4,8 +4,9 @@ package NPerforator.NBinaryProcessing.NUnwind;
 
 option go_package = "github.com/yandex/perforator/perforator/agent/preprocessing/proto/unwind";
 
-// Important rules we want to support for x86-64:
+// Important rules we want to support for x86-64/aarch64:
 // RA: [CFA-8]
+// RA: [CFA+offset]
 
 // CFA: RSP+s32
 // CFA: RBP+s32

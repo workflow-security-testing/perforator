@@ -3,51 +3,24 @@
 #include "metrics.h"
 #include "binary.h"
 
-#include <bpf/bpf.h>
-
 // For PERF_MAX_STACK_DEPTH
 #include <linux/perf_event.h>
 
+#ifdef __x86_64__
+
 #include "arch/x86/regs.h"
+#include "arch/x86/dwarf.h"
 
+#elif __aarch64__
 
-#define TRACE_DWARF_UNWINDING
-#ifdef TRACE_DWARF_UNWINDING
-#define DWARF_TRACE(...) BPF_TRACE(__VA_ARGS__)
+#include "arch/arm/regs.h"
+#include "arch/arm/dwarf.h"
+
 #else
-#define DWARF_TRACE(...)
+
+#error This arch is not supported by Perforator yer
+
 #endif
-
-enum unwind_rule_kind : u8 {
-    UNWIND_RULE_UNSUPPORTED = 0,
-    UNWIND_RULE_CFA_MINUS_8 = 1,
-    UNWIND_RULE_CFA_PLUS_OFFSET = 2,
-    UNWIND_RULE_REGISTER_OFFSET = 3,
-    UNWIND_RULE_REGISTER_DERREF_OFFSET = 4,
-    UNWIND_RULE_PLT_SECTION = 5,
-    UNWIND_RULE_CONSTANT = 6,
-};
-
-struct  __attribute__((packed)) cfa_unwind_rule {
-    enum unwind_rule_kind kind;
-    u8 regno;
-    i32 offset;
-};
-
-enum {
-    DWARF_UNWIND_RBP_RULE_UNDEFINED = 0x7f,
-};
-
-struct rbp_unwind_rule {
-    // Offset from the CFA to read saved value of RBP from.
-    // Now we support only one unwind rule for rbp: deref(CFA+offset).
-    i8 offset;
-};
-
-struct __attribute__((packed)) unwind_rule {
-    struct cfa_unwind_rule cfa;
-    struct rbp_unwind_rule rbp;
-};
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -63,7 +36,7 @@ enum unwind_page_table_params : u32 {
     UNWIND_TABLE_INVALID_PAGE_ID = (page_id)-1,
 
     UNWIND_PAGE_TABLE_DEPTH = 3,
-    UNWIND_PAGE_TABLE_PAGE_SIZE = 4128,
+    UNWIND_PAGE_TABLE_PAGE_SIZE = 4136,
     UNWIND_PAGE_TABLE_NUM_PAGES_TOTAL = 1024 * 1024 * 1023 / UNWIND_PAGE_TABLE_PAGE_SIZE,
     UNWIND_PAGE_TABLE_NUM_PAGES_PER_PART = (1 << 14),
     UNWIND_PAGE_TABLE_NUM_PARTS = (UNWIND_PAGE_TABLE_NUM_PAGES_TOTAL-1) / UNWIND_PAGE_TABLE_NUM_PAGES_PER_PART + 1,
@@ -100,10 +73,10 @@ struct unwind_table_page {
     } kind;
 };
 
+// FIXME: This comment is needed, otherwise compilation fails. BTF_EXPORT uses __LINE__ to distinguish different types
 BTF_EXPORT(struct unwind_table_page);
 
 ////////////////////////////////////////////////////////////////////////////////
-
 _Static_assert(sizeof(struct unwind_table_page) == UNWIND_PAGE_TABLE_PAGE_SIZE, "");
 
 
@@ -120,6 +93,38 @@ struct {
 BPF_MAP(unwind_roots, BPF_MAP_TYPE_HASH, binary_id, page_id, MAX_BINARIES);
 
 ////////////////////////////////////////////////////////////////////////////////
+
+enum dwarf_unwind_error {
+    // No error.
+    DWARF_UNWIND_ERROR_NONE = 0,
+
+    // The stack provided in @dwarf_unwind_init was exhausted.
+    DWARF_UNWIND_ERROR_TOO_MANY_FRAMES = 1,
+
+    // Failed to locate unwind rule by instruction location.
+    // Probably malformed unwind table.
+    DWARF_UNWIND_ERROR_NO_RULE_FOR_INSTRUCTION = 2,
+
+    // Failed to evaluate next frame state.
+    // Probably unsupported CFI rules.
+    // TODO(sskvor): more verbose error codes.
+    DWARF_UNWIND_ERROR_RULE_EVALUATION_FAILED = 3,
+};
+
+enum { STACK_SIZE = PERF_MAX_STACK_DEPTH };
+enum { DWARF_UNWIND_MAX_STACK_SIZE = 128 };
+
+struct stack {
+    u32 len;
+    u64 ips[STACK_SIZE];
+};
+
+struct dwarf_unwind_context {
+    u32 pid;
+    enum dwarf_unwind_error error;
+    struct dwarf_cfi_context cfi;
+    u32 framepointers;
+};
 
 BPF_MAP(heap, BPF_MAP_TYPE_PERCPU_ARRAY, u32, struct dwarf_unwind_context, 1);
 
@@ -158,7 +163,7 @@ static NOINLINE bool locate_rule(struct unwind_table_page_leaf* page, u64 pc, st
     }
 
     DWARF_TRACE("bs result: %d, from=%llx, to=%llx\n", l, page->pc[l], page->pc[l] + page->ranges[l]);
-    if (page->pc[l] + page->ranges[l] < pc) {
+    if (page->pc[l] > pc || page->pc[l] + page->ranges[l] < pc) {
         return false;
     }
 
@@ -246,14 +251,6 @@ BTF_EXPORT(enum unwind_page_table_params);
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum { DWARF_CFI_UNKNOWN_REGISTER = 0xfffffffffffffffd };
-
-struct dwarf_cfi_context {
-    u64 rsp;
-    u64 rbp;
-    u64 rip;
-};
-
 static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
     struct dwarf_cfi_context* prev,
     struct dwarf_cfi_context* next,
@@ -266,24 +263,23 @@ static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
     switch (rule->kind) {
     case UNWIND_RULE_REGISTER_OFFSET: {
         switch (rule->regno) {
-        case 7:
-            DWARF_TRACE("Found rule UNWIND_RULE_REGISTER_OFFSET register rsp+%d\n", (int)rule->offset);
-            if (prev->rsp == DWARF_CFI_UNKNOWN_REGISTER) {
-                DWARF_TRACE("Failed to eval CFA: RSP is unknown\n");
+        case DWARF_CFI_STACK_REGISTER_NUMBER:
+            DWARF_TRACE("Found rule UNWIND_RULE_REGISTER_OFFSET register sp+%d\n", (int)rule->offset);
+            if (prev->cfa == DWARF_CFI_UNKNOWN_REGISTER) {
+                DWARF_TRACE("Failed to eval CFA: SP is unknown\n");
                 return false;
             }
-            next->rsp = prev->rsp + rule->offset;
-            DWARF_TRACE("Set rsp to %llx=%llx+%llx\n", next->rsp, prev->rsp, rule->offset);
+            next->cfa = prev->cfa + rule->offset;
+            DWARF_TRACE("Set sp to %llx=%llx+%llx\n", next->cfa, prev->cfa, rule->offset);
             return true;
-
-        case 6:
-            DWARF_TRACE("Found rule UNWIND_RULE_REGISTER_OFFSET register rbp+%d\n", (int)rule->offset);
-            if (prev->rbp == DWARF_CFI_UNKNOWN_REGISTER) {
-                DWARF_TRACE("Failed to eval CFA: RBP is unknown\n");
+        case DWARF_CFI_FRAME_REGISTER_NUMBER:
+            DWARF_TRACE("Found rule UNWIND_RULE_REGISTER_OFFSET register fp+%d\n", (int)rule->offset);
+            if (prev->fp == DWARF_CFI_UNKNOWN_REGISTER) {
+                DWARF_TRACE("Failed to eval CFA: FP is unknown\n");
                 return false;
             }
-            next->rsp = prev->rbp + rule->offset;
-            DWARF_TRACE("Set rsp to %llx=%llx+%llx\n", next->rsp, prev->rbp, rule->offset);
+            next->cfa = prev->fp + rule->offset;
+            DWARF_TRACE("Set cf to %llx=%llx+%llx\n", next->cfa, prev->fp, rule->offset);
             return true;
 
         default:
@@ -297,50 +293,31 @@ static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
     }
 }
 
-ALWAYS_INLINE bool dwarf_cfi_eval_rbp(
+ALWAYS_INLINE bool dwarf_cfi_eval_fp(
     struct dwarf_cfi_context* prev,
     struct dwarf_cfi_context* next,
     struct rbp_unwind_rule* rule
 ) {
-    if (rule->offset == DWARF_UNWIND_RBP_RULE_UNDEFINED) {
-        DWARF_TRACE("Undefined RBP rule, using previous value\n");
-        next->rbp = prev->rbp;
+    if (prev->fp == 0) {
+        return false;
+    }
+
+    if (rule->offset == DWARF_UNWIND_CFA_RULE_UNDEFINED) {
+        DWARF_TRACE("Undefined FP rule, using prev FP\n");
+        next->fp = prev->fp;
         return true;
     }
 
-    u64 address = next->rsp + rule->offset;
-    DWARF_TRACE("Found rbp offset %d, location %llx\n", rule->offset, address);
+    u64 address = next->cfa + rule->offset;
+    DWARF_TRACE("Found fp offset %d, location %llx\n", rule->offset, address);
 
-    int err = bpf_probe_read_user(&next->rbp, sizeof(next->rbp), (void*)address);
+    int err = bpf_probe_read_user(&next->fp, sizeof(next->fp), (void*)address);
     if (err != 0) {
         DWARF_TRACE("bpf_probe_read_user failed: %d\n", err);
         return false;
     }
 
     return true;
-}
-
-ALWAYS_INLINE bool read_return_address(void* location, u64* ra) {
-    DWARF_TRACE("read_return_address: read RA from %p\n", location);
-    int err = bpf_probe_read_user(ra, sizeof(*ra), location);
-    if (err != 0) {
-        DWARF_TRACE("read_return_address: bpf_probe_read_user failed: %d\n", err);
-        return false;
-    }
-
-    // Return address points to the next instruction after the call, not the call itself.
-    // So we need to adjust return address to point to the real call instruction.
-    *ra -= 1;
-
-    return true;
-}
-
-ALWAYS_INLINE bool dwarf_cfi_eval_ra(
-    struct dwarf_cfi_context* prev,
-    struct dwarf_cfi_context* next
-) {
-    u64 address = next->rsp - 8;
-    return read_return_address((void*)address, &next->rip);
 }
 
 static NOINLINE bool dwarf_cfi_eval(
@@ -352,60 +329,15 @@ static NOINLINE bool dwarf_cfi_eval(
         DWARF_TRACE("failed to eval cfa\n");
         return false;
     }
-    if (!dwarf_cfi_eval_rbp(prev, next, &rule->rbp)) {
+    if (!dwarf_cfi_eval_fp(prev, next, &rule->rbp)) {
         DWARF_TRACE("failed to eval rbp\n");
         return false;
     }
-    if (!dwarf_cfi_eval_ra(prev, next)) {
+    if (!dwarf_cfi_eval_ra(prev, next, &rule->ra)) {
         DWARF_TRACE("failed to eval ra\n");
         return false;
     }
     return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-enum dwarf_unwind_error {
-    // No error.
-    DWARF_UNWIND_ERROR_NONE = 0,
-
-    // The stack provided in @dwarf_unwind_init was exhausted.
-    DWARF_UNWIND_ERROR_TOO_MANY_FRAMES = 1,
-
-    // Failed to locate unwind rule by instruction location.
-    // Probably malformed unwind table.
-    DWARF_UNWIND_ERROR_NO_RULE_FOR_INSTRUCTION = 2,
-
-    // Failed to evaluate next frame state.
-    // Probably unsupported CFI rules.
-    // TODO(sskvor): more verbose error codes.
-    DWARF_UNWIND_ERROR_RULE_EVALUATION_FAILED = 3,
-};
-
-enum { STACK_SIZE = PERF_MAX_STACK_DEPTH };
-enum { DWARF_UNWIND_MAX_STACK_SIZE = 128 };
-
-struct stack {
-    u32 len;
-    u64 ips[STACK_SIZE];
-};
-
-struct dwarf_unwind_context {
-    u32 pid;
-    enum dwarf_unwind_error error;
-    struct dwarf_cfi_context cfi;
-    u32 framepointers;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-static ALWAYS_INLINE void dwarf_unwind_setup_userspace_registers(
-    struct dwarf_unwind_context* ctx,
-    struct user_regs* regs
-) {
-    ctx->cfi.rsp = regs->rsp;
-    ctx->cfi.rbp = regs->rbp;
-    ctx->cfi.rip = regs->rip;
 }
 
 // Initialize @ctx.
@@ -418,8 +350,8 @@ static NOINLINE bool dwarf_unwind_init(
     ctx->error = DWARF_UNWIND_ERROR_NONE;
     ctx->framepointers = 0;
 
-    dwarf_unwind_setup_userspace_registers(ctx, regs);
-    BPF_TRACE("Initialize dwarf rip to %llx\n", ctx->cfi.rip);
+    dwarf_unwind_setup_userspace_registers(&ctx->cfi, regs);
+    BPF_TRACE("Initialize dwarf ip to %llx\n", ctx->cfi.ip);
     return true;
 }
 
@@ -525,7 +457,7 @@ static NOINLINE bool dwarf_unwind_locate_rule(
         return false;
     }
 
-    u64 rip = ctx->cfi.rip;
+    u64 rip = ctx->cfi.ip;
     DWARF_TRACE("start locate rule for rip %llx\n", rip);
 
     struct executable_mapping* mapping = dwarf_unwind_locate_executable(ctx->pid, rip);
@@ -559,65 +491,6 @@ static NOINLINE bool dwarf_unwind_locate_rule(
     return true;
 }
 
-enum dwarf_unwind_step_result {
-    DWARF_UNWIND_STEP_CONTINUE = 0,
-    DWARF_UNWIND_STEP_FINISHED = 1,
-    DWARF_UNWIND_STEP_FAILED = 2,
-};
-
-// Canonical function prologue and epilogue:
-// foo:
-//      push %rbp
-//      mov %rsp, %rbp
-//      ...
-//      mov %rbp, %rsp
-//      pop %rbp
-//      ret
-//
-// Stack layout:
-// rsp0    -> [....]
-// rsp0-8  -> [ra0 ]
-// rsp0-16 -> [rbp0]
-// ...
-// rsp1    -> [....]
-// rsp1-8  -> [ra1 ]
-// rsp1-16 -> [rbp1]
-// ...
-// rsp2    -> [....]
-// rsp2-8  -> [ra2 ]
-// rsp2-16 -> [rbp2]
-NOINLINE enum dwarf_unwind_step_result dwarf_unwind_step_fp() {
-    struct dwarf_unwind_context* ctx = dwarf_get_context();
-    if (ctx == NULL) {
-        DWARF_TRACE("failed to lookup dwarf_unwind_context\n");
-        return DWARF_UNWIND_STEP_FAILED;
-    }
-
-    ctx->framepointers++;
-
-    if (!read_return_address((void*)(ctx->cfi.rbp + 8), &ctx->cfi.rip)) {
-        metric_increment(METRIC_FP_ERROR_READ_RETURNADDRESS_COUNT);
-        ctx->error = DWARF_UNWIND_ERROR_RULE_EVALUATION_FAILED;
-        return DWARF_UNWIND_STEP_FAILED;
-    }
-
-    // We need to restore rsp in order to support mixed dwarf and frame pointers unwinding.
-    // Previous rsp is equal to current rbp + 2*sizeof(register): look at the stack layout.
-    ctx->cfi.rsp = ctx->cfi.rbp + 16;
-
-    u64 prev_rbp = 0;
-    int err = bpf_probe_read_user(&prev_rbp, sizeof(prev_rbp), (void*)ctx->cfi.rbp);
-    if (err != 0) {
-        DWARF_TRACE("fp: bpf_probe_read_user failed: %d\n", err);
-        metric_increment(METRIC_FP_ERROR_READ_BASEPOINTER_COUNT);
-        ctx->error = DWARF_UNWIND_ERROR_RULE_EVALUATION_FAILED;
-        return DWARF_UNWIND_STEP_FAILED;
-    }
-    ctx->cfi.rbp = prev_rbp;
-
-    return DWARF_UNWIND_STEP_CONTINUE;
-}
-
 static bool NOINLINE dwarf_unwind_record_stack_frame(
     struct dwarf_unwind_context* ctx,
     struct stack* stack
@@ -631,7 +504,7 @@ static bool NOINLINE dwarf_unwind_record_stack_frame(
         ctx->error = DWARF_UNWIND_ERROR_TOO_MANY_FRAMES;
         return false;
     } else {
-        stack->ips[stack->len++] = ctx->cfi.rip;
+        stack->ips[stack->len++] = ctx->cfi.ip;
     }
 
     return true;
@@ -663,7 +536,7 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
         // Try to unwind one frame using frame pointers.
         metric_increment(METRIC_DWARF_ERROR_NORULEFORINSTRUCTION_COUNT);
         DWARF_TRACE("failed to locate rule, try fp\n");
-        return dwarf_unwind_step_fp();
+        return dwarf_unwind_step_fp(&ctx->cfi, &ctx->framepointers);
     }
 
 #ifdef TRACE_DWARF_UNWINDING
@@ -673,24 +546,23 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
 #endif
 
     // Evaluate next frame.
-    struct dwarf_cfi_context next = {
-        .rsp = DWARF_CFI_UNKNOWN_REGISTER,
-        .rbp = DWARF_CFI_UNKNOWN_REGISTER,
-        .rip = DWARF_CFI_UNKNOWN_REGISTER,
-    };
+    struct dwarf_cfi_context next;
+    dwarf_cfi_context_init_next(&next);
+
     if (!dwarf_cfi_eval(&ctx->cfi, &next, &rule)) {
         DWARF_TRACE("failed to evaluate CFI rule\n");
         metric_increment(METRIC_DWARF_ERROR_RULEEVALUATIONFAILED_COUNT);
         ctx->error = DWARF_UNWIND_ERROR_RULE_EVALUATION_FAILED;
         return DWARF_UNWIND_STEP_FAILED;
     }
-    DWARF_TRACE("next regs state: ip=%lx\n", next.rip);
-    DWARF_TRACE("next regs state: sp=%lx\n", next.rsp);
-    DWARF_TRACE("next regs state: bp=%lx\n", next.rbp);
+    DWARF_TRACE("next regs state: cfa=%lx\n", next.cfa);
+    DWARF_TRACE("next regs state: fp=%lx\n", next.fp);
+    DWARF_TRACE("next regs state: ip=%lx\n", next.ip);
+
     ctx->cfi = next;
 
     // Done!
-    if (ctx->cfi.rip == (u64)-1) {
+    if (ctx->cfi.ip == (u64)-1) {
         return DWARF_UNWIND_STEP_FINISHED;
     }
 

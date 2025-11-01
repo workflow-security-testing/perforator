@@ -8,7 +8,7 @@
 
 #include <perforator/lib/pthread/pthread.h>
 
-namespace NPerforator::NPthread::NAsm::NX86 {
+namespace NPerforator::NPthread::NAsm {
 
 enum class EDecodePthreadGetspecificError {
     FailedToDecodeInstructions,
@@ -19,6 +19,8 @@ enum class EDecodePthreadGetspecificError {
     NoPthreadKeySecondLevelSize,
     NoPthreadKeySpecificArrayOffset,
     NoPthreadKeySpecific1stBlockOffset,
+
+    Unimplemented,
 };
 
 std::expected<TAccessTSSInfo, EDecodePthreadGetspecificError> DecodePthreadGetspecific(

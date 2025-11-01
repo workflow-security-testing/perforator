@@ -3,7 +3,7 @@
 #include <library/cpp/logger/global/global.h>
 
 #include <perforator/lib/elf/elf.h>
-#include <perforator/lib/pthread/asm/x86/decode.h>
+#include <perforator/lib/pthread/asm/decode.h>
 
 #include <perforator/lib/llvmex/llvm_exception.h>
 
@@ -41,7 +41,7 @@ TMaybe<TAccessTSSInfo> ParseAccessTSSInfoImpl(
         return Nothing();
     }
 
-    auto expectedResult = NAsm::NX86::DecodePthreadGetspecific(elf.makeTriple(), *bytecode);
+    auto expectedResult = NAsm::DecodePthreadGetspecific(elf.makeTriple(), *bytecode);
 
     if (!expectedResult) {
         return Nothing();

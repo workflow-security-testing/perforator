@@ -1,4 +1,4 @@
-#include "evaluator.h"
+#include "../evaluator.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -30,7 +30,7 @@
 #include <library/cpp/logger/global/global.h>
 #include <util/generic/function_ref.h>
 
-namespace NPerforator::NAsm::NX86 {
+namespace NPerforator::NAsm {
 
 EDecodeInstructionError DecodeInstructions(
     TLog& log,

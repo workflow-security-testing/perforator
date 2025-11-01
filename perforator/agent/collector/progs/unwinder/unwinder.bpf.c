@@ -2,7 +2,19 @@
 #define __KERNEL__
 #endif
 
+#ifdef __x86_64__
+
 #include "arch/x86/regs.h"
+
+#elif __aarch64__
+
+#include "arch/arm/regs.h"
+
+#else
+
+#error This arch is not supported by Perforator yer
+
+#endif
 
 #include "cgroups.h"
 #include "core.h"
@@ -686,7 +698,7 @@ int perforator_perf_event(struct bpf_perf_event_data* ctx) {
     if (regs == NULL) {
         return 0;
     }
-    if (!find_task_userspace_registers(&ctx->regs, regs)) {
+    if (!find_task_userspace_registers_bpf(&ctx->regs, regs)) {
         BPF_TRACE("Failed to load perf user_regs\n");
         return 0;
     }
@@ -839,12 +851,11 @@ int perforator_uprobe(struct pt_regs* ctx) {
     if (regs == NULL) {
         return 0;
     }
-
     if (!find_task_userspace_registers(ctx, regs)) {
         BPF_TRACE("Failed to load user_regs\n");
         return 1;
     }
-    args.sample_config = regs->rip;
+    args.sample_config = regs_get_current_instruction(regs);
 
     profiler_do_sample_other(ctx, regs, &args);
 

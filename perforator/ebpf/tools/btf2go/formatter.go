@@ -583,10 +583,14 @@ func (f *GoFormatter) visitUnion(v *btf.Union) (*typeInfo, error) {
 }
 
 func (f *GoFormatter) visitStruct(v *btf.Struct) (*typeInfo, error) {
-	for _, member := range v.Members {
+	for i, member := range v.Members {
 		err := f.collectChildren(member.Type)
 		if err != nil {
 			return nil, err
+		}
+
+		if member.Name == "" {
+			v.Members[i].Name = f.goifyTypeName(member.Type)
 		}
 	}
 

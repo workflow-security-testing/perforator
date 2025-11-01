@@ -1,6 +1,6 @@
 #include "decode.h"
 
-#include <perforator/lib/asm/x86/evaluator.h>
+#include <perforator/lib/asm/evaluator.h>
 
 namespace NPerforator::NLinguist::NPhp::NAsm::NX86 {
 
@@ -17,13 +17,13 @@ namespace NPerforator::NLinguist::NPhp::NAsm::NX86 {
 */
 
 TMaybe<ui64> DecodePhpVersion(const llvm::Triple& triple, ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
-    auto instructionEvaluator = NPerforator::NAsm::NX86::MakeDefaultInstructionEvaluator();
-    NPerforator::NAsm::NX86::TBytecodeEvaluator evaluator(
+    auto instructionEvaluator = NPerforator::NAsm::MakeDefaultInstructionEvaluator();
+    NPerforator::NAsm::TBytecodeEvaluator evaluator(
         triple,
-        NPerforator::NAsm::NX86::MakeInitialState(functionAddress),
+        NPerforator::NAsm::MakeInitialState(functionAddress),
         bytecode,
         *instructionEvaluator,
-        NPerforator::NAsm::NX86::MakeStopOnRetCondition());
+        NPerforator::NAsm::MakeStopOnRetCondition());
     auto result = evaluator.Evaluate();
     if (!result.has_value()) {
         return Nothing();
@@ -62,13 +62,13 @@ TMaybe<ui64> DecodePhpVersion(const llvm::Triple& triple, ui64 functionAddress, 
 */
 
 TMaybe<ui64> DecodeZmInfoPhpCore(const llvm::Triple& triple, ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
-    auto instructionEvaluator = NPerforator::NAsm::NX86::MakeDefaultInstructionEvaluator();
-    NPerforator::NAsm::NX86::TBytecodeEvaluator evaluator(
+    auto instructionEvaluator = NPerforator::NAsm::MakeDefaultInstructionEvaluator();
+    NPerforator::NAsm::TBytecodeEvaluator evaluator(
         triple,
-        NPerforator::NAsm::NX86::MakeInitialState(functionAddress),
+        NPerforator::NAsm::MakeInitialState(functionAddress),
         bytecode,
         *instructionEvaluator,
-        NPerforator::NAsm::NX86::MakeStopOnRetCondition());
+        NPerforator::NAsm::MakeStopOnRetCondition());
     auto result = evaluator.Evaluate();
     if (!result.has_value()) {
         return Nothing();
@@ -97,13 +97,13 @@ TMaybe<ui64> DecodeZmInfoPhpCore(const llvm::Triple& triple, ui64 functionAddres
 */
 
 TMaybe<ui64> DecodeZendVmKind(const llvm::Triple& triple, ui64 functionAddress, TConstArrayRef<ui8> bytecode) {
-    auto instructionEvaluator = NPerforator::NAsm::NX86::MakeDefaultInstructionEvaluator();
-    NPerforator::NAsm::NX86::TBytecodeEvaluator evaluator(
+    auto instructionEvaluator = NPerforator::NAsm::MakeDefaultInstructionEvaluator();
+    NPerforator::NAsm::TBytecodeEvaluator evaluator(
         triple,
-        NPerforator::NAsm::NX86::MakeInitialState(functionAddress),
+        NPerforator::NAsm::MakeInitialState(functionAddress),
         bytecode,
         *instructionEvaluator,
-        NPerforator::NAsm::NX86::MakeStopOnRetCondition());
+        NPerforator::NAsm::MakeStopOnRetCondition());
     auto result = evaluator.Evaluate();
     if (!result.has_value()) {
         return Nothing();

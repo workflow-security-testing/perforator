@@ -2,7 +2,7 @@
 
 #include <perforator/lib/llvmex/llvm_elf.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
-#include <perforator/lib/php/asm/x86-64/decode.h>
+#include <perforator/lib/php/asm/x86/decode.h>
 
 #include <contrib/libs/re2/re2/stringpiece.h>
 

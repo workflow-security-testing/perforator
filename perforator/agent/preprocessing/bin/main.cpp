@@ -144,6 +144,7 @@ void CountCFAStats(const NPerforator::NBinaryProcessing::NUnwind::UnwindTable& t
     auto visit = [&](NPerforator::NBinaryProcessing::NUnwind::UnwindRule rule) {
         switch (rule.GetKindCase()) {
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::KIND_NOT_SET:
+            Cerr << "Unsupported unwind rule " << static_cast<int>(rule.Kind_case()) << Endl;
             return;
 
         case NPerforator::NBinaryProcessing::NUnwind::UnwindRule::kRegisterOffset:
@@ -248,7 +249,7 @@ int main(int argc, const char* argv[]) {
             Cout << var.GetName() << ", offset: " << var.offset() << Endl;
         });
         ForEachRow(analysis.GetUnwindTable(), [&](TRowRef row) {
-            Cout << Hex(row.start_pc()) << '\t' << Hex(row.pc_range()) << '\t' << row.cfa().ShortUtf8DebugString() << '\t' << row.rbp().ShortUtf8DebugString() << Endl;
+            Cout << Hex(row.start_pc()) << '\t' << Hex(row.pc_range()) << '\t' << row.cfa().ShortUtf8DebugString() << '\t' << row.rbp().ShortUtf8DebugString() << '\t' << row.ra().ShortUtf8DebugString() << Endl;
         });
         return 0;
     }

@@ -1,4 +1,4 @@
-#include <perforator/lib/asm/x86/evaluator.h>
+#include <perforator/lib/asm/evaluator.h>
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -21,7 +21,7 @@
 #include <util/generic/vector.h>
 #include <util/string/builder.h>
 
-using namespace NPerforator::NAsm::NX86;
+using namespace NPerforator::NAsm;
 
 class EvaluatorTest : public ::testing::Test {
 protected:

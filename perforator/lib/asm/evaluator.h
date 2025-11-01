@@ -16,7 +16,7 @@
 #include <variant>
 
 
-namespace NPerforator::NAsm::NX86 {
+namespace NPerforator::NAsm {
 
 enum class EDecodeInstructionError {
     NoError,

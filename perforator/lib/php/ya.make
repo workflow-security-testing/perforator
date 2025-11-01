@@ -11,7 +11,7 @@ PEERDIR(
     perforator/lib/elf
     perforator/lib/tls/parser
     perforator/lib/llvmex
-    perforator/lib/php/asm/x86-64
+    perforator/lib/php/asm/x86
 )
 
 SRCS(

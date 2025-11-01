@@ -1,8 +1,20 @@
 LIBRARY()
 
-ADDINCL(
-    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/X86
-)
+IF (ARCH_X86_64)
+    ADDINCL(
+        ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/X86
+    )
+    PEERDIR(
+        perforator/lib/pthread/asm/x86
+    )
+ELSEIF (ARCH_ARM)
+    ADDINCL(
+        ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/ARM
+    )
+    PEERDIR(
+        perforator/lib/pthread/asm/arm
+    )
+ENDIF()
 
 PEERDIR(
     contrib/libs/llvm18/include
@@ -10,7 +22,6 @@ PEERDIR(
 
     perforator/lib/elf
     perforator/lib/llvmex
-    perforator/lib/pthread/asm/x86
 )
 
 SRCS(

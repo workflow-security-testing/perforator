@@ -95,6 +95,19 @@ bool IsDerefLocation(const llvm::dwarf::UnwindLocation& loc) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Mapping from DWARF registers numbers to actual registers, according to ABI
+#ifdef __x86_64__
+// See: https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf, Figure 3.36
+static constexpr uint32_t kFrameRegister = 6; // rbp
+#elif __aarch64__
+// See: https://github.com/ARM-software/abi-aa/blob/c51addc3dc03e73a016a1e4edf25440bcac76431/aadwarf64/aadwarf64.rst#41dwarf-register-names
+static constexpr uint32_t kFrameRegister = 29; // frame register
+#else
+#error This arch is not supported by Perforator yer
+#endif
+
+////////////////////////////////////////////////////////////////////////////////
+
 void FillRegisterLocation(UnwindRule* rule, const llvm::dwarf::UnwindLocation& loc) {
     rule->set_dereference(IsDerefLocation(loc));
 
@@ -368,13 +381,18 @@ UnwindTable BuildUnwindTable(llvm::object::ObjectFile* objectFile) {
                     break;
                 // no explicit default to trigger compilation error on new location kind
                 }
+            } else {
+                // If we found no location for aarch64/riscv
+                // Then it means that current RA is valid for current stack frame
+                // And there is no point of adressing it from FDE
+                ra.mutable_unsupported();
             }
 
             // Fill CFA value.
             FillRegisterLocation(&cfa, row.getCFAValue());
 
-            // Fill RBP value. It is needed in ~25% of unwind rules.
-            if (auto loc = row.getRegisterLocations().getRegisterLocation(6/*rbp=*/)) {
+            // Fill RBP/r29 value. It is needed in ~25% of unwind rules.
+            if (auto loc = row.getRegisterLocations().getRegisterLocation(kFrameRegister)) {
                 FillRegisterLocation(&rbp, *loc);
             } else {
                 rbp.mutable_unsupported();

@@ -10,19 +10,29 @@ SET(BPF_FLAGS
     -O2
     --debug
     -mcpu=v3
-    -D__TARGET_ARCH_x86
-    -D__x86_64__
     -D__KERNEL__
     -Wall
     -Werror
 )
 
-BPF(unwinder/unwinder.bpf.c unwinder.release.elf $BPF_FLAGS)
-BPF(unwinder/unwinder.bpf.c unwinder.debug.elf $BPF_FLAGS -DBPF_DEBUG)
-BPF(unwinder/unwinder.bpf.c unwinder.release.jvm.elf $BPF_FLAGS -DPERFORATOR_ENABLE_JVM)
-BPF(unwinder/unwinder.bpf.c unwinder.debug.jvm.elf $BPF_FLAGS -DBPF_DEBUG -DPERFORATOR_ENABLE_JVM)
-BPF(unwinder/unwinder.bpf.c unwinder.release.php.elf $BPF_FLAGS -DPERFORATOR_ENABLE_PHP)
-BPF(unwinder/unwinder.bpf.c unwinder.debug.php.elf $BPF_FLAGS -DBPF_DEBUG -DPERFORATOR_ENABLE_PHP)
+IF (ARCH_X86_64)
+    SET(BPF_ARCH_FLAGS
+        -D__TARGET_ARCH_x86
+        -D__x86_64__
+    )
+ELSEIF (ARCH_AARCH64)
+    SET(BPF_ARCH_FLAGS
+        -D__TARGET_ARCH_arm64
+        -D__aarch64__
+    )
+ENDIF()
+
+BPF(unwinder/unwinder.bpf.c unwinder.release.elf $BPF_FLAGS $BPF_ARCH_FLAGS)
+BPF(unwinder/unwinder.bpf.c unwinder.debug.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DBPF_DEBUG)
+BPF(unwinder/unwinder.bpf.c unwinder.release.jvm.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DPERFORATOR_ENABLE_JVM)
+BPF(unwinder/unwinder.bpf.c unwinder.debug.jvm.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DBPF_DEBUG -DPERFORATOR_ENABLE_JVM)
+BPF(unwinder/unwinder.bpf.c unwinder.release.php.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DPERFORATOR_ENABLE_PHP)
+BPF(unwinder/unwinder.bpf.c unwinder.debug.php.elf $BPF_FLAGS $BPF_ARCH_FLAGS -DBPF_DEBUG -DPERFORATOR_ENABLE_PHP)
 
 
 ADDINCL(

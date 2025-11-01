@@ -1,7 +1,8 @@
 #pragma once
 
 #include <perforator/lib/elf/elf.h>
-#include <perforator/lib/python/asm/x86-64/decode.h>
+
+#include <perforator/lib/python/asm/decode.h>
 
 #include <llvm/Object/ObjectFile.h>
 

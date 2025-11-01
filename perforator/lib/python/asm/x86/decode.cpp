@@ -1,6 +1,16 @@
-#include "decode.h"
+#include "../decode.h"
 
-namespace NPerforator::NLinguist::NPython::NAsm::NX86 {
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+#include <contrib/libs/llvm18/lib/Target/X86/X86InstrInfo.h>
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+namespace NPerforator::NLinguist::NPython::NAsm {
+
 /*
 000000000028a0b0 <_PyThreadState_GetCurrent@@Base>:
   28a0b0:       f3 0f 1e fa             endbr64
@@ -17,10 +27,10 @@ TMaybe<ThreadImageOffsetType> DecodePyThreadStateGetCurrent(
     TConstArrayRef<ui8> bytecode
 ) {
     ThreadImageOffsetType result = 0;
-    NPerforator::NAsm::NX86::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(), triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
+    NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(), triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
         Y_UNUSED(size);
 
-        if (NPerforator::NAsm::NX86::IsRet(inst)) {
+        if (NPerforator::NAsm::IsRet(inst)) {
             return false;
         }
 
@@ -80,10 +90,10 @@ TMaybe<ThreadImageOffsetType> DecodeCurrentFastGet(
     TConstArrayRef<ui8> bytecode
 ) {
     ThreadImageOffsetType lastNegativeImm = 0;
-    NPerforator::NAsm::NX86::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(), triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
+    NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(), triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
         Y_UNUSED(size);
 
-        if (NPerforator::NAsm::NX86::IsRet(inst)) {
+        if (NPerforator::NAsm::IsRet(inst)) {
             return false;
         }
 
@@ -177,10 +187,10 @@ TMaybe<ui64> DecodePyGetVersion(
 
     // Look for instructions that load address into the 4th argument argument register (rcx/ecx)
     // Check the implementation of Py_GetVersion: https://github.com/python/cpython/blob/v3.11.0/Python/getversion.c#L12
-    NPerforator::NAsm::NX86::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(), triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
+    NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(), triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
         rip += size;
 
-        if (NPerforator::NAsm::NX86::IsRet(inst)) {
+        if (NPerforator::NAsm::IsRet(inst)) {
             return false;
         }
 
@@ -273,13 +283,13 @@ TMaybe<ui64> DecodeAutoTSSKeyAddress(
     ui64 pyGILStateEnsureAddress,
     TConstArrayRef<ui8> bytecode
 ) {
-    auto instructionEvaluator = NPerforator::NAsm::NX86::MakeDefaultInstructionEvaluator();
-    NPerforator::NAsm::NX86::TBytecodeEvaluator evaluator(
+    auto instructionEvaluator = NPerforator::NAsm::MakeDefaultInstructionEvaluator();
+    NPerforator::NAsm::TBytecodeEvaluator evaluator(
         triple,
-        NPerforator::NAsm::NX86::MakeInitialState(pyGILStateEnsureAddress),
+        NPerforator::NAsm::MakeInitialState(pyGILStateEnsureAddress),
         bytecode,
         *instructionEvaluator,
-        NPerforator::NAsm::NX86::MakeStopOnCallCondition()
+        NPerforator::NAsm::MakeStopOnCallCondition()
     );
 
     auto result = evaluator.Evaluate();
@@ -318,13 +328,13 @@ TMaybe<ui64> DecodeInterpHeadAddress(
     ui64 pyInterpreterStateHeadAddress,
     TConstArrayRef<ui8> bytecode
 ) {
-    auto instructionEvaluator = NPerforator::NAsm::NX86::MakeDefaultInstructionEvaluator();
-    NPerforator::NAsm::NX86::TBytecodeEvaluator evaluator(
+    auto instructionEvaluator = NPerforator::NAsm::MakeDefaultInstructionEvaluator();
+    NPerforator::NAsm::TBytecodeEvaluator evaluator(
         triple,
-        NPerforator::NAsm::NX86::MakeInitialState(pyInterpreterStateHeadAddress),
+        NPerforator::NAsm::MakeInitialState(pyInterpreterStateHeadAddress),
         bytecode,
         *instructionEvaluator,
-        NPerforator::NAsm::NX86::MakeStopOnRetCondition()
+        NPerforator::NAsm::MakeStopOnRetCondition()
     );
 
     auto result = evaluator.Evaluate();

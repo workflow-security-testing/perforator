@@ -2,4 +2,7 @@ LIBRARY()
 
 END()
 
-RECURSE(x86)
+RECURSE(
+    arm
+    x86
+)

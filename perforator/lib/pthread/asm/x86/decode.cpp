@@ -1,4 +1,4 @@
-#include "decode.h"
+#include "../decode.h"
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -16,10 +16,10 @@
 #include <library/cpp/logger/log.h>
 #include <library/cpp/logger/global/global.h>
 
-#include <perforator/lib/asm/x86/evaluator.h>
+#include <perforator/lib/asm/evaluator.h>
 #include <perforator/lib/pthread/pthread.h>
 
-namespace NPerforator::NPthread::NAsm::NX86 {
+namespace NPerforator::NPthread::NAsm {
 
 /*
 Disassembles bytecode of pthread_getspecific function and returns access info to TSS.
@@ -90,12 +90,12 @@ std::expected<TAccessTSSInfo, EDecodePthreadGetspecificError> DecodePthreadGetsp
 
     EAnalysisState state = EAnalysisState::Start;
 
-    auto error = NPerforator::NAsm::NX86::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(), triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
+    auto error = NPerforator::NAsm::DecodeInstructions(TLoggerOperator<TGlobalLog>::Log(), triple, bytecode, [&](const llvm::MCInst& inst, ui64 size) {
         Y_UNUSED(size);
 
         if (state == EAnalysisState::AfterSecondCmp &&
             result.SpecificArrayOffset != 0 &&
-            NPerforator::NAsm::NX86::IsPassControlFlow(inst)) {
+            NPerforator::NAsm::IsPassControlFlow(inst)) {
             return false;
         }
 
@@ -170,7 +170,7 @@ std::expected<TAccessTSSInfo, EDecodePthreadGetspecificError> DecodePthreadGetsp
         return true;
     });
 
-    if (error != NPerforator::NAsm::NX86::EDecodeInstructionError::NoError) {
+    if (error != NPerforator::NAsm::EDecodeInstructionError::NoError) {
         return std::unexpected(EDecodePthreadGetspecificError::FailedToDecodeInstructions);
     }
 

@@ -137,7 +137,7 @@ TMaybe<TPythonVersion> TryParsePyGetVersion(
         return Nothing();
     }
 
-    auto versionAddress = NAsm::NX86::DecodePyGetVersion(file.makeTriple(), symbol.Address, *bytecode);
+    auto versionAddress = NAsm::DecodePyGetVersion(file.makeTriple(), symbol.Address, *bytecode);
     if (!versionAddress) {
         return Nothing();
     }
@@ -241,8 +241,8 @@ TMaybe<NAsm::ThreadImageOffsetType> TPythonAnalyzer::ParseTLSPyThreadState() {
     }
 
     return Symbols_->CurrentFastGet ?
-        NAsm::NX86::DecodeCurrentFastGet(File_.makeTriple(), *bytecode) :
-        NAsm::NX86::DecodePyThreadStateGetCurrent(File_.makeTriple(), *bytecode);
+        NAsm::DecodeCurrentFastGet(File_.makeTriple(), *bytecode) :
+        NAsm::DecodePyThreadStateGetCurrent(File_.makeTriple(), *bytecode);
 }
 
 bool IsPythonBinary(const llvm::object::ObjectFile& file) {
@@ -291,7 +291,7 @@ TMaybe<ui64> TPythonAnalyzer::ParseAutoTSSKeyAddress() {
         return Nothing();
     }
 
-    return NAsm::NX86::DecodeAutoTSSKeyAddress(
+    return NAsm::DecodeAutoTSSKeyAddress(
         File_.makeTriple(),
         pyGILStateEnsureSymbol.Address,
         *bytecode
@@ -323,7 +323,7 @@ TMaybe<ui64> TPythonAnalyzer::ParseInterpHeadAddress() {
         return Nothing();
     }
 
-    return NAsm::NX86::DecodeInterpHeadAddress(File_.makeTriple(), pyInterpreterStateHeadSymbol.Address, *bytecode);
+    return NAsm::DecodeInterpHeadAddress(File_.makeTriple(), pyInterpreterStateHeadSymbol.Address, *bytecode);
 }
 
 EUnicodeType TPythonAnalyzer::ParseUnicodeType() {
