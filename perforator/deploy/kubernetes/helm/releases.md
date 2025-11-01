@@ -21,6 +21,11 @@ Internal changes:
 
 1: If you are sending patch to GitHub, specify PR. Otherwise (if you are sending patch to internal monorepo), leave unset and then specify Git commit.
 -->
+# 0.2.10
+
+Enhancements:
++ Upgrade perforator to [v0.0.7](https://github.com/yandex/perforator/releases/tag/v0.0.7)
+
 # 0.2.9
 Breaking changes:
 + Either `proxy.url_prefix` or `web.host` is now required. Chart will fail if neither value is specified
