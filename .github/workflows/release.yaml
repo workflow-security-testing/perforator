@@ -92,7 +92,7 @@ jobs:
           chmod +x ./dist/create_llvm_prof
           function build {
               chmod +x ./dist/$1
-              docker build -f perforator/deploy/docker/Dockerfile.prebuilt --target $1 --push --tag ghcr.io/${{ github.repository }}/$1:${{ github.event.release.tag_name }} ./dist
+              docker build -f perforator/deploy/docker/Dockerfile.prebuilt --target $1 --push --tag ghcr.io/${{ github.repository }}/$1:${{ github.ref_name }} ./dist
           }
           build agent
           build gc
