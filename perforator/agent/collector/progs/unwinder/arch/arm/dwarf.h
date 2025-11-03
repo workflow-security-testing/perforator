@@ -24,7 +24,7 @@ struct dwarf_cfi_context {
 static void ALWAYS_INLINE dwarf_cfi_context_init_next(struct dwarf_cfi_context* ctx) {
     ctx->cfa = DWARF_CFI_UNKNOWN_REGISTER;
     ctx->fp = DWARF_CFI_UNKNOWN_REGISTER;
-    ctx->pc = DWARF_CFI_UNKNOWN_REGISTER;
+    ctx->ip = DWARF_CFI_UNKNOWN_REGISTER;
     ctx->lr = DWARF_CFI_UNKNOWN_REGISTER;
 }
 
