@@ -2510,6 +2510,31 @@
       "Release schedule": "https://github.com/nodejs/Release#release-schedule"
     },
     "versions": {
+      "25.0.0": {
+        "add_date": "2025-11-04T05:37:48",
+        "resources": [
+          {
+            "id": 10183570696,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 10183571948,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 10183572788,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 10183573978,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "24.10.0": {
         "add_date": "2025-10-28T05:32:36",
         "resources": [
@@ -3130,6 +3155,31 @@
           },
           {
             "id": 7401173821,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "22.21.0": {
+        "add_date": "2025-11-04T05:34:35",
+        "resources": [
+          {
+            "id": 10183564949,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 10183567196,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 10183568076,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 10183569295,
             "platform": "darwin",
             "arch": "arm64"
           }
