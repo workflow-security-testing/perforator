@@ -9,16 +9,28 @@ PEERDIR(
 
 RUN_PROGRAM(
     perforator/ebpf/tools/btf2go
-    -elf
-    perforator/agent/collector/progs/unwinder.debug.elf
-    -package
+    --ignore profiler_state
+    --elf unwinder.release.elf
+    --elf unwinder.debug.elf
+    --elf unwinder.release.jvm.elf
+    --elf unwinder.debug.jvm.elf
+    --elf unwinder.release.php.elf
+    --elf unwinder.debug.php.elf
+    --package
     unwinder
-    -output
-    unwinder.go
+    --output
+    ${BINDIR}/unwinder.go
+    CWD
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs
     IN
-    perforator/agent/collector/progs/unwinder.debug.elf
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.release.elf
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.debug.elf
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.release.jvm.elf
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.debug.jvm.elf
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.release.php.elf
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.debug.php.elf
     OUT
-    unwinder.go
+    ${BINDIR}/unwinder.go
 )
 
 RESOURCE(
