@@ -7,55 +7,30 @@ import (
 	"time"
 )
 
-// The cache has a generic 'control' channel that is used to send
-// messages to the worker. These are the messages that can be sent to it
-type getDropped struct {
-	res chan int
-}
-
-type getSize struct {
-	res chan int64
-}
-
-type setMaxSize struct {
-	size int64
-	done chan struct{}
-}
-
-type clear struct {
-	done chan struct{}
-}
-
-type syncWorker struct {
-	done chan struct{}
-}
-
-type gc struct {
-	done chan struct{}
-}
-
 type Cache[T any] struct {
 	*Configuration[T]
 	control
-	list        *List[*Item[T]]
-	size        int64
-	buckets     []*bucket[T]
-	bucketMask  uint32
-	deletables  chan *Item[T]
-	promotables chan *Item[T]
+	list            *List[T]
+	size            int64
+	pruneTargetSize int64
+	buckets         []*bucket[T]
+	bucketMask      uint32
+	deletables      chan *Item[T]
+	promotables     chan *Item[T]
 }
 
 // Create a new cache with the specified configuration
 // See ccache.Configure() for creating a configuration
 func New[T any](config *Configuration[T]) *Cache[T] {
 	c := &Cache[T]{
-		list:          NewList[*Item[T]](),
-		Configuration: config,
-		control:       newControl(),
-		bucketMask:    uint32(config.buckets) - 1,
-		buckets:       make([]*bucket[T], config.buckets),
-		deletables:    make(chan *Item[T], config.deleteBuffer),
-		promotables:   make(chan *Item[T], config.promoteBuffer),
+		list:            NewList[T](),
+		Configuration:   config,
+		control:         newControl(),
+		bucketMask:      uint32(config.buckets) - 1,
+		buckets:         make([]*bucket[T], config.buckets),
+		deletables:      make(chan *Item[T], config.deleteBuffer),
+		promotables:     make(chan *Item[T], config.promoteBuffer),
+		pruneTargetSize: config.maxSize - config.maxSize*int64(config.percentToPrune)/100,
 	}
 	for i := 0; i < config.buckets; i++ {
 		c.buckets[i] = &bucket[T]{
@@ -146,6 +121,27 @@ func (c *Cache[T]) Set(key string, value T, duration time.Duration) {
 	c.set(key, value, duration, false)
 }
 
+// Setnx set the value in the cache for the specified duration if not exists
+func (c *Cache[T]) Setnx(key string, value T, duration time.Duration) {
+	c.bucket(key).setnx(key, value, duration, false)
+}
+
+// Setnx2 set the value in the cache for the specified duration if not exists
+func (c *Cache[T]) Setnx2(key string, f func() T, duration time.Duration) *Item[T] {
+	item, existing := c.bucket(key).setnx2(key, f, duration, false)
+	// consistent with Get
+	if existing && !item.Expired() {
+		select {
+		case c.promotables <- item:
+		default:
+		}
+		// consistent with set
+	} else if !existing {
+		c.promotables <- item
+	}
+	return item
+}
+
 // Replace the value if it exists, does not set if it doesn't.
 // Returns true if the item existed an was replaced, false otherwise.
 // Replace does not reset item's TTL
@@ -155,6 +151,18 @@ func (c *Cache[T]) Replace(key string, value T) bool {
 		return false
 	}
 	c.Set(key, value, item.TTL())
+	return true
+}
+
+// Extend the value if it exists, does not set if it doesn't exists.
+// Returns true if the expire time of the item an was extended, false otherwise.
+func (c *Cache[T]) Extend(key string, duration time.Duration) bool {
+	item := c.bucket(key).get(key)
+	if item == nil {
+		return false
+	}
+
+	item.Extend(duration)
 	return true
 }
 
@@ -178,17 +186,12 @@ func (c *Cache[T]) Fetch(key string, duration time.Duration, fetch func() (T, er
 
 // Remove the item from the cache, return true if the item was present, false otherwise.
 func (c *Cache[T]) Delete(key string) bool {
-	item := c.bucket(key).delete(key)
+	item := c.bucket(key).remove(key)
 	if item != nil {
 		c.deletables <- item
 		return true
 	}
 	return false
-}
-
-func (c *Cache[T]) deleteItem(bucket *bucket[T], item *Item[T]) {
-	bucket.delete(item.key) //stop other GETs from getting it
-	c.deletables <- item
 }
 
 func (c *Cache[T]) set(key string, value T, duration time.Duration, track bool) *Item[T] {
@@ -204,6 +207,24 @@ func (c *Cache[T]) bucket(key string) *bucket[T] {
 	h := fnv.New32a()
 	h.Write([]byte(key))
 	return c.buckets[h.Sum32()&c.bucketMask]
+}
+
+func (c *Cache[T]) halted(fn func()) {
+	c.halt()
+	defer c.unhalt()
+	fn()
+}
+
+func (c *Cache[T]) halt() {
+	for _, bucket := range c.buckets {
+		bucket.Lock()
+	}
+}
+
+func (c *Cache[T]) unhalt() {
+	for _, bucket := range c.buckets {
+		bucket.Unlock()
+	}
 }
 
 func (c *Cache[T]) worker() {
@@ -230,17 +251,30 @@ func (c *Cache[T]) worker() {
 				msg.res <- dropped
 				dropped = 0
 			case controlSetMaxSize:
-				c.maxSize = msg.size
+				newMaxSize := msg.size
+				c.maxSize = newMaxSize
+				c.pruneTargetSize = newMaxSize - newMaxSize*int64(c.percentToPrune)/100
 				if c.size > c.maxSize {
 					dropped += c.gc()
 				}
 				msg.done <- struct{}{}
 			case controlClear:
-				for _, bucket := range c.buckets {
-					bucket.clear()
-				}
-				c.size = 0
-				c.list = NewList[*Item[T]]()
+				c.halted(func() {
+					promotables := c.promotables
+					for len(promotables) > 0 {
+						<-promotables
+					}
+					deletables := c.deletables
+					for len(deletables) > 0 {
+						<-deletables
+					}
+
+					for _, bucket := range c.buckets {
+						bucket.clear()
+					}
+					c.size = 0
+					c.list = NewList[T]()
+				})
 				msg.done <- struct{}{}
 			case controlGetSize:
 				msg.res <- c.size
@@ -297,15 +331,14 @@ doAllDeletes:
 }
 
 func (c *Cache[T]) doDelete(item *Item[T]) {
-	if item.node == nil {
+	if item.next == nil && item.prev == nil {
 		item.promotions = -2
 	} else {
 		c.size -= item.size
 		if c.onDelete != nil {
 			c.onDelete(item)
 		}
-		c.list.Remove(item.node)
-		item.node = nil
+		c.list.Remove(item)
 		item.promotions = -2
 	}
 }
@@ -315,46 +348,47 @@ func (c *Cache[T]) doPromote(item *Item[T]) bool {
 	if item.promotions == -2 {
 		return false
 	}
-	if item.node != nil { //not a new item
+
+	if item.next != nil || item.prev != nil { // not a new item
 		if item.shouldPromote(c.getsPerPromote) {
-			c.list.MoveToFront(item.node)
+			c.list.MoveToFront(item)
 			item.promotions = 0
 		}
 		return false
 	}
 
 	c.size += item.size
-	item.node = c.list.Insert(item)
+	c.list.Insert(item)
 	return true
 }
 
 func (c *Cache[T]) gc() int {
 	dropped := 0
-	node := c.list.Tail
+	item := c.list.Tail
 
-	itemsToPrune := int64(c.itemsToPrune)
-	if min := c.size - c.maxSize; min > itemsToPrune {
-		itemsToPrune = min
-	}
+	prunedSize := int64(0)
+	sizeToPrune := c.size - c.pruneTargetSize
 
-	for i := int64(0); i < itemsToPrune; i++ {
-		if node == nil {
+	for prunedSize < sizeToPrune {
+		if item == nil {
 			return dropped
 		}
-		prev := node.Prev
-		item := node.Value
-		if c.tracking == false || atomic.LoadInt32(&item.refCount) == 0 {
+		// fmt.Println(item.key)
+		prev := item.prev
+		if !c.tracking || atomic.LoadInt32(&item.refCount) == 0 {
 			c.bucket(item.key).delete(item.key)
-			c.size -= item.size
-			c.list.Remove(node)
+			itemSize := item.size
+			c.size -= itemSize
+			prunedSize += itemSize
+
+			c.list.Remove(item)
 			if c.onDelete != nil {
 				c.onDelete(item)
 			}
 			dropped += 1
-			item.node = nil
 			item.promotions = -2
 		}
-		node = prev
+		item = prev
 	}
 	return dropped
 }

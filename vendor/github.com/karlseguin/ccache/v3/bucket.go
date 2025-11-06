@@ -35,6 +35,54 @@ func (b *bucket[T]) get(key string) *Item[T] {
 	return b.lookup[key]
 }
 
+func (b *bucket[T]) setnx(key string, value T, duration time.Duration, track bool) *Item[T] {
+	b.RLock()
+	item := b.lookup[key]
+	b.RUnlock()
+	if item != nil {
+		return item
+	}
+
+	expires := time.Now().Add(duration).UnixNano()
+	newItem := newItem(key, value, expires, track)
+
+	b.Lock()
+	defer b.Unlock()
+
+	// check again under write lock
+	item = b.lookup[key]
+	if item != nil {
+		return item
+	}
+
+	b.lookup[key] = newItem
+	return newItem
+}
+
+func (b *bucket[T]) setnx2(key string, f func() T, duration time.Duration, track bool) (*Item[T], bool) {
+	b.RLock()
+	item := b.lookup[key]
+	b.RUnlock()
+	if item != nil {
+		return item, true
+	}
+
+	b.Lock()
+	defer b.Unlock()
+
+	// check again under write lock
+	item = b.lookup[key]
+	if item != nil {
+		return item, true
+	}
+
+	expires := time.Now().Add(duration).UnixNano()
+	newItem := newItem(key, f(), expires, track)
+
+	b.lookup[key] = newItem
+	return newItem, false
+}
+
 func (b *bucket[T]) set(key string, value T, duration time.Duration, track bool) (*Item[T], *Item[T]) {
 	expires := time.Now().Add(duration).UnixNano()
 	item := newItem(key, value, expires, track)
@@ -45,12 +93,18 @@ func (b *bucket[T]) set(key string, value T, duration time.Duration, track bool)
 	return item, existing
 }
 
-func (b *bucket[T]) delete(key string) *Item[T] {
+func (b *bucket[T]) remove(key string) *Item[T] {
 	b.Lock()
 	item := b.lookup[key]
 	delete(b.lookup, key)
 	b.Unlock()
 	return item
+}
+
+func (b *bucket[T]) delete(key string) {
+	b.Lock()
+	delete(b.lookup, key)
+	b.Unlock()
 }
 
 // This is an expensive operation, so we do what we can to optimize it and limit
@@ -98,8 +152,10 @@ func (b *bucket[T]) deletePrefix(prefix string, deletables chan *Item[T]) int {
 	}, deletables)
 }
 
+// we expect the caller to have acquired a write lock
 func (b *bucket[T]) clear() {
-	b.Lock()
+	for _, item := range b.lookup {
+		item.promotions = -2
+	}
 	b.lookup = make(map[string]*Item[T])
-	b.Unlock()
 }

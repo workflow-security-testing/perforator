@@ -32,7 +32,7 @@ func (b *layeredBucket[T]) getSecondaryBucket(primary string) *bucket[T] {
 	b.RLock()
 	bucket, exists := b.buckets[primary]
 	b.RUnlock()
-	if exists == false {
+	if !exists {
 		return nil
 	}
 	return bucket
@@ -41,7 +41,7 @@ func (b *layeredBucket[T]) getSecondaryBucket(primary string) *bucket[T] {
 func (b *layeredBucket[T]) set(primary, secondary string, value T, duration time.Duration, track bool) (*Item[T], *Item[T]) {
 	b.Lock()
 	bkt, exists := b.buckets[primary]
-	if exists == false {
+	if !exists {
 		bkt = &bucket[T]{lookup: make(map[string]*Item[T])}
 		b.buckets[primary] = bkt
 	}
@@ -51,21 +51,31 @@ func (b *layeredBucket[T]) set(primary, secondary string, value T, duration time
 	return item, existing
 }
 
-func (b *layeredBucket[T]) delete(primary, secondary string) *Item[T] {
+func (b *layeredBucket[T]) remove(primary, secondary string) *Item[T] {
 	b.RLock()
 	bucket, exists := b.buckets[primary]
 	b.RUnlock()
-	if exists == false {
+	if !exists {
 		return nil
 	}
-	return bucket.delete(secondary)
+	return bucket.remove(secondary)
+}
+
+func (b *layeredBucket[T]) delete(primary, secondary string) {
+	b.RLock()
+	bucket, exists := b.buckets[primary]
+	b.RUnlock()
+	if !exists {
+		return
+	}
+	bucket.delete(secondary)
 }
 
 func (b *layeredBucket[T]) deletePrefix(primary, prefix string, deletables chan *Item[T]) int {
 	b.RLock()
 	bucket, exists := b.buckets[primary]
 	b.RUnlock()
-	if exists == false {
+	if !exists {
 		return 0
 	}
 	return bucket.deletePrefix(prefix, deletables)
@@ -75,7 +85,7 @@ func (b *layeredBucket[T]) deleteFunc(primary string, matches func(key string, i
 	b.RLock()
 	bucket, exists := b.buckets[primary]
 	b.RUnlock()
-	if exists == false {
+	if !exists {
 		return 0
 	}
 	return bucket.deleteFunc(matches, deletables)
@@ -85,7 +95,7 @@ func (b *layeredBucket[T]) deleteAll(primary string, deletables chan *Item[T]) b
 	b.RLock()
 	bucket, exists := b.buckets[primary]
 	b.RUnlock()
-	if exists == false {
+	if !exists {
 		return false
 	}
 
@@ -111,9 +121,8 @@ func (b *layeredBucket[T]) forEachFunc(primary string, matches func(key string, 
 	}
 }
 
+// we expect the caller to have acquired a write lock
 func (b *layeredBucket[T]) clear() {
-	b.Lock()
-	defer b.Unlock()
 	for _, bucket := range b.buckets {
 		bucket.clear()
 	}

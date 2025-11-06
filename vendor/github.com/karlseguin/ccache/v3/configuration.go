@@ -4,6 +4,7 @@ type Configuration[T any] struct {
 	maxSize        int64
 	buckets        int
 	itemsToPrune   int
+	percentToPrune int
 	deleteBuffer   int
 	promoteBuffer  int
 	getsPerPromote int32
@@ -17,7 +18,8 @@ type Configuration[T any] struct {
 func Configure[T any]() *Configuration[T] {
 	return &Configuration[T]{
 		buckets:        16,
-		itemsToPrune:   500,
+		itemsToPrune:   0,
+		percentToPrune: 10,
 		deleteBuffer:   1024,
 		getsPerPromote: 3,
 		promoteBuffer:  1024,
@@ -37,17 +39,20 @@ func (c *Configuration[T]) MaxSize(max int64) *Configuration[T] {
 // requires a write lock on the bucket). Must be a power of 2 (1, 2, 4, 8, 16, ...)
 // [16]
 func (c *Configuration[T]) Buckets(count uint32) *Configuration[T] {
-	if count == 0 || ((count&(^count+1)) == count) == false {
+	if count == 0 || !((count & (^count + 1)) == count) {
 		count = 16
 	}
 	c.buckets = int(count)
 	return c
 }
 
-// The number of items to prune when memory is low
-// [500]
-func (c *Configuration[T]) ItemsToPrune(count uint32) *Configuration[T] {
-	c.itemsToPrune = int(count)
+// The percent of the max size to prune when memory is low.
+// [10]
+func (c *Configuration[T]) PercentToPrune(percent uint8) *Configuration[T] {
+	if percent > 100 {
+		percent = 20
+	}
+	c.percentToPrune = int(percent)
 	return c
 }
 

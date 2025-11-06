@@ -1,9 +1,5 @@
 # CCache
 
-Generic version is on the way:
-https://github.com/karlseguin/ccache/tree/generic
-
-
 CCache is an LRU Cache, written in Go, focused on supporting high concurrency.
 
 Lock contention on the list is reduced by:
@@ -21,7 +17,7 @@ Import and create a `Cache` instance:
 
 ```go
 import (
-  github.com/karlseguin/ccache/v3
+  "github.com/karlseguin/ccache/v3"
 )
 
 // create a cache with string values
@@ -39,7 +35,7 @@ The most likely configuration options to tweak are:
 
 * `MaxSize(int)` - the maximum number size  to store in the cache (default: 5000)
 * `GetsPerPromote(int)` - the number of times an item is fetched before we promote it. For large caches with long TTLs, it normally isn't necessary to promote an item after every fetch (default: 3)
-* `ItemsToPrune(int)` - the number of items to prune when we hit `MaxSize`. Freeing up more than 1 slot at a time improved performance (default: 500)
+* `PercentToPrune(int)` - the percentage, relative to `MaxSize`, to prune when the cache is full (default: 10)
 
 Configurations that change the internals of the cache, which aren't as likely to need tweaking:
 
@@ -111,7 +107,18 @@ cache.Delete("user:4")
 `Clear` clears the cache. If the cache's gc is running, `Clear` waits for it to finish.
 
 ### Extend
+
 The life of an item can be changed via the `Extend` method. This will change the expiry of the item by the specified duration relative to the current time.
+
+```go
+cache.Extend("user:4", time.Minute * 10)
+
+// or
+item := cache.Get("user:4")
+if item != nil {
+  item.Extend(time.Minute * 10)
+}
+```
 
 ### Replace
 The value of an item can be updated to a new value without renewing the item's TTL or it's position in the LRU:
@@ -121,6 +128,14 @@ cache.Replace("user:4", user)
 ```
 
 `Replace` returns true if the item existed (and thus was replaced). In the case where the key was not in the cache, the value *is not* inserted and false is returned.
+
+### Setnx
+
+Set the value if not exists. setnx will first check whether kv exists. If it does not exist, set kv in cache. this operation is atomic.
+
+```go
+cache.Set("user:4", user, time.Minute * 10)
+```
 
 ### GetDropped
 You can get the number of keys evicted due to memory pressure by calling `GetDropped`:
@@ -198,4 +213,4 @@ By default, items added to a cache have a size of 1. This means that if you conf
 However, if the values you set into the cache have a method `Size() int64`, this size will be used. Note that ccache has an overhead of ~350 bytes per entry, which isn't taken into account. In other words, given a filled up cache, with `MaxSize(4096000)` and items that return a `Size() int64` of 2048, we can expect to find 2000 items (4096000/2048) taking a total space of 4796000 bytes.
 
 ## Want Something Simpler?
-For a simpler cache, checkout out [rcache](https://github.com/karlseguin/rcache)
+For a simpler cache, checkout out [rcache](https://github.com/karlseguin/rcache).

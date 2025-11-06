@@ -4,12 +4,59 @@ import (
 	"math/rand"
 	"sort"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/karlseguin/ccache/v3/assert"
 )
+
+func Test_Setnx(t *testing.T) {
+	cache := New(Configure[string]())
+	defer cache.Stop()
+	assert.Equal(t, cache.ItemCount(), 0)
+
+	cache.Set("spice", "flow", time.Minute)
+	assert.Equal(t, cache.ItemCount(), 1)
+
+	// set if exists
+	cache.Setnx("spice", "worm", time.Minute)
+	assert.Equal(t, cache.ItemCount(), 1)
+	assert.Equal(t, cache.Get("spice").Value(), "flow")
+
+	// set if not exists
+	cache.Delete("spice")
+	cache.Setnx("spice", "worm", time.Minute)
+	assert.Equal(t, cache.Get("spice").Value(), "worm")
+
+	assert.Equal(t, cache.ItemCount(), 1)
+}
+
+func Test_Extend(t *testing.T) {
+	cache := New(Configure[string]())
+	defer cache.Stop()
+	assert.Equal(t, cache.ItemCount(), 0)
+
+	// non exist
+	ok := cache.Extend("spice", time.Minute*10)
+	assert.Equal(t, false, ok)
+
+	// exist
+	cache.Set("spice", "flow", time.Minute)
+	assert.Equal(t, cache.ItemCount(), 1)
+
+	ok = cache.Extend("spice", time.Minute*10) // 10 + 10
+	assert.Equal(t, true, ok)
+
+	item := cache.Get("spice")
+	less := time.Minute*22 < time.Duration(item.expires)
+	assert.Equal(t, true, less)
+	more := time.Minute*18 < time.Duration(item.expires)
+	assert.Equal(t, true, more)
+
+	assert.Equal(t, cache.ItemCount(), 1)
+}
 
 func Test_CacheDeletesAValue(t *testing.T) {
 	cache := New(Configure[string]())
@@ -77,7 +124,6 @@ func Test_CacheDeletesAFunc(t *testing.T) {
 		return key == "d"
 	}), 1)
 	assert.Equal(t, cache.ItemCount(), 2)
-
 }
 
 func Test_CacheOnDeleteCallbackCalled(t *testing.T) {
@@ -89,6 +135,8 @@ func Test_CacheOnDeleteCallbackCalled(t *testing.T) {
 	}
 
 	cache := New(Configure[string]().OnDelete(onDeleteFn))
+	defer cache.Stop()
+
 	cache.Set("spice", "flow", time.Minute)
 	cache.Set("worm", "sand", time.Minute)
 
@@ -104,6 +152,8 @@ func Test_CacheOnDeleteCallbackCalled(t *testing.T) {
 
 func Test_CacheFetchesExpiredItems(t *testing.T) {
 	cache := New(Configure[string]())
+	defer cache.Stop()
+
 	fn := func() (string, error) { return "moo-moo", nil }
 
 	cache.Set("beef", "moo", time.Second*-1)
@@ -114,20 +164,24 @@ func Test_CacheFetchesExpiredItems(t *testing.T) {
 }
 
 func Test_CacheGCsTheOldestItems(t *testing.T) {
-	cache := New(Configure[int]().ItemsToPrune(10))
-	for i := 0; i < 500; i++ {
+	cache := New(Configure[int]().MaxSize(100).PercentToPrune(10))
+	defer cache.Stop()
+
+	for i := 0; i < 100; i++ {
 		cache.Set(strconv.Itoa(i), i, time.Minute)
 	}
 	cache.SyncUpdates()
 	cache.GC()
 	assert.Equal(t, cache.Get("9"), nil)
 	assert.Equal(t, cache.Get("10").Value(), 10)
-	assert.Equal(t, cache.ItemCount(), 490)
+	assert.Equal(t, cache.ItemCount(), 90)
 }
 
 func Test_CachePromotedItemsDontGetPruned(t *testing.T) {
-	cache := New(Configure[int]().ItemsToPrune(10).GetsPerPromote(1))
-	for i := 0; i < 500; i++ {
+	cache := New(Configure[int]().MaxSize(100).PercentToPrune(10).GetsPerPromote(1))
+	defer cache.Stop()
+
+	for i := 0; i < 100; i++ {
 		cache.Set(strconv.Itoa(i), i, time.Minute)
 	}
 	cache.SyncUpdates()
@@ -140,8 +194,10 @@ func Test_CachePromotedItemsDontGetPruned(t *testing.T) {
 }
 
 func Test_GetWithoutPromoteDoesNotPromote(t *testing.T) {
-	cache := New(Configure[int]().ItemsToPrune(10).GetsPerPromote(1))
-	for i := 0; i < 500; i++ {
+	cache := New(Configure[int]().MaxSize(100).PercentToPrune(10).GetsPerPromote(1))
+	defer cache.Stop()
+
+	for i := 0; i < 100; i++ {
 		cache.Set(strconv.Itoa(i), i, time.Minute)
 	}
 	cache.SyncUpdates()
@@ -154,18 +210,28 @@ func Test_GetWithoutPromoteDoesNotPromote(t *testing.T) {
 }
 
 func Test_CacheTrackerDoesNotCleanupHeldInstance(t *testing.T) {
-	cache := New(Configure[int]().ItemsToPrune(11).Track())
+	cache := New(Configure[int]().MaxSize(10).PercentToPrune(10).Track())
+	defer cache.Stop()
+
 	item0 := cache.TrackingSet("0", 0, time.Minute)
-	for i := 1; i < 11; i++ {
+
+	cache.Set("1", 1, time.Minute)
+	item1 := cache.TrackingGet("1")
+
+	for i := 2; i < 11; i++ {
 		cache.Set(strconv.Itoa(i), i, time.Minute)
 	}
-	item1 := cache.TrackingGet("1")
+
 	cache.SyncUpdates()
 	cache.GC()
 	assert.Equal(t, cache.Get("0").Value(), 0)
 	assert.Equal(t, cache.Get("1").Value(), 1)
 	item0.Release()
 	item1.Release()
+
+	for i := 1; i < 5; i++ {
+		cache.Set(strconv.Itoa(i+20), i, time.Minute)
+	}
 	cache.GC()
 	assert.Equal(t, cache.Get("0"), nil)
 	assert.Equal(t, cache.Get("1"), nil)
@@ -179,7 +245,9 @@ func Test_CacheRemovesOldestItemWhenFull(t *testing.T) {
 		}
 	}
 
-	cache := New(Configure[int]().MaxSize(5).ItemsToPrune(1).OnDelete(onDeleteFn))
+	cache := New(Configure[int]().MaxSize(5).PercentToPrune(1).OnDelete(onDeleteFn))
+	defer cache.Stop()
+
 	for i := 0; i < 7; i++ {
 		cache.Set(strconv.Itoa(i), i, time.Minute)
 	}
@@ -192,11 +260,14 @@ func Test_CacheRemovesOldestItemWhenFull(t *testing.T) {
 }
 
 func Test_CacheRemovesOldestItemWhenFullBySizer(t *testing.T) {
-	cache := New(Configure[*SizedItem]().MaxSize(9).ItemsToPrune(2))
-	for i := 0; i < 7; i++ {
+	cache := New(Configure[*SizedItem]().MaxSize(50).PercentToPrune(15))
+	defer cache.Stop()
+
+	for i := 0; i < 25; i++ {
 		cache.Set(strconv.Itoa(i), &SizedItem{i, 2}, time.Minute)
 	}
 	cache.SyncUpdates()
+	cache.GC()
 	assert.Equal(t, cache.Get("0"), nil)
 	assert.Equal(t, cache.Get("1"), nil)
 	assert.Equal(t, cache.Get("2"), nil)
@@ -208,6 +279,8 @@ func Test_CacheRemovesOldestItemWhenFullBySizer(t *testing.T) {
 
 func Test_CacheSetUpdatesSizeOnDelta(t *testing.T) {
 	cache := New(Configure[*SizedItem]())
+	defer cache.Stop()
+
 	cache.Set("a", &SizedItem{0, 2}, time.Minute)
 	cache.Set("b", &SizedItem{0, 3}, time.Minute)
 	cache.SyncUpdates()
@@ -228,6 +301,8 @@ func Test_CacheSetUpdatesSizeOnDelta(t *testing.T) {
 
 func Test_CacheReplaceDoesNotchangeSizeIfNotSet(t *testing.T) {
 	cache := New(Configure[*SizedItem]())
+	defer cache.Stop()
+
 	cache.Set("1", &SizedItem{1, 2}, time.Minute)
 	cache.Set("2", &SizedItem{1, 2}, time.Minute)
 	cache.Set("3", &SizedItem{1, 2}, time.Minute)
@@ -238,6 +313,8 @@ func Test_CacheReplaceDoesNotchangeSizeIfNotSet(t *testing.T) {
 
 func Test_CacheReplaceChangesSize(t *testing.T) {
 	cache := New(Configure[*SizedItem]())
+	defer cache.Stop()
+
 	cache.Set("1", &SizedItem{1, 2}, time.Minute)
 	cache.Set("2", &SizedItem{1, 2}, time.Minute)
 
@@ -255,39 +332,42 @@ func Test_CacheReplaceChangesSize(t *testing.T) {
 }
 
 func Test_CacheResizeOnTheFly(t *testing.T) {
-	cache := New(Configure[int]().MaxSize(9).ItemsToPrune(1))
-	for i := 0; i < 5; i++ {
+	cache := New(Configure[int]().MaxSize(50).PercentToPrune(10))
+	defer cache.Stop()
+
+	for i := 0; i < 50; i++ {
 		cache.Set(strconv.Itoa(i), i, time.Minute)
 	}
 	cache.SetMaxSize(3)
 	cache.SyncUpdates()
-	assert.Equal(t, cache.GetDropped(), 2)
-	assert.Equal(t, cache.Get("0"), nil)
-	assert.Equal(t, cache.Get("1"), nil)
-	assert.Equal(t, cache.Get("2").Value(), 2)
-	assert.Equal(t, cache.Get("3").Value(), 3)
-	assert.Equal(t, cache.Get("4").Value(), 4)
+	assert.Equal(t, cache.GetDropped(), 47)
+	assert.Equal(t, cache.Get("46"), nil)
+	assert.Equal(t, cache.Get("47").Value(), 47)
+	assert.Equal(t, cache.Get("48").Value(), 48)
+	assert.Equal(t, cache.Get("49").Value(), 49)
 
-	cache.Set("5", 5, time.Minute)
+	cache.Set("50", 50, time.Minute)
 	cache.SyncUpdates()
 	assert.Equal(t, cache.GetDropped(), 1)
-	assert.Equal(t, cache.Get("2"), nil)
-	assert.Equal(t, cache.Get("3").Value(), 3)
-	assert.Equal(t, cache.Get("4").Value(), 4)
-	assert.Equal(t, cache.Get("5").Value(), 5)
+	assert.Equal(t, cache.Get("47"), nil)
+	assert.Equal(t, cache.Get("48").Value(), 48)
+	assert.Equal(t, cache.Get("49").Value(), 49)
+	assert.Equal(t, cache.Get("50").Value(), 50)
 
 	cache.SetMaxSize(10)
-	cache.Set("6", 6, time.Minute)
+	cache.Set("51", 51, time.Minute)
 	cache.SyncUpdates()
 	assert.Equal(t, cache.GetDropped(), 0)
-	assert.Equal(t, cache.Get("3").Value(), 3)
-	assert.Equal(t, cache.Get("4").Value(), 4)
-	assert.Equal(t, cache.Get("5").Value(), 5)
-	assert.Equal(t, cache.Get("6").Value(), 6)
+	assert.Equal(t, cache.Get("48").Value(), 48)
+	assert.Equal(t, cache.Get("49").Value(), 49)
+	assert.Equal(t, cache.Get("50").Value(), 50)
+	assert.Equal(t, cache.Get("51").Value(), 51)
 }
 
 func Test_CacheForEachFunc(t *testing.T) {
-	cache := New(Configure[int]().MaxSize(3).ItemsToPrune(1))
+	cache := New(Configure[int]().MaxSize(3).PercentToPrune(1))
+	defer cache.Stop()
+
 	assert.List(t, forEachKeys[int](cache), []string{})
 
 	cache.Set("1", 1, time.Minute)
@@ -316,7 +396,9 @@ func Test_CacheForEachFunc(t *testing.T) {
 
 func Test_CachePrune(t *testing.T) {
 	maxSize := int64(500)
-	cache := New(Configure[string]().MaxSize(maxSize).ItemsToPrune(50))
+	cache := New(Configure[string]().MaxSize(maxSize).PercentToPrune(50))
+	defer cache.Stop()
+
 	epoch := 0
 	for i := 0; i < 10000; i++ {
 		epoch += 1
@@ -358,6 +440,105 @@ func Test_ConcurrentStop(t *testing.T) {
 		go r()
 		time.Sleep(time.Millisecond * 10)
 		cache.Stop()
+	}
+}
+
+func Test_ConcurrentClearAndSet(t *testing.T) {
+	for i := 0; i < 1000000; i++ {
+		var stop atomic.Bool
+		var wg sync.WaitGroup
+
+		cache := New(Configure[string]())
+		r := func() {
+			for !stop.Load() {
+				cache.Set("a", "a", time.Minute)
+			}
+			wg.Done()
+		}
+		go r()
+		wg.Add(1)
+		cache.Clear()
+		stop.Store(true)
+		wg.Wait()
+		cache.SyncUpdates()
+
+		// The point of this test is to make sure that the cache's lookup and its
+		// recency list are in sync. But the two aren't written to atomically:
+		// the lookup is written to directly from the call to Set, whereas the
+		// list is maintained by the background worker. This can create a period
+		// where the two are out of sync. Even SyncUpdate is helpless here, since
+		// it can only sync what's been written to the buffers.
+		for i := 0; i < 10; i++ {
+			expectedCount := 0
+			if cache.list.Head != nil {
+				expectedCount = 1
+			}
+			actualCount := cache.ItemCount()
+			if expectedCount == actualCount {
+				return
+			}
+			time.Sleep(time.Millisecond)
+		}
+		t.Errorf("cache list and lookup are not consistent")
+		t.FailNow()
+		cache.Stop()
+	}
+}
+
+func BenchmarkFrequentSets(b *testing.B) {
+	cache := New(Configure[int]())
+	defer cache.Stop()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		key := strconv.Itoa(n)
+		cache.Set(key, n, time.Minute)
+	}
+}
+
+func BenchmarkFrequentGets(b *testing.B) {
+	cache := New(Configure[int]())
+	defer cache.Stop()
+	numKeys := 500
+	for i := 0; i < numKeys; i++ {
+		key := strconv.Itoa(i)
+		cache.Set(key, i, time.Minute)
+	}
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		key := strconv.FormatInt(rand.Int63n(int64(numKeys)), 10)
+		cache.Get(key)
+	}
+}
+
+func BenchmarkGetWithPromoteSmall(b *testing.B) {
+	getsPerPromotes := 5
+	cache := New(Configure[int]().GetsPerPromote(int32(getsPerPromotes)))
+	defer cache.Stop()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		key := strconv.Itoa(n)
+		cache.Set(key, n, time.Minute)
+		for i := 0; i < getsPerPromotes; i++ {
+			cache.Get(key)
+		}
+	}
+}
+
+func BenchmarkGetWithPromoteLarge(b *testing.B) {
+	getsPerPromotes := 100
+	cache := New(Configure[int]().GetsPerPromote(int32(getsPerPromotes)))
+	defer cache.Stop()
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		key := strconv.Itoa(n)
+		cache.Set(key, n, time.Minute)
+		for i := 0; i < getsPerPromotes; i++ {
+			cache.Get(key)
+		}
 	}
 }
 

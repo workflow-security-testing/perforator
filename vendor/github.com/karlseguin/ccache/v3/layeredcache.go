@@ -10,12 +10,13 @@ import (
 type LayeredCache[T any] struct {
 	*Configuration[T]
 	control
-	list        *List[*Item[T]]
-	buckets     []*layeredBucket[T]
-	bucketMask  uint32
-	size        int64
-	deletables  chan *Item[T]
-	promotables chan *Item[T]
+	list            *List[T]
+	buckets         []*layeredBucket[T]
+	bucketMask      uint32
+	size            int64
+	pruneTargetSize int64
+	deletables      chan *Item[T]
+	promotables     chan *Item[T]
 }
 
 // Create a new layered cache with the specified configuration.
@@ -33,15 +34,16 @@ type LayeredCache[T any] struct {
 // See ccache.Configure() for creating a configuration
 func Layered[T any](config *Configuration[T]) *LayeredCache[T] {
 	c := &LayeredCache[T]{
-		list:          NewList[*Item[T]](),
-		Configuration: config,
-		control:       newControl(),
-		bucketMask:    uint32(config.buckets) - 1,
-		buckets:       make([]*layeredBucket[T], config.buckets),
-		deletables:    make(chan *Item[T], config.deleteBuffer),
-		promotables:   make(chan *Item[T], config.promoteBuffer),
+		list:            NewList[T](),
+		Configuration:   config,
+		control:         newControl(),
+		bucketMask:      uint32(config.buckets) - 1,
+		buckets:         make([]*layeredBucket[T], config.buckets),
+		deletables:      make(chan *Item[T], config.deleteBuffer),
+		promotables:     make(chan *Item[T], config.promoteBuffer),
+		pruneTargetSize: config.maxSize - config.maxSize*int64(config.percentToPrune)/100,
 	}
-	for i := 0; i < int(config.buckets); i++ {
+	for i := 0; i < config.buckets; i++ {
 		c.buckets[i] = &layeredBucket[T]{
 			buckets: make(map[string]*bucket[T]),
 		}
@@ -158,7 +160,7 @@ func (c *LayeredCache[T]) Fetch(primary, secondary string, duration time.Duratio
 
 // Remove the item from the cache, return true if the item was present, false otherwise.
 func (c *LayeredCache[T]) Delete(primary, secondary string) bool {
-	item := c.bucket(primary).delete(primary, secondary)
+	item := c.bucket(primary).remove(primary, secondary)
 	if item != nil {
 		c.deletables <- item
 		return true
@@ -196,6 +198,24 @@ func (c *LayeredCache[T]) bucket(key string) *layeredBucket[T] {
 	return c.buckets[h.Sum32()&c.bucketMask]
 }
 
+func (c *LayeredCache[T]) halted(fn func()) {
+	c.halt()
+	defer c.unhalt()
+	fn()
+}
+
+func (c *LayeredCache[T]) halt() {
+	for _, bucket := range c.buckets {
+		bucket.Lock()
+	}
+}
+
+func (c *LayeredCache[T]) unhalt() {
+	for _, bucket := range c.buckets {
+		bucket.Unlock()
+	}
+}
+
 func (c *LayeredCache[T]) promote(item *Item[T]) {
 	c.promotables <- item
 }
@@ -224,17 +244,30 @@ func (c *LayeredCache[T]) worker() {
 				msg.res <- dropped
 				dropped = 0
 			case controlSetMaxSize:
-				c.maxSize = msg.size
+				newMaxSize := msg.size
+				c.maxSize = newMaxSize
+				c.pruneTargetSize = newMaxSize - newMaxSize*int64(c.percentToPrune)/100
 				if c.size > c.maxSize {
 					dropped += c.gc()
 				}
 				msg.done <- struct{}{}
 			case controlClear:
-				for _, bucket := range c.buckets {
-					bucket.clear()
+				promotables := c.promotables
+				for len(promotables) > 0 {
+					<-promotables
 				}
-				c.size = 0
-				c.list = NewList[*Item[T]]()
+				deletables := c.deletables
+				for len(deletables) > 0 {
+					<-deletables
+				}
+
+				c.halted(func() {
+					for _, bucket := range c.buckets {
+						bucket.clear()
+					}
+					c.size = 0
+					c.list = NewList[T]()
+				})
 				msg.done <- struct{}{}
 			case controlGetSize:
 				msg.res <- c.size
@@ -260,15 +293,14 @@ drain:
 }
 
 func (c *LayeredCache[T]) doDelete(item *Item[T]) {
-	if item.node == nil {
+	if item.prev == nil && item.next == nil {
 		item.promotions = -2
 	} else {
 		c.size -= item.size
 		if c.onDelete != nil {
 			c.onDelete(item)
 		}
-		c.list.Remove(item.node)
-		item.node = nil
+		c.list.Remove(item)
 		item.promotions = -2
 	}
 }
@@ -278,45 +310,47 @@ func (c *LayeredCache[T]) doPromote(item *Item[T]) bool {
 	if item.promotions == -2 {
 		return false
 	}
-	if item.node != nil { //not a new item
+
+	if item.next != nil || item.prev != nil { // not a new item
 		if item.shouldPromote(c.getsPerPromote) {
-			c.list.MoveToFront(item.node)
+			c.list.MoveToFront(item)
 			item.promotions = 0
 		}
 		return false
 	}
+
 	c.size += item.size
-	item.node = c.list.Insert(item)
+	c.list.Insert(item)
 	return true
 }
 
 func (c *LayeredCache[T]) gc() int {
-	node := c.list.Tail
 	dropped := 0
-	itemsToPrune := int64(c.itemsToPrune)
+	item := c.list.Tail
 
-	if min := c.size - c.maxSize; min > itemsToPrune {
-		itemsToPrune = min
-	}
+	prunedSize := int64(0)
+	sizeToPrune := c.size - c.pruneTargetSize
 
-	for i := int64(0); i < itemsToPrune; i++ {
-		if node == nil {
+	for prunedSize < sizeToPrune {
+		if item == nil {
 			return dropped
 		}
-		prev := node.Prev
-		item := node.Value
-		if c.tracking == false || atomic.LoadInt32(&item.refCount) == 0 {
+		prev := item.prev
+		if !c.tracking || atomic.LoadInt32(&item.refCount) == 0 {
+
 			c.bucket(item.group).delete(item.group, item.key)
-			c.size -= item.size
-			c.list.Remove(node)
+			itemSize := item.size
+			c.size -= itemSize
+			prunedSize += itemSize
+
+			c.list.Remove(item)
 			if c.onDelete != nil {
 				c.onDelete(item)
 			}
-			item.node = nil
-			item.promotions = -2
 			dropped += 1
+			item.promotions = -2
 		}
-		node = prev
+		item = prev
 	}
 	return dropped
 }

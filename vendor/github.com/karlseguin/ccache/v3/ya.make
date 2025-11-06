@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v3.0.3)
+VERSION(v3.0.7)
 
 SRCS(
     bucket.go
