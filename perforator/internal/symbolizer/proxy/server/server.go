@@ -217,6 +217,10 @@ func NewPerforatorServer(
 		storageBundle.BinaryStorage.Binary(), storageBundle.BinaryStorage.GSYM(),
 	)
 
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize binary downloaders: %w", err)
+	}
+
 	llvmTools := NewLLVMTools(
 		l.WithName("llvmTools"),
 		conf.PGOConfig,
