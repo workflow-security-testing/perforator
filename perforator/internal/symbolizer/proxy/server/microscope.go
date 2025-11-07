@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/yandex/perforator/library/go/core/log"
@@ -32,7 +34,7 @@ func (s *PerforatorServer) ListMicroscopes(ctx context.Context, req *perforator.
 	if user == "" {
 		userInfo := auth.UserFromContext(ctx)
 		if userInfo == nil || userInfo.Login == "" {
-			return nil, ErrUserUnspecified
+			return nil, status.Errorf(codes.InvalidArgument, "user is unspecified")
 		}
 
 		user = userInfo.Login
@@ -60,7 +62,7 @@ func (s *PerforatorServer) ListMicroscopes(ctx context.Context, req *perforator.
 		pagination,
 	)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to list microscopes: %v", err)
 	}
 
 	res := &perforator.ListMicroscopesResponse{
@@ -141,7 +143,7 @@ func replaceSelectorTimeInterval(selector *querylang.Selector, interval *time_in
 func (s *PerforatorServer) sanitizeMicroscope(ctx context.Context, selector *querylang.Selector) error {
 	selectorStr, err := profilequerylang.SelectorToString(selector)
 	if err != nil {
-		return fmt.Errorf("failed to sanitize microscope: %w", err)
+		return fmt.Errorf("invalid microscope: %w", err)
 	}
 
 	selectorInterval, err := profilequerylang.ParseTimeInterval(selector)
@@ -216,27 +218,27 @@ func (s *PerforatorServer) sanitizeMicroscope(ctx context.Context, selector *que
 func (s *PerforatorServer) SetMicroscope(ctx context.Context, req *perforator.SetMicroscopeRequest) (*perforator.SetMicroscopeResponse, error) {
 	selector, err := profilequerylang.ParseSelector(req.Selector)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse selector %s: %w", req.Selector, err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid selector %s: %v", req.Selector, err)
 	}
 
 	err = s.throttleMicroscope(ctx)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.ResourceExhausted, "throttle limit exceeded: %v", err)
 	}
 
 	err = s.sanitizeMicroscope(ctx, selector)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.InvalidArgument, "failed to sanitize microscope: %v", err)
 	}
 
 	user := auth.UserFromContext(ctx)
 	if user == nil || user.Login == "" {
-		return nil, ErrUserUnspecified
+		return nil, status.Errorf(codes.InvalidArgument, "user is unspecified")
 	}
 
 	uid, err := s.microscopeStorage.AddMicroscope(ctx, user.Login, selector)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to add microscope: %v", err)
 	}
 
 	return &perforator.SetMicroscopeResponse{

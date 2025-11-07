@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/codes"
+	otelcodes "go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/internal/asynctask"
@@ -26,7 +28,7 @@ func (s *PerforatorServer) GetTask(
 ) (*perforator.GetTaskResponse, error) {
 	task, err := s.tasks.GetTask(ctx, asynctask.TaskID(req.GetTaskID()))
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to get task: %v", err)
 	}
 
 	return &perforator.GetTaskResponse{
@@ -58,7 +60,7 @@ func (s *PerforatorServer) StartTask(
 
 	id, err := s.tasks.AddTask(ctx, meta, req.GetSpec())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to add task: %v", err)
 	}
 
 	return &perforator.StartTaskResponse{TaskID: string(id)}, nil
@@ -106,7 +108,7 @@ func (s *PerforatorServer) ListTasks(ctx context.Context, req *perforator.ListTa
 	})
 
 	if err := g.Wait(); err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to list tasks: %v", err)
 	}
 
 	var res = make([]*perforator.Task, 0, limit)
@@ -201,7 +203,7 @@ func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, st
 			s.l.Error(ctx, "Failed to store task failure", log.Error(err))
 		}
 
-		span.SetStatus(codes.Error, err.Error())
+		span.SetStatus(otelcodes.Error, err.Error())
 		span.RecordError(err)
 		return
 	}

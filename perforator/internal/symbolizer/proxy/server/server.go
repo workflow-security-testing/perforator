@@ -425,7 +425,7 @@ func (s *PerforatorServer) ListServices(
 	}()
 
 	if req.Prefix != "" {
-		err = errors.New("prefix is not supported yet")
+		err = status.Errorf(codes.Unimplemented, "prefix is not supported yet")
 		return nil, err
 	}
 
@@ -450,7 +450,7 @@ func (s *PerforatorServer) ListServices(
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to list services: %v", err)
 	}
 
 	res := make([]*perforator.ServiceMeta, len(services))
@@ -476,7 +476,7 @@ func (s *PerforatorServer) ListSuggestions(
 	}
 	parsedSelector, err := profilequerylang.ParseSelector(selector)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.InvalidArgument, "invalid selector: %v", err)
 	}
 	parsedSelector = enrichCPOIDMatcher(parsedSelector)
 
@@ -501,7 +501,7 @@ func (s *PerforatorServer) ListSuggestions(
 		query,
 	)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to list suggestions: %v", err)
 	}
 
 	if suggestions == nil {
@@ -752,7 +752,7 @@ func (s *PerforatorServer) ListProfiles(
 
 	query, err := s.parseProfileQuery(req.GetQuery())
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse profile query: %w", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid profile query: %v", err)
 	}
 
 	query.Pagination.Limit = uint64(req.GetPaginated().GetLimit() + 1)
@@ -762,7 +762,7 @@ func (s *PerforatorServer) ListProfiles(
 	var profiles []*meta.ProfileMetadata
 	profiles, err = s.profileStorage.SelectProfiles(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to select profiles: %v", err)
 	}
 
 	hasMore := len(profiles) == int(query.Pagination.Limit)
@@ -1045,7 +1045,7 @@ func (s *PerforatorServer) GetProfile(
 	var meta *meta.ProfileMetadata
 	profile, meta, err = s.fetchProfile(ctx, req.GetProfileID())
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch profiles: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to fetch profiles: %v", err)
 	}
 
 	// TODO: specify target event type in GetProfileRequest
@@ -1056,14 +1056,14 @@ func (s *PerforatorServer) GetProfile(
 	fixupMultiSampleTypeProfile(profile, targetEventType)
 
 	if meta.MainEventType == sampletype.SampleTypeLbrStacks && !isRawRenderFormat(req.GetFormat()) {
-		return nil, fmt.Errorf("only RawProfile format is supported for this profile")
+		return nil, status.Errorf(codes.Unimplemented, "only RawProfile format is supported for this profile")
 	}
 
 	l.Info(ctx, "Rendering profile")
 	var buf []byte
 	buf, err = s.renderProfile(ctx, profile, req.GetFormat())
 	if err != nil {
-		return nil, fmt.Errorf("failed to render profile: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to render profile: %v", err)
 	}
 
 	return &perforator.GetProfileResponse{
@@ -1190,7 +1190,7 @@ func (s *PerforatorServer) GeneratePGOProfile(
 ) (*perforator.GeneratePGOProfileResponse, error) {
 	query, err := s.constructPGOProfilesQuery(req)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.InvalidArgument, "invalid PGO profiles query: %v", err)
 	}
 
 	// Some services are loaded heavier than others, and thus generate larger profiles.
@@ -1201,17 +1201,17 @@ func (s *PerforatorServer) GeneratePGOProfile(
 	const profilesToProcessTotalSizeLimit = uint64(8 * 1024 * 1024 * 1024)
 	buf, PGOmeta, err := s.doGeneratePGOProfile(ctx, query, req.GetFormat(), profilesToProcessTotalSizeLimit)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to generate PGO profile: %v", err)
 	}
 
 	id, err := s.makePGOProfileKey(req.GetFormat())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to make PGO profile key: %v", err)
 	}
 
 	url, err := s.maybeUploadProfileWithID(ctx, buf, id)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to upload PGO profile: %v", err)
 	}
 
 	if url != "" {
@@ -1243,12 +1243,12 @@ func (s *PerforatorServer) MergeProfiles(
 
 	query, err := s.parseProfileQuery(req.GetQuery())
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse profile query: %w", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid profile query: %v", err)
 	}
 
 	targetEventType, err := deriveEventTypeFromSelector(query.Selector)
 	if err != nil {
-		return nil, fmt.Errorf("failed to derive target event type from selector: %w", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid event type matcher in selector: %v", err)
 	}
 
 	if query.MaxSamples == 0 {
@@ -1271,23 +1271,23 @@ func (s *PerforatorServer) fetchAndRenderProfileFast(
 	eventType string,
 ) (*perforator.MergeProfilesResponse, error) {
 	if req.GetExperimental().GetSampleProfileStacks() {
-		return nil, fmt.Errorf("the new profile merger does not support sampling")
+		return nil, status.Errorf(codes.Unimplemented, "the new profile merger does not support sampling")
 	}
 
 	opts, err := makeMergeOptions(req, query, eventType)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build merge options: %w", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid merge options: %v", err)
 	}
 
 	session, err := s.mergemanager.Start(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize profile merge session: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to initialize profile merge session: %v", err)
 	}
 	defer session.Close()
 
 	profiles, err := s.profileStorage.SelectProfiles(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to select profiles: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to select profiles: %v", err)
 	}
 
 	if len(profiles) == 0 {
@@ -1296,28 +1296,28 @@ func (s *PerforatorServer) fetchAndRenderProfileFast(
 
 	err = s.populateMergeSession(ctx, profiles, session)
 	if err != nil {
-		return nil, fmt.Errorf("failed to download profiles: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to download profiles: %v", err)
 	}
 
 	cprofile, err := session.Finish()
 	if err != nil {
-		return nil, fmt.Errorf("failed to merge profiles: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to merge profiles: %v", err)
 	}
 	defer cprofile.Free()
 
 	data, err := cprofile.MarshalPProf()
 	if err != nil {
-		return nil, fmt.Errorf("failed to merge pprof: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to merge pprof: %v", err)
 	}
 
 	mergedProfile, err := pprof.ParseData(data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to serialize pprof: %w", err)
+		return nil, status.Errorf(codes.Internal, "failed to serialize pprof: %v", err)
 	}
 
 	profile, err := s.renderProfile(ctx, mergedProfile, req.GetFormat())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to render profile: %v", err)
 	}
 
 	statistics := quality.CalculateProfileStatistics(mergedProfile)
@@ -1395,12 +1395,12 @@ func (s *PerforatorServer) fetchAndRenderProfileLegacy(
 		req.GetExperimental().GetSampleProfileStacks(),
 	)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to fetch profiles: %v", err)
 	}
 
 	profile, err := s.renderProfile(ctx, mergedProfile, req.GetFormat())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to render profile: %v", err)
 	}
 
 	statistics := quality.CalculateProfileStatistics(mergedProfile)
@@ -1418,7 +1418,7 @@ func (s *PerforatorServer) makeMergeResponse(
 ) (*perforator.MergeProfilesResponse, error) {
 	url, err := s.maybeUploadProfile(ctx, profile, req.GetFormat())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to upload profile: %v", err)
 	}
 
 	if url != "" {
@@ -1465,13 +1465,13 @@ func (s *PerforatorServer) DiffProfiles(
 			fgOptions = req.RenderFormat.GetJSONFlamegraph()
 			fgFormat = render.JSONFormat
 		default:
-			return nil, fmt.Errorf("unsupported diff render format %T", v)
+			return nil, status.Errorf(codes.Unimplemented, "unsupported diff render format %T", v)
 		}
 	}
 
 	err = fillFlamegraphOptions(fg, fgOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fill flamegraph options: %w", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid flamegraph options: %v", err)
 	}
 	fg.SetFormat(fgFormat)
 
@@ -1540,13 +1540,13 @@ func (s *PerforatorServer) DiffProfiles(
 	})
 	err = errg.Wait()
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to process diff profiles: %v", err)
 	}
 
 	var buf []byte
 	buf, err = fg.RenderBytes()
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to render flamegraph: %v", err)
 	}
 
 	var renderFormat *perforator.RenderFormat
@@ -1563,7 +1563,7 @@ func (s *PerforatorServer) DiffProfiles(
 	var url string
 	url, err = s.maybeUploadProfile(ctx, buf, renderFormat)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "failed to upload diff profile: %v", err)
 	}
 
 	return &perforator.DiffProfilesResponse{
@@ -2328,13 +2328,13 @@ func (s *PerforatorServer) UploadProfile(ctx context.Context, req *perforator.Up
 	var profile *pprof.Profile
 	profile, err = pprof.ParseData(req.GetProfile())
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "failed to parse profile: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid profile: %v", err)
 	}
 
 	var metadata *meta.ProfileMetadata
 	metadata, err = makeUploadProfileMeta(ctx, req.GetProfileMeta(), profile)
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "failed to parse metadata: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid metadata: %v", err)
 	}
 	s.l.Info(ctx, "Uploading profile",
 		log.Any("meta", metadata),
@@ -2374,7 +2374,7 @@ func makeUploadProfileMeta(ctx context.Context, protometa *perforator.ProfileMet
 		} else if eventType := protometa.GetEventType(); eventType != "" {
 			res.AllEventTypes = append(res.AllEventTypes, eventType)
 		} else {
-			return nil, status.Errorf(codes.InvalidArgument, "malformed profile metadata: no event type found")
+			return nil, status.Errorf(codes.InvalidArgument, "invalid profile metadata: no event type found")
 		}
 	}
 
