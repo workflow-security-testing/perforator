@@ -202,7 +202,7 @@ func (f *OpenedFile) Close() error {
 ////////////////////////////////////////////////////////////////////////////////
 
 type ProcessMappingBinary struct {
-	pid     linux.ProcessID
+	pid     linux.CurrentNamespacePID
 	mapping *procfs.Mapping
 	mounts  *mountinfo.Watcher
 
@@ -220,7 +220,7 @@ type ProcessMappingBinary struct {
 }
 
 func NewProcessMappingBinary(
-	pid linux.ProcessID,
+	pid linux.CurrentNamespacePID,
 	mounts *mountinfo.Watcher,
 	mapping *procfs.Mapping,
 ) *ProcessMappingBinary {

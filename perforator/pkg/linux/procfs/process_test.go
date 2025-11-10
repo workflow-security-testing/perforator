@@ -209,12 +209,12 @@ func TestGetNamespacedPID(t *testing.T) {
 	tests := []struct {
 		name     string
 		data     string
-		expected linux.ProcessID
+		expected linux.NamespacedPID
 	}{
 		{
 			name:     "simple",
 			data:     status1,
-			expected: linux.ProcessID(1),
+			expected: linux.NamespacedPID(1),
 		},
 	}
 

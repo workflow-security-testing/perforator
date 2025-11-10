@@ -4,6 +4,7 @@ SRCS(
     buildid_cache.go
     listener.go
     map.go
+    pidns_index.go
     scanner.go
 )
 

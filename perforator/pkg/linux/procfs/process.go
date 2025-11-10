@@ -15,7 +15,7 @@ import (
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func Process(pid linux.ProcessID) *process {
+func Process(pid linux.CurrentNamespacePID) *process {
 	return FS().Process(pid)
 }
 
@@ -29,7 +29,7 @@ func (f *procfs) Self() *process {
 	return &process{fs: f.fs, self: true}
 }
 
-func (f *procfs) Process(pid linux.ProcessID) *process {
+func (f *procfs) Process(pid linux.CurrentNamespacePID) *process {
 	return &process{fs: f.fs, pid: pid}
 }
 
@@ -92,7 +92,7 @@ const (
 
 type process struct {
 	fs   fs.FS
-	pid  linux.ProcessID
+	pid  linux.CurrentNamespacePID
 	self bool
 }
 
@@ -179,7 +179,7 @@ func (p *process) GetNamespaces() *namespaces {
 // can be deceived into returning wrong result, e.g. if process is named "\nNSpid: 42",
 // this function will return 42. It should not be used for security sensitive checks
 // until this concern is verified.
-func (p *process) GetNamespacedPID() (linux.ProcessID, error) {
+func (p *process) GetNamespacedPID() (linux.NamespacedPID, error) {
 	path := p.child("status")
 	statusF, err := p.fs.Open(path)
 	if err != nil {
@@ -198,7 +198,7 @@ func (p *process) GetNamespacedPID() (linux.ProcessID, error) {
 			if err != nil {
 				return 0, fmt.Errorf("failed to parse pid %q: %w", innermost, err)
 			}
-			return linux.ProcessID(num), nil
+			return linux.NamespacedPID(num), nil
 		}
 	}
 	return 0, fmt.Errorf("failed to find NSpid in process status")

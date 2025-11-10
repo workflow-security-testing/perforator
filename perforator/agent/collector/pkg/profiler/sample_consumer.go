@@ -60,7 +60,7 @@ func (c *SampleConsumer) countMetrics(ctx context.Context) {
 		}
 		stacklen += 1
 
-		_, err := c.p.dsoStorage.ResolveAddress(ctx, linux.ProcessID(c.sample.Pid), ip)
+		_, err := c.p.dsoStorage.ResolveAddress(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
 		if err == nil {
 			c.p.metrics.mappingsHit.Inc()
 		} else {
@@ -78,11 +78,11 @@ func (c *SampleConsumer) tryInitializeProcessTarget() bool {
 	c.p.pidsmu.RLock()
 	defer c.p.pidsmu.RUnlock()
 
-	if trackedProcess := c.p.pids[linux.ProcessID(c.sample.Pid)]; trackedProcess != nil {
+	if trackedProcess := c.p.pids[linux.CurrentNamespacePID(c.sample.Pid)]; trackedProcess != nil {
 		c.initializeProcessTarget(trackedProcess)
 		return true
 	}
-	if trackedProcess := c.p.pids[linux.ProcessID(c.sample.Tid)]; trackedProcess != nil {
+	if trackedProcess := c.p.pids[linux.CurrentNamespacePID(c.sample.Tid)]; trackedProcess != nil {
 		c.initializeProcessTarget(trackedProcess)
 		return true
 	}
@@ -224,7 +224,7 @@ func (c *SampleConsumer) collectTLS(ctx context.Context) {
 
 		c.p.metrics.recordedTLSVarsFromSamples.Inc()
 
-		varName, err := c.p.dsoStorage.ResolveTLSName(ctx, linux.ProcessID(c.sample.Pid), variable.Offset)
+		varName, err := c.p.dsoStorage.ResolveTLSName(ctx, linux.CurrentNamespacePID(c.sample.Pid), variable.Offset)
 		if err != nil {
 			c.p.log.Warn(
 				"Failed to resolve tls name",
@@ -256,7 +256,7 @@ type formattedEnvVariable struct {
 }
 
 func (c *SampleConsumer) collectEnvironment() {
-	processEnvs := c.p.procs.GetEnvs(linux.ProcessID(c.sample.Pid))
+	processEnvs := c.p.procs.GetEnvs(linux.CurrentNamespacePID(c.sample.Pid))
 	c.doCollectEnvironment(processEnvs)
 }
 
@@ -304,12 +304,12 @@ func (c *SampleConsumer) collectKernelStackInto(builder *profile.SampleBuilder) 
 
 func (c *SampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64) {
 	if c.p.enablePerfMaps {
-		name, ok := c.p.perfmap.Resolve(linux.ProcessID(c.sample.Pid), ip)
+		name, ok := c.p.perfmap.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
 		if ok {
 			loc.AddFrame().SetName(name).SetMangledName(name).Finish()
 		}
 	}
-	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.ProcessID(c.sample.Pid), ip)
+	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
 	if err == nil && mapping != nil {
 		offset := mapping.Offset
 		if mapping.BuildInfo != nil {
@@ -334,7 +334,7 @@ func (c *SampleConsumer) processUserSpaceLocation(ctx context.Context, loc *prof
 
 		m.Finish()
 	} else {
-		c.p.procs.MaybeRescanProcess(ctx, linux.ProcessID(c.sample.Pid))
+		c.p.procs.MaybeRescanProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	}
 
 	loc.Finish()
@@ -544,7 +544,7 @@ func (c *SampleConsumer) resolveUprobe(ctx context.Context) *uprobe.UprobeInfo {
 		return nil
 	}
 
-	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.ProcessID(c.sample.Pid), topStackIP)
+	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.CurrentNamespacePID(c.sample.Pid), topStackIP)
 	if err != nil {
 		c.p.log.Warn("Failed to resolve uprobe mapping", log.UInt64("top_stack_ip", topStackIP), log.Error(err))
 		return nil
@@ -630,7 +630,7 @@ func (c *SampleConsumer) maybeFlushProfile() {
 }
 
 func (c *SampleConsumer) Consume(ctx context.Context) {
-	c.p.procs.DiscoverProcess(ctx, linux.ProcessID(c.sample.Pid))
+	c.p.procs.DiscoverProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	c.countMetrics(ctx)
 
 	found := c.getSampleCollector()

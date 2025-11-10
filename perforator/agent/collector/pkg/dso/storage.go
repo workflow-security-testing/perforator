@@ -64,7 +64,7 @@ type storageMetrics struct {
 // NB: Storage operates with userspace processes, not threads.
 type Storage struct {
 	mutex         sync.RWMutex
-	pidToMappings map[linux.ProcessID]*processExecutableMaps
+	pidToMappings map[linux.CurrentNamespacePID]*processExecutableMaps
 	registry      *Registry
 	metrics       *storageMetrics
 }
@@ -76,7 +76,7 @@ func NewStorage(l xlog.Logger, m metrics.Registry, u *bpf.BPFBinaryManager) (*St
 	}
 
 	storage := &Storage{
-		pidToMappings: map[linux.ProcessID]*processExecutableMaps{},
+		pidToMappings: map[linux.CurrentNamespacePID]*processExecutableMaps{},
 		registry:      registry,
 	}
 
@@ -107,14 +107,14 @@ func (d *Storage) GetProcessCount() int {
 
 // Add process to the cache.
 // Thread safe
-func (d *Storage) AddProcess(pid linux.ProcessID) {
+func (d *Storage) AddProcess(pid linux.CurrentNamespacePID) {
 	d.ensureProcess(pid, false /*=lock*/)
 }
 
 // Remove process and it's mappings from the cache.
 // Thread safe.
 // Atomic relative to AddMapping
-func (d *Storage) RemoveProcess(ctx context.Context, pid linux.ProcessID) {
+func (d *Storage) RemoveProcess(ctx context.Context, pid linux.CurrentNamespacePID) {
 	maps := d.deleteAndLoadProcess(pid)
 	if maps == nil {
 		return
@@ -136,7 +136,7 @@ func (d *Storage) removeMapping(ctx context.Context, vmap *versionedMapping) {
 // Add mapping for the process.
 // Thread safe.
 // Atomic relative to RemoveProcess
-func (d *Storage) AddMapping(ctx context.Context, pid linux.ProcessID, mapping Mapping, binary binary.UnsealedFile) *DSO {
+func (d *Storage) AddMapping(ctx context.Context, pid linux.CurrentNamespacePID, mapping Mapping, binary binary.UnsealedFile) *DSO {
 	var dso *DSO
 
 	if mapping.BuildInfo != nil {
@@ -152,14 +152,14 @@ func (d *Storage) AddMapping(ctx context.Context, pid linux.ProcessID, mapping M
 }
 
 // Remove unused process mappings.
-func (d *Storage) Compactify(ctx context.Context, pid linux.ProcessID) int {
+func (d *Storage) Compactify(ctx context.Context, pid linux.CurrentNamespacePID) int {
 	maps := d.ensureProcess(pid, false /*=lock*/)
 	return maps.sortMaps(ctx)
 }
 
 // Find DSO using address.
 // Thread safe
-func (d *Storage) ResolveMapping(ctx context.Context, pid linux.ProcessID, address procfs.Address) (*Mapping, error) {
+func (d *Storage) ResolveMapping(ctx context.Context, pid linux.CurrentNamespacePID, address procfs.Address) (*Mapping, error) {
 	maps := d.findProcess(pid)
 	if maps == nil {
 		return nil, ErrNoSuchProcess
@@ -173,7 +173,7 @@ func (d *Storage) ResolveMapping(ctx context.Context, pid linux.ProcessID, addre
 
 // Find DSO+offset using address.
 // Thread safe
-func (d *Storage) ResolveAddress(ctx context.Context, pid linux.ProcessID, address procfs.Address) (*Location, error) {
+func (d *Storage) ResolveAddress(ctx context.Context, pid linux.CurrentNamespacePID, address procfs.Address) (*Location, error) {
 	m, err := d.ResolveMapping(ctx, pid, address)
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func (d *Storage) ResolveAddress(ctx context.Context, pid linux.ProcessID, addre
 }
 
 // Resolve tls variable name by variable offset.
-func (d *Storage) ResolveTLSName(ctx context.Context, pid linux.ProcessID, offset uint64) (string, error) {
+func (d *Storage) ResolveTLSName(ctx context.Context, pid linux.CurrentNamespacePID, offset uint64) (string, error) {
 	m := d.findProcess(pid)
 	if m == nil {
 		return "", ErrNoSuchProcess
@@ -221,7 +221,7 @@ func (d *Storage) ResolveTLSName(ctx context.Context, pid linux.ProcessID, offse
 
 // Get or create process maps.
 // Thread safe
-func (d *Storage) ensureProcess(pid linux.ProcessID, lock bool) *processExecutableMaps {
+func (d *Storage) ensureProcess(pid linux.CurrentNamespacePID, lock bool) *processExecutableMaps {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	maps, ok := d.pidToMappings[pid]
@@ -236,7 +236,7 @@ func (d *Storage) ensureProcess(pid linux.ProcessID, lock bool) *processExecutab
 	return maps
 }
 
-func (d *Storage) deleteAndLoadProcess(pid linux.ProcessID) *processExecutableMaps {
+func (d *Storage) deleteAndLoadProcess(pid linux.CurrentNamespacePID) *processExecutableMaps {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	process, ok := d.pidToMappings[pid]
@@ -250,7 +250,7 @@ func (d *Storage) deleteAndLoadProcess(pid linux.ProcessID) *processExecutableMa
 
 // Try to find process maps.
 // Thread safe
-func (d *Storage) findProcess(pid linux.ProcessID) *processExecutableMaps {
+func (d *Storage) findProcess(pid linux.CurrentNamespacePID) *processExecutableMaps {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 	return d.pidToMappings[pid]

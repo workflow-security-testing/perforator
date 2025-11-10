@@ -8,14 +8,14 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 type trackedProcess struct {
-	pid      linux.ProcessID
+	pid      linux.CurrentNamespacePID
 	features traceFeatures
 	builder  *multiProfileBuilder
 	bpf      *machine.BPF
 }
 
 func newTrackedProcess(
-	pid linux.ProcessID,
+	pid linux.CurrentNamespacePID,
 	labels map[string]string,
 	features traceFeatures,
 	bpf *machine.BPF,

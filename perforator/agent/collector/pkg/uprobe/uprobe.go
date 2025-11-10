@@ -7,6 +7,7 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 
+	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
 )
@@ -23,7 +24,7 @@ type Config struct {
 
 	// PID of the process to attach the uprobe to.
 	// If Pid equals to 0, the uprobe can be triggered by any process.
-	Pid int `yaml:"pid,omitempty"`
+	Pid linux.CurrentNamespacePID `yaml:"pid,omitempty"`
 
 	// SampleKind which will be used for samples caused by this uprobe
 	// If not set the default sample kind "uprobe" will be used

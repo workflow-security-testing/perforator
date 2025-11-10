@@ -9,14 +9,14 @@ import (
 )
 
 type ProcessScanner interface {
-	Scan(ctx context.Context, discoverer func(context.Context, linux.ProcessID)) error
+	Scan(ctx context.Context, discoverer func(context.Context, linux.CurrentNamespacePID)) error
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 type ProcFSScanner struct{}
 
-func (p *ProcFSScanner) Scan(ctx context.Context, discoverer func(context.Context, linux.ProcessID)) (err error) {
+func (p *ProcFSScanner) Scan(ctx context.Context, discoverer func(context.Context, linux.CurrentNamespacePID)) (err error) {
 	procDir, err := os.Open("/proc")
 	if err != nil {
 		return
@@ -33,7 +33,7 @@ func (p *ProcFSScanner) Scan(ctx context.Context, discoverer func(context.Contex
 			if err != nil { // not a pid directory
 				continue
 			}
-			discoverer(ctx, linux.ProcessID(pid))
+			discoverer(ctx, linux.CurrentNamespacePID(pid))
 		}
 	}
 	return
@@ -41,7 +41,7 @@ func (p *ProcFSScanner) Scan(ctx context.Context, discoverer func(context.Contex
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type ProcessFilter func(pid linux.ProcessID) bool
+type ProcessFilter func(pid linux.CurrentNamespacePID) bool
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -51,17 +51,17 @@ type FilteringProcessScanner struct {
 }
 
 type filteringDiscoverer struct {
-	underlying func(context.Context, linux.ProcessID)
+	underlying func(context.Context, linux.CurrentNamespacePID)
 	filter     ProcessFilter
 }
 
-func (d *filteringDiscoverer) Discover(ctx context.Context, pid linux.ProcessID) {
+func (d *filteringDiscoverer) Discover(ctx context.Context, pid linux.CurrentNamespacePID) {
 	if d.filter(pid) {
 		d.underlying(ctx, pid)
 	}
 }
 
-func (s *FilteringProcessScanner) Scan(ctx context.Context, discoverer func(context.Context, linux.ProcessID)) (err error) {
+func (s *FilteringProcessScanner) Scan(ctx context.Context, discoverer func(context.Context, linux.CurrentNamespacePID)) (err error) {
 	d := &filteringDiscoverer{underlying: discoverer, filter: s.filter}
 	return s.underlying.Scan(ctx, d.Discover)
 }

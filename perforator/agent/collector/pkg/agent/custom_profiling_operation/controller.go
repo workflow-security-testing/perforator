@@ -78,9 +78,14 @@ func (o *operationController) createUprobes(ctx context.Context, eventSettings *
 		Path:              eventSettings.Uprobe.BinaryLocation.GetPath(),
 		OutputProfileName: outputProfileName(o.id),
 	}
-	switch target.Target.(type) {
+	switch target := target.Target.(type) {
 	case *cpo_proto.Target_NodeProcess:
-		baseUprobeConfig.Pid = int(target.GetNodeProcess().ProcessID)
+		currentNamespacePID, err := o.convertTargetProcessToCurrentNamespace(target.NodeProcess)
+		if err != nil {
+			return err
+		}
+
+		baseUprobeConfig.Pid = currentNamespacePID
 	}
 
 	uprobeConfigs := []uprobe.Config{}
@@ -104,6 +109,21 @@ func (o *operationController) createUprobes(ctx context.Context, eventSettings *
 	}
 
 	return nil
+}
+
+func (o *operationController) convertTargetProcessToCurrentNamespace(nodeProcessTarget *cpo_proto.NodeProcessTarget) (linux.CurrentNamespacePID, error) {
+	if nodeProcessTarget.PidNamespaceInode == 0 {
+		return linux.CurrentNamespacePID(nodeProcessTarget.ProcessID), nil
+	}
+
+	resolvedPID := o.profiler.PidNamespaceIndex().ResolveCurrentNamespacePID(
+		linux.NamespacedPID(nodeProcessTarget.ProcessID),
+		linux.PIDNamespaceInode(nodeProcessTarget.PidNamespaceInode),
+	)
+	if resolvedPID == nil {
+		return linux.CurrentNamespacePID(0), errors.New("failed to resolve namespaced pid into current namespace pid")
+	}
+	return *resolvedPID, nil
 }
 
 func (o *operationController) Start(ctx context.Context) (err error) {
@@ -142,9 +162,14 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 
 	switch target := o.spec.Target.Target.(type) {
 	case *cpo_proto.Target_NodeProcess:
-		closer, err := o.profiler.TracePid(linux.ProcessID(target.NodeProcess.ProcessID), traceOpts...)
+		currentNamespacePID, err := o.convertTargetProcessToCurrentNamespace(target.NodeProcess)
 		if err != nil {
-			return fmt.Errorf("failed to trace pid %d: %w", target.NodeProcess.ProcessID, err)
+			return err
+		}
+
+		closer, err := o.profiler.TracePid(currentNamespacePID, traceOpts...)
+		if err != nil {
+			return fmt.Errorf("failed to trace pid %d: %w", currentNamespacePID, err)
 		}
 		o.profilerResourcesClosers = append(o.profilerResourcesClosers, closer)
 	}

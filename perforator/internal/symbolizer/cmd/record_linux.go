@@ -251,7 +251,7 @@ func parseUprobeConfigsFromEvent(event string, pids []int) ([]uprobe.Config, err
 	result := make([]uprobe.Config, 0, len(pids))
 	for _, pid := range pids {
 		result = append(result, baseUprobeConfig)
-		result[len(result)-1].Pid = pid
+		result[len(result)-1].Pid = linux.CurrentNamespacePID(pid)
 	}
 
 	return result, nil
@@ -375,14 +375,14 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	defer prof.Close()
 
 	for _, pid := range opts.pids {
-		_, err = prof.TracePid(linux.ProcessID(pid))
+		_, err = prof.TracePid(linux.CurrentNamespacePID(pid))
 		if err != nil {
 			return nil, fmt.Errorf("failed to trace pid %d: %w", pid, err)
 		}
 	}
 
 	for _, tid := range opts.tids {
-		_, err = prof.TracePid(linux.ProcessID(tid))
+		_, err = prof.TracePid(linux.CurrentNamespacePID(tid))
 		if err != nil {
 			return nil, fmt.Errorf("failed to trace tid %d: %w", tid, err)
 		}
@@ -413,7 +413,7 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	if len(args) > 0 {
 		g.Go(func() error {
 			err := runSubProcess(ctx, args, func(pid int) error {
-				_, err := prof.TracePid(linux.ProcessID(pid), profiler.WithProfileLabels(map[string]string{"pid": fmt.Sprint(pid)}))
+				_, err := prof.TracePid(linux.CurrentNamespacePID(pid), profiler.WithProfileLabels(map[string]string{"pid": fmt.Sprint(pid)}))
 				return err
 			})
 			if err != nil {

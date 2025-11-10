@@ -464,11 +464,11 @@ func (b *BPF) RemoveTracedCgroup(cgroup uint64) error {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (b *BPF) AddTracedProcess(pid linux.ProcessID) error {
+func (b *BPF) AddTracedProcess(pid linux.CurrentNamespacePID) error {
 	return b.maps.TracedProcesses.Update(pid, uint8(0), ebpf.UpdateAny)
 }
 
-func (b *BPF) RemoveTracedProcess(pid linux.ProcessID) error {
+func (b *BPF) RemoveTracedProcess(pid linux.CurrentNamespacePID) error {
 	return b.maps.TracedProcesses.Delete(pid)
 }
 
@@ -487,11 +487,11 @@ func (b *BPF) UnwindTablePartCount() int {
 	return b.unwindTablePartCount
 }
 
-func (b *BPF) AddProcess(pid linux.ProcessID, info *unwinder.ProcessInfo) error {
+func (b *BPF) AddProcess(pid linux.CurrentNamespacePID, info *unwinder.ProcessInfo) error {
 	return b.maps.ProcessInfo.Put(&pid, info)
 }
 
-func (b *BPF) RemoveProcess(pid linux.ProcessID) error {
+func (b *BPF) RemoveProcess(pid linux.CurrentNamespacePID) error {
 	return b.maps.ProcessInfo.Delete(&pid)
 }
 

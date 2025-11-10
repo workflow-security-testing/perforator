@@ -34,9 +34,11 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 type ProcessRegistry struct {
+	*pidNamespaceIndex
+
 	log xlog.Logger
 
-	procs   map[linux.ProcessID]*processInfo
+	procs   map[linux.CurrentNamespacePID]*processInfo
 	procsmu sync.RWMutex
 	// incremented each time new scan starts
 	procsGeneration atomic.Uint64
@@ -94,7 +96,9 @@ type processMap struct {
 }
 
 type processInfo struct {
-	id                linux.ProcessID
+	currentNamespaceID   linux.CurrentNamespacePID
+	pidNamespaceIndexKey *pidNamespaceIndexKey
+
 	state             processState
 	lock              sync.RWMutex
 	envs              map[string]string
@@ -113,7 +117,7 @@ func (p *processInfo) setState(state processState) error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if p.state == processStateDeleted && state != processStateDeleted {
-		return fmt.Errorf("process %d has already been deleted", p.id)
+		return fmt.Errorf("process %d has already been deleted", p.currentNamespaceID)
 	}
 
 	p.state = state
@@ -123,8 +127,8 @@ func (p *processInfo) setState(state processState) error {
 var _ ProcessInfo = (*processInfo)(nil)
 
 // ProcessID implements ProcessInfo
-func (p *processInfo) ProcessID() linux.ProcessID {
-	return p.id
+func (p *processInfo) ProcessID() linux.CurrentNamespacePID {
+	return p.currentNamespaceID
 }
 
 func (p *processInfo) setEnvs(envs map[string]string) {
@@ -191,14 +195,15 @@ func NewProcessRegistry(
 	}
 
 	p := &ProcessRegistry{
-		log:        l,
-		procs:      make(map[linux.ProcessID]*processInfo),
-		dsoStorage: dsoStorage,
-		bpf:        ebpf,
-		procchan:   make(chan *processInfo, 8192),
-		buildids:   NewBuildIDCache(),
-		uploader:   uploader,
-		mounts:     mounts,
+		log:               l,
+		procs:             make(map[linux.CurrentNamespacePID]*processInfo),
+		dsoStorage:        dsoStorage,
+		bpf:               ebpf,
+		procchan:          make(chan *processInfo, 8192),
+		buildids:          NewBuildIDCache(),
+		uploader:          uploader,
+		mounts:            mounts,
+		pidNamespaceIndex: newPidNamespaceIndex(),
 		metrics: processRegistryMetrics{
 			mappingsDiscovered:              m.WithTags(map[string]string{"kind": "discovered"}).Counter("mappings.count"),
 			mappingsWithoutBuildID:          m.WithTags(map[string]string{"kind": "nobuildid"}).Counter("mappings.count"),
@@ -236,11 +241,13 @@ func (r *ProcessRegistry) RunWorker(ctx context.Context) error {
 	return g.Wait()
 }
 
-func (r *ProcessRegistry) deleteProcess(ctx context.Context, pid linux.ProcessID) {
+func (r *ProcessRegistry) deleteProcess(ctx context.Context, pid linux.CurrentNamespacePID) {
 	r.procsmu.Lock()
 	pi := r.procs[pid]
 	delete(r.procs, pid)
 	r.procsmu.Unlock()
+
+	r.unregisterPidNamespaceCorrelation(pi)
 
 	r.dsoStorage.RemoveProcess(ctx, pid)
 	r.removeProcessMappings(ctx, pi)
@@ -250,7 +257,7 @@ func (r *ProcessRegistry) deleteProcess(ctx context.Context, pid linux.ProcessID
 		r.log.Debug(
 			ctx,
 			"Failed to remove process info from the eBPF mapping",
-			log.UInt32("pid", uint32(pid)),
+			log.UInt32("current_namespace_pid", uint32(pid)),
 			log.Error(err),
 		)
 	}
@@ -260,11 +267,11 @@ func (r *ProcessRegistry) deleteProcess(ctx context.Context, pid linux.ProcessID
 	}
 }
 
-func (r *ProcessRegistry) collectDeadPids(ctx context.Context, newGen uint64) []linux.ProcessID {
+func (r *ProcessRegistry) collectDeadPids(ctx context.Context, newGen uint64) []linux.CurrentNamespacePID {
 	r.procsmu.RLock()
 	defer r.procsmu.RUnlock()
 
-	deadPids := []linux.ProcessID{}
+	deadPids := []linux.CurrentNamespacePID{}
 	for pid, proc := range r.procs {
 		gen := proc.generation.Load()
 		if gen == newGen {
@@ -297,9 +304,9 @@ type processDiscoverer struct {
 	stats *procScanStats
 }
 
-func (p *processDiscoverer) discover(ctx context.Context, pid linux.ProcessID) {
+func (p *processDiscoverer) discover(ctx context.Context, pid linux.CurrentNamespacePID) {
 	p.r.log.Debug(ctx, "Scanned process", log.UInt32("pid", uint32(pid)))
-	discovered := p.r.DiscoverProcess(ctx, linux.ProcessID(pid))
+	discovered := p.r.DiscoverProcess(ctx, pid)
 	if discovered {
 		p.stats.BornProcesses++
 	}
@@ -353,7 +360,7 @@ func (r *ProcessRegistry) RunProcessScanner(ctx context.Context) error {
 	}
 }
 
-func (r *ProcessRegistry) DiscoverProcess(ctx context.Context, pid linux.ProcessID) (discovered bool) {
+func (r *ProcessRegistry) DiscoverProcess(ctx context.Context, pid linux.CurrentNamespacePID) (discovered bool) {
 	curgen := r.procsGeneration.Load()
 
 	// Happy-path. Just acquire rlock & lookup the pid in the map.
@@ -373,9 +380,9 @@ func (r *ProcessRegistry) DiscoverProcess(ctx context.Context, pid linux.Process
 		return false
 	}
 	info = &processInfo{
-		id:             pid,
-		state:          processStateDiscovered,
-		registeredmaps: make(map[procfs.Address]processMap),
+		currentNamespaceID: pid,
+		state:              processStateDiscovered,
+		registeredmaps:     make(map[procfs.Address]processMap),
 	}
 	info.generation.Store(curgen)
 	r.procs[pid] = info
@@ -405,14 +412,14 @@ func (r *ProcessRegistry) tryScheduleProcessUpdate(ctx context.Context, info *pr
 		r.log.Warn(
 			ctx,
 			"Failed to enqueue process discovery",
-			log.UInt32("pid", uint32(info.id)),
+			log.UInt32("pid", uint32(info.currentNamespaceID)),
 			log.Int("current", int(current)),
 			log.Int("desired", int(desired)),
 		)
 	}
 }
 
-func (r *ProcessRegistry) GetEnvs(pid linux.ProcessID) map[string]string {
+func (r *ProcessRegistry) GetEnvs(pid linux.CurrentNamespacePID) map[string]string {
 	r.procsmu.RLock()
 	defer r.procsmu.RUnlock()
 	processInfo, ok := r.procs[pid]
@@ -422,7 +429,7 @@ func (r *ProcessRegistry) GetEnvs(pid linux.ProcessID) map[string]string {
 	return nil
 }
 
-func (r *ProcessRegistry) MaybeRescanProcess(ctx context.Context, pid linux.ProcessID) {
+func (r *ProcessRegistry) MaybeRescanProcess(ctx context.Context, pid linux.CurrentNamespacePID) {
 	var p *processInfo
 
 	r.procsmu.RLock()
@@ -450,7 +457,7 @@ func (r *ProcessRegistry) runHandler(ctx context.Context) error {
 			r.log.Debug(
 				ctx,
 				"Failed to handle new process",
-				log.UInt32("pid", uint32(proc.id)),
+				log.UInt32("pid", uint32(proc.currentNamespaceID)),
 				log.Error(err),
 			)
 		}
@@ -463,7 +470,7 @@ func (r *ProcessRegistry) handleProcess(ctx context.Context, proc *processInfo) 
 	a := processAnalyzer{
 		reg:         r,
 		proc:        proc,
-		log:         r.log.With(log.UInt32("pid", uint32(proc.id))),
+		log:         r.log.With(log.UInt32("pid", uint32(proc.currentNamespaceID))),
 		uploader:    r.uploader,
 		exemappings: make([]*dso.Mapping, 0, 4),
 	}
@@ -496,6 +503,8 @@ func (a *processAnalyzer) run(ctx context.Context) error {
 		a.log.Debug(ctx, "Failed to load process environment", log.Error(err))
 	}
 
+	a.reg.tryRegisterPidNamespaceCorrelation(ctx, a.proc)
+
 	if err := a.loadMaps(ctx); err != nil {
 		return err
 	}
@@ -520,7 +529,7 @@ func (a *processAnalyzer) run(ctx context.Context) error {
 }
 
 func (a *processAnalyzer) loadMaps(ctx context.Context) error {
-	return procfs.Process(a.proc.id).ListMappings(func(mapping *procfs.Mapping) error {
+	return procfs.Process(a.proc.currentNamespaceID).ListMappings(func(mapping *procfs.Mapping) error {
 		// Skip non-executable mappings.
 		if mapping.Permissions&procfs.MappingPermissionExecutable == 0 {
 			return nil
@@ -544,16 +553,16 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 	if mapping.Path == "" {
 		// Probably JITed mapping.
 		mapping.Path = "[JIT]"
-		a.reg.dsoStorage.AddMapping(ctx, a.proc.id, mapping, nil)
+		a.reg.dsoStorage.AddMapping(ctx, a.proc.currentNamespaceID, mapping, nil)
 		return nil
 	}
 
 	if vdso.IsUnsymbolizableVDSOMapping(&mapping.Mapping) {
-		a.reg.dsoStorage.AddMapping(ctx, a.proc.id, mapping, nil)
+		a.reg.dsoStorage.AddMapping(ctx, a.proc.currentNamespaceID, mapping, nil)
 		return nil
 	}
 
-	binary := binary.NewProcessMappingBinary(a.proc.id, a.reg.mounts, m)
+	binary := binary.NewProcessMappingBinary(a.proc.currentNamespaceID, a.reg.mounts, m)
 	a.log.Debug(
 		ctx,
 		"Found executable mapping",
@@ -645,7 +654,7 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 
 	dso := a.reg.dsoStorage.AddMapping(
 		ctx,
-		a.proc.id,
+		a.proc.currentNamespaceID,
 		mapping,
 		binary,
 	)
@@ -653,7 +662,7 @@ func (a *processAnalyzer) processMapping(ctx context.Context, m *procfs.Mapping)
 	mapping.DSO = dso
 	a.registerMapping(&mapping)
 
-	a.reg.dsoStorage.Compactify(ctx, a.proc.id)
+	a.reg.dsoStorage.Compactify(ctx, a.proc.currentNamespaceID)
 
 	err = a.uploader.ScheduleBinary(buildid, handle)
 	if err != nil {
@@ -720,7 +729,7 @@ func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
 	a.fillMappedBinaryInfo(pi, a.exemappings)
 
 	a.log.Debug(ctx, "Put process info", log.Any("info", pi))
-	err := a.reg.bpf.AddProcess(a.proc.id, pi)
+	err := a.reg.bpf.AddProcess(a.proc.currentNamespaceID, pi)
 	if err != nil {
 		return err
 	}
@@ -772,7 +781,7 @@ func (a *processAnalyzer) syncMaps(ctx context.Context) {
 }
 
 func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso.Mapping) {
-	l := r.log.With(logfield.Pid(pi.id)).WithName("lpm")
+	l := r.log.With(logfield.CurrentNamespacePID(pi.currentNamespaceID)).WithName("lpm")
 	l.Debug(ctx, "Trying to add eBPF mapping", log.String("buildid", m.BuildInfo.BuildID))
 
 	id := pi.nextmapid.Add(1)
@@ -781,7 +790,7 @@ func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso
 	err := iterateMappingLPMSegments(mappingImpl{m}, func(address uint64, prefix uint32) error {
 		return r.bpf.AddMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
 			Prefixlen:     32 + prefix,
-			Pid:           uint32(pi.id),
+			Pid:           uint32(pi.currentNamespaceID),
 			AddressPrefix: HostToBigEndian64(address),
 		}, &unwinder.ExecutableMappingInfo{
 			Id: id,
@@ -794,7 +803,7 @@ func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso
 
 	// Step 2. Add eBPF mapping to the per-process registry.
 	err = r.bpf.AddMapping(&unwinder.ExecutableMappingKey{
-		Pid:           uint32(pi.id),
+		Pid:           uint32(pi.currentNamespaceID),
 		UnusedPadding: 0,
 		Id:            id,
 	}, &unwinder.ExecutableMapping{
@@ -819,14 +828,14 @@ func HostToBigEndian64(value uint64) uint64 {
 }
 
 func (r *ProcessRegistry) removeBPFMap(ctx context.Context, pi *processInfo, m processMap) {
-	l := r.log.With(logfield.Pid(pi.id)).WithName("lpm")
+	l := r.log.With(logfield.CurrentNamespacePID(pi.currentNamespaceID)).WithName("lpm")
 	l.Debug(ctx, "Trying to remove eBPF mapping", log.String("buildid", m.buildInfo().BuildID))
 
 	// Step 1. Remove LPM trie
 	err := iterateMappingLPMSegments(m.Mapping, func(address uint64, prefix uint32) error {
 		return r.bpf.RemoveMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
 			Prefixlen:     32 + prefix,
-			Pid:           uint32(pi.id),
+			Pid:           uint32(pi.currentNamespaceID),
 			AddressPrefix: HostToBigEndian64(address),
 		})
 	})
@@ -838,7 +847,7 @@ func (r *ProcessRegistry) removeBPFMap(ctx context.Context, pi *processInfo, m p
 	// Step 2. Remove eBPF mapping from the per-process registry.
 	// If this fails, we will retry on the next iteration.
 	err = r.bpf.RemoveMapping(&unwinder.ExecutableMappingKey{
-		Pid: uint32(pi.id),
+		Pid: uint32(pi.currentNamespaceID),
 		Id:  m.id,
 	})
 	if err != nil {
@@ -883,7 +892,7 @@ func iterateMappingLPMSegments(m Mapping, callback func(address uint64, prefix u
 ////////////////////////////////////////////////////////////////////////////////
 
 func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
-	envs, err := procfs.Process(a.proc.id).ListEnvs()
+	envs, err := procfs.Process(a.proc.currentNamespaceID).ListEnvs()
 	if err != nil {
 		return err
 	}
@@ -891,4 +900,36 @@ func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
 	a.log.Debug(ctx, "Put process envs", log.Int("env_count", len(envs)))
 	a.proc.setEnvs(envs)
 	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// tryRegisterPidNamespaceCorrelation best-effort indexes pid namespace mapping to current namespace pid for a given process.
+func (r *ProcessRegistry) tryRegisterPidNamespaceCorrelation(ctx context.Context, pi *processInfo) {
+	pidnsInode, err := procfs.Process(pi.currentNamespaceID).GetNamespaces().GetPidInode()
+	if err != nil {
+		r.log.Debug(ctx, "Failed to get pid namespace inode", log.UInt32("pid", uint32(pi.currentNamespaceID)), log.Error(err))
+		return
+	}
+
+	namespacedPid, err := procfs.Process(pi.currentNamespaceID).GetNamespacedPID()
+	if err != nil {
+		r.log.Warn(ctx, "Failed to get namespaced pid", log.UInt32("pid", uint32(pi.currentNamespaceID)), log.Error(err))
+		return
+	}
+
+	pi.pidNamespaceIndexKey = &pidNamespaceIndexKey{
+		namespacedPID:     namespacedPid,
+		pidNamespaceInode: pidnsInode,
+	}
+
+	r.pidNamespaceIndex.add(namespacedPid, pidnsInode, pi.currentNamespaceID)
+}
+
+func (r *ProcessRegistry) unregisterPidNamespaceCorrelation(pi *processInfo) {
+	if pi == nil || pi.pidNamespaceIndexKey == nil {
+		return
+	}
+
+	r.pidNamespaceIndex.remove(pi.pidNamespaceIndexKey.namespacedPID, pi.pidNamespaceIndexKey.pidNamespaceInode)
 }

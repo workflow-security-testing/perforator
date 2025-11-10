@@ -5,6 +5,10 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
-func Pid(pid linux.ProcessID) log.Field {
-	return log.UInt32("pid", uint32(pid))
+func CurrentNamespacePID(pid linux.CurrentNamespacePID) log.Field {
+	return log.UInt32("current_namespace_pid", uint32(pid))
+}
+
+func NamespacedPID(pid linux.NamespacedPID) log.Field {
+	return log.UInt32("namespaced_pid", uint32(pid))
 }

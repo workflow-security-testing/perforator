@@ -230,7 +230,7 @@ func TestStorage_OverlappingMappings(t *testing.T) {
 
 	storage.AddMapping(
 		ctx,
-		linux.ProcessID(0),
+		linux.CurrentNamespacePID(0),
 		Mapping{
 			Mapping: procfs.Mapping{
 				Begin: 0,
@@ -245,7 +245,7 @@ func TestStorage_OverlappingMappings(t *testing.T) {
 	)
 	storage.AddMapping(
 		ctx,
-		linux.ProcessID(0),
+		linux.CurrentNamespacePID(0),
 		Mapping{
 			Mapping: procfs.Mapping{
 				Begin: 8000,
@@ -261,7 +261,7 @@ func TestStorage_OverlappingMappings(t *testing.T) {
 
 	storage.AddMapping(
 		ctx,
-		linux.ProcessID(0),
+		linux.CurrentNamespacePID(0),
 		Mapping{
 			Mapping: procfs.Mapping{
 				Begin: 512,
@@ -275,14 +275,14 @@ func TestStorage_OverlappingMappings(t *testing.T) {
 		nil,
 	)
 
-	loc, err := storage.ResolveAddress(ctx, linux.ProcessID(0), 600)
+	loc, err := storage.ResolveAddress(ctx, linux.CurrentNamespacePID(0), 600)
 	require.NoError(t, err)
 	require.Equal(t, &Location{Inode: procfs.Inode{ID: 1}, Offset: 600 - 512}, loc)
 
-	_, err = storage.ResolveAddress(ctx, linux.ProcessID(0), 200)
+	_, err = storage.ResolveAddress(ctx, linux.CurrentNamespacePID(0), 200)
 	require.Error(t, err)
 
-	loc, err = storage.ResolveAddress(ctx, linux.ProcessID(0), 9000)
+	loc, err = storage.ResolveAddress(ctx, linux.CurrentNamespacePID(0), 9000)
 	require.NoError(t, err)
 	require.Equal(t, &Location{Inode: procfs.Inode{ID: 2}, Offset: 9000 - 8000}, loc)
 }
@@ -338,18 +338,18 @@ func TestStorage_MultipleProcsAndMappings(t *testing.T) {
 		},
 	}
 	for _, mapping := range mappings {
-		storage.AddMapping(ctx, linux.ProcessID(0), mapping, nil)
+		storage.AddMapping(ctx, linux.CurrentNamespacePID(0), mapping, nil)
 	}
 
-	loc, err := storage.ResolveAddress(ctx, linux.ProcessID(0), 8400)
+	loc, err := storage.ResolveAddress(ctx, linux.CurrentNamespacePID(0), 8400)
 	require.NoError(t, err)
 	require.Equal(t, &Location{Inode: procfs.Inode{ID: 3}, Offset: 8400 - 8000 + 73}, loc)
 
-	loc, err = storage.ResolveAddress(ctx, linux.ProcessID(0), 512)
+	loc, err = storage.ResolveAddress(ctx, linux.CurrentNamespacePID(0), 512)
 	require.NoError(t, err)
 	require.Equal(t, &Location{Inode: procfs.Inode{ID: 1}, Offset: 512 - 0 + 1}, loc)
 
-	loc, err = storage.ResolveAddress(ctx, linux.ProcessID(0), 3000)
+	loc, err = storage.ResolveAddress(ctx, linux.CurrentNamespacePID(0), 3000)
 	require.NoError(t, err)
 	require.Equal(t, &Location{Inode: procfs.Inode{ID: 2}, Offset: 3000 - 2048 + 148}, loc)
 
@@ -357,14 +357,14 @@ func TestStorage_MultipleProcsAndMappings(t *testing.T) {
 
 	newMappings := []Mapping{mappings[0], mappings[1]}
 	for _, mapping := range newMappings {
-		storage.AddMapping(ctx, linux.ProcessID(1), mapping, nil)
+		storage.AddMapping(ctx, linux.CurrentNamespacePID(1), mapping, nil)
 	}
 
-	loc, err = storage.ResolveAddress(ctx, linux.ProcessID(1), 3012)
+	loc, err = storage.ResolveAddress(ctx, linux.CurrentNamespacePID(1), 3012)
 	require.NoError(t, err)
 	require.Equal(t, &Location{Inode: procfs.Inode{ID: 2}, Offset: 3012 - 2048 + 148}, loc)
 
-	storage.RemoveProcess(ctx, linux.ProcessID(0))
+	storage.RemoveProcess(ctx, linux.CurrentNamespacePID(0))
 	require.Equal(t, 1, storage.GetProcessCount())
 	require.Equal(t, len(newMappings), storage.registry.getMappingCount())
 
@@ -372,11 +372,11 @@ func TestStorage_MultipleProcsAndMappings(t *testing.T) {
 		require.Equal(t, mapping.BuildInfo.BuildID, storage.registry.get(mapping.BuildInfo.BuildID).buildInfo.BuildID)
 	}
 
-	loc, err = storage.ResolveAddress(ctx, linux.ProcessID(1), 670)
+	loc, err = storage.ResolveAddress(ctx, linux.CurrentNamespacePID(1), 670)
 	require.NoError(t, err)
 	require.Equal(t, &Location{Inode: procfs.Inode{ID: 1}, Offset: 670 - 0 + 1}, loc)
 
-	storage.RemoveProcess(ctx, linux.ProcessID(1))
+	storage.RemoveProcess(ctx, linux.CurrentNamespacePID(1))
 	require.Equal(t, 0, storage.registry.getMappingCount())
 	require.Equal(t, 0, storage.GetProcessCount())
 }
@@ -422,8 +422,8 @@ func TestStorage_SameMappings(t *testing.T) {
 	}
 
 	for range 5 {
-		storage.AddMapping(ctx, linux.ProcessID(0), mapping, nil)
-		storage.AddMapping(ctx, linux.ProcessID(0), mapping2, nil)
+		storage.AddMapping(ctx, linux.CurrentNamespacePID(0), mapping, nil)
+		storage.AddMapping(ctx, linux.CurrentNamespacePID(0), mapping2, nil)
 	}
 
 	logger.Debug(ctx, "Compactify process", log.Int("pid", 0))
@@ -475,7 +475,7 @@ func TestStorage_Concurrent(t *testing.T) {
 					continue
 				}
 
-				storage.AddMapping(ctx, linux.ProcessID(pid), mappings[j], nil)
+				storage.AddMapping(ctx, linux.CurrentNamespacePID(pid), mappings[j], nil)
 
 				if storage.registry.get(mappings[j].BuildInfo.BuildID) == nil {
 					return fmt.Errorf("no mapping `%s` found in dso map", mappings[j].BuildInfo.BuildID)
@@ -492,7 +492,7 @@ func TestStorage_Concurrent(t *testing.T) {
 				}
 			}
 
-			storage.RemoveProcess(ctx, linux.ProcessID(pid))
+			storage.RemoveProcess(ctx, linux.CurrentNamespacePID(pid))
 
 			return nil
 		})
@@ -511,13 +511,13 @@ func TestStorage_Concurrent(t *testing.T) {
 					continue
 				}
 
-				storage.AddMapping(ctx, linux.ProcessID(pid), mappings[j], nil)
+				storage.AddMapping(ctx, linux.CurrentNamespacePID(pid), mappings[j], nil)
 			}
 
 			return nil
 		})
 		g.Go(func() error {
-			storage.RemoveProcess(ctx, linux.ProcessID(pid))
+			storage.RemoveProcess(ctx, linux.CurrentNamespacePID(pid))
 			return nil
 		})
 	}

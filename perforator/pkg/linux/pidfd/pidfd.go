@@ -10,7 +10,7 @@ type FD struct {
 	fd int
 }
 
-func Open(pid linux.ProcessID) (*FD, error) {
+func Open(pid linux.CurrentNamespacePID) (*FD, error) {
 	flags := 0
 	fd, err := unix.PidfdOpen(int(pid), flags)
 	if err != nil {

@@ -15,7 +15,7 @@ type Mapping interface {
 }
 
 type ProcessInfo interface {
-	ProcessID() linux.ProcessID
+	ProcessID() linux.CurrentNamespacePID
 	// returned map may not be modified
 	Env() map[string]string
 	// returned slice may not be modified
@@ -25,5 +25,5 @@ type ProcessInfo interface {
 type Listener interface {
 	OnProcessDiscovery(info ProcessInfo)
 	OnProcessRescan(info ProcessInfo)
-	OnProcessDeath(pid linux.ProcessID)
+	OnProcessDeath(pid linux.CurrentNamespacePID)
 }

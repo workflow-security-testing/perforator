@@ -32,7 +32,7 @@ func mainImpl(ctx context.Context) error {
 	}
 	logger := xlog.New(zap.Must(zap.ConsoleConfig(log.DebugLevel)))
 
-	pfd, err := pidfd.Open(linux.ProcessID(*pid))
+	pfd, err := pidfd.Open(linux.CurrentNamespacePID(*pid))
 	if err != nil {
 		return fmt.Errorf("failed to open pidfd: %w", err)
 	}
@@ -45,8 +45,8 @@ func mainImpl(ctx context.Context) error {
 	// TODO: we assume that nspid == pid, i.e. target process is not namespaced
 	conn, err := d.Dial(dialCtx, jvmattach.Target{
 		ProcessFD:     pfd,
-		PID:           linux.ProcessID(*pid),
-		NamespacedPID: linux.ProcessID(*pid),
+		PID:           linux.CurrentNamespacePID(*pid),
+		NamespacedPID: linux.NamespacedPID(*pid),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to dial: %w", err)

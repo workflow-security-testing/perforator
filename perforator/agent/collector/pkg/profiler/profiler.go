@@ -93,7 +93,7 @@ type Profiler struct {
 	// Profiling targets
 	wholeSystem *multiProfileBuilder
 	cgroups     *cgroups.Tracker
-	pids        map[linux.ProcessID]*trackedProcess
+	pids        map[linux.CurrentNamespacePID]*trackedProcess
 	pidsmu      sync.RWMutex
 
 	profileChan  chan client.LabeledProfile
@@ -216,7 +216,7 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 		log:            l,
 		mounts:         mountinfo.NewWatcher(l, r),
 		events:         make(map[perfevent.Type]*perfevent.EventBundle),
-		pids:           make(map[linux.ProcessID]*trackedProcess),
+		pids:           make(map[linux.CurrentNamespacePID]*trackedProcess),
 		profileChan:    make(chan client.LabeledProfile, 64),
 		debugmode:      c.Debug,
 		envWhitelist:   envWhitelist,
@@ -247,7 +247,7 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 	return profiler, nil
 }
 
-func (p *Profiler) shouldDiscoverProcess(pid linux.ProcessID) bool {
+func (p *Profiler) shouldDiscoverProcess(pid linux.CurrentNamespacePID) bool {
 	if !p.conf.ProcessDiscovery.IgnoreUnrelatedProcesses {
 		return true
 	}
@@ -491,7 +491,7 @@ func (p *Profiler) initializeTargets() error {
 
 	for _, target := range p.initialTargets.processTargets {
 		p.log.Info("Registering process", log.Int("pid", target.pid))
-		_, err := p.TracePid(linux.ProcessID(target.pid), WithProfileLabels(target.labels))
+		_, err := p.TracePid(linux.CurrentNamespacePID(target.pid), WithProfileLabels(target.labels))
 		if err != nil {
 			return fmt.Errorf("failed to initialize pid %d tracing: %w", target.pid, err)
 		}
@@ -499,7 +499,7 @@ func (p *Profiler) initializeTargets() error {
 
 	for _, target := range p.initialTargets.threadTargets {
 		p.log.Info("Registering thread", log.Int("tid", target.tid))
-		_, err := p.TracePid(linux.ProcessID(target.tid), WithProfileLabels(target.labels))
+		_, err := p.TracePid(linux.CurrentNamespacePID(target.tid), WithProfileLabels(target.labels))
 		if err != nil {
 			return fmt.Errorf("failed to initialize tid %d tracing: %w", target.tid, err)
 		}
@@ -565,6 +565,10 @@ func (p *Profiler) setupUprobes() {
 
 func (p *Profiler) UprobeManager() UprobeManager {
 	return p.uprobeRegistry
+}
+
+func (p *Profiler) PidNamespaceIndex() process.PidNamespaceIndex {
+	return p.procs
 }
 
 func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
@@ -713,7 +717,7 @@ func (p *Profiler) setupConfig() error {
 		p.log.Error("Failed to resolve self pid namespace inode number", log.Error(err))
 		conf.PidnsInode = 0
 	} else {
-		p.log.Debug("Resolved self pid namespace inode number", log.UInt64("inode", pidns))
+		p.log.Debug("Resolved self pid namespace inode number", log.UInt64("inode", uint64(pidns)))
 		conf.PidnsInode = uint32(pidns)
 	}
 
@@ -964,7 +968,7 @@ drainloop:
 	}
 
 	for pid, process := range p.pids {
-		p.log.Info("Finishing process profile", logfield.Pid(pid))
+		p.log.Info("Finishing process profile", logfield.CurrentNamespacePID(pid))
 		p.trySaveProfiles(ctx, process.builder.RestartProfiles())
 	}
 
@@ -1048,7 +1052,7 @@ func (p *Profiler) trySaveProfile(ctx context.Context, profile client.LabeledPro
 				continue
 			}
 			pid := pidList[0]
-			p.eventListener.OnSampleStored(linux.ProcessID(pid))
+			p.eventListener.OnSampleStored(linux.CurrentNamespacePID(pid))
 		}
 	}
 }
@@ -1083,7 +1087,7 @@ func (p *Profiler) runProcessDiscovery(ctx context.Context) error {
 			log.UInt32("pid", sample.Pid),
 			log.UInt64("starttime", sample.Starttime),
 		)
-		p.procs.DiscoverProcess(ctx, linux.ProcessID(sample.Pid))
+		p.procs.DiscoverProcess(ctx, linux.CurrentNamespacePID(sample.Pid))
 	}
 }
 
@@ -1119,7 +1123,7 @@ func (p *Profiler) TraceWholeSystem(labels map[string]string) error {
 }
 
 func (p *Profiler) TraceSelf(labels map[string]string) (Closer, error) {
-	return p.TracePid(linux.ProcessID(os.Getpid()), WithProfileLabels(labels))
+	return p.TracePid(linux.CurrentNamespacePID(os.Getpid()), WithProfileLabels(labels))
 }
 
 type Closer interface {
@@ -1128,7 +1132,7 @@ type Closer interface {
 
 type pidTracingCloser struct {
 	profiler *Profiler
-	pid      linux.ProcessID
+	pid      linux.CurrentNamespacePID
 }
 
 func (p *pidTracingCloser) Close() error {
@@ -1176,7 +1180,7 @@ func WithProfileLabels(labels map[string]string) TraceOption {
 	}
 }
 
-func (p *Profiler) TracePid(pid linux.ProcessID, optAppliers ...TraceOption) (Closer, error) {
+func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, optAppliers ...TraceOption) (Closer, error) {
 	opts := defaultTraceOptions()
 	for _, optApplier := range optAppliers {
 		optApplier(opts)
@@ -1193,14 +1197,14 @@ func (p *Profiler) TracePid(pid linux.ProcessID, optAppliers ...TraceOption) (Cl
 	p.pids[pid] = trackedProcess
 	p.pidsmu.Unlock()
 
-	p.log.Info("Registered process", logfield.Pid(pid))
+	p.log.Info("Registered process", logfield.CurrentNamespacePID(pid))
 	return &pidTracingCloser{
 		profiler: p,
 		pid:      pid,
 	}, nil
 }
 
-func (p *Profiler) removeTracedPid(pid linux.ProcessID) *trackedProcess {
+func (p *Profiler) removeTracedPid(pid linux.CurrentNamespacePID) *trackedProcess {
 	p.pidsmu.Lock()
 	defer p.pidsmu.Unlock()
 

@@ -25,9 +25,9 @@ type Target struct {
 	// ProcessFD is the pidfd referring to the target process.
 	ProcessFD *pidfd.FD
 	// Pid in the pid namespace of this process.
-	PID linux.ProcessID
+	PID linux.CurrentNamespacePID
 	// Pid in the pid namespace of the target process.
-	NamespacedPID linux.ProcessID
+	NamespacedPID linux.NamespacedPID
 	// Target process cwd in the mount namespace and chroot of this process.
 	// Defaults to a fallback value which relies on /proc.
 	CWD string
@@ -145,7 +145,7 @@ func (d *Dialer) sendAttachRequest(ctx context.Context, target Target) (string, 
 	return cleanupPath, nil
 }
 
-func (d *Dialer) tryConnect(ctx context.Context, chroot string, nspid linux.ProcessID) (*VirtualMachineConn, error) {
+func (d *Dialer) tryConnect(ctx context.Context, chroot string, nspid linux.NamespacedPID) (*VirtualMachineConn, error) {
 	d.Logger.Debug(ctx, "Trying to connect")
 	path := getFilePath(chroot, ".java_pid", nspid)
 	raw := net.Dialer{}
@@ -165,6 +165,6 @@ func (d *Dialer) tryConnect(ctx context.Context, chroot string, nspid linux.Proc
 	return &VirtualMachineConn{path: path}, nil
 }
 
-func getFilePath(chroot string, filename string, nspid linux.ProcessID) string {
+func getFilePath(chroot string, filename string, nspid linux.NamespacedPID) string {
 	return fmt.Sprintf("%s/tmp/%s%d", chroot, filename, uint32(nspid))
 }
