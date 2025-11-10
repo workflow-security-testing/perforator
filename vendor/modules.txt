@@ -15862,7 +15862,7 @@ github.com/xuri/nfp
 # github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0
 ## explicit
 github.com/yalp/jsonpath
-# github.com/yandex-cloud/go-genproto v0.32.0
+# github.com/yandex-cloud/go-genproto v0.35.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-genproto
 github.com/yandex-cloud/go-genproto/yandex/cloud
@@ -15978,6 +15978,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/operation
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/idp
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/idp/application/oauth
+github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/idp/application/saml
 github.com/yandex-cloud/go-genproto/yandex/cloud/organizationmanager/v1/saml
 github.com/yandex-cloud/go-genproto/yandex/cloud/quota
 github.com/yandex-cloud/go-genproto/yandex/cloud/quotamanager/v1
@@ -15989,6 +15990,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/apigateway/websocket
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/containers/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/eventrouter/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/functions/v1
+github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/mcpgateway/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/mdbproxy/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/triggers/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/serverless/workflows/v1
@@ -16006,7 +16008,7 @@ github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/vpc/v1/privatelink
 github.com/yandex-cloud/go-genproto/yandex/cloud/ydb/v1
 github.com/yandex-cloud/go-genproto/yandex/cloud/ytsaurus/v1
-# github.com/yandex-cloud/go-sdk v0.26.0
+# github.com/yandex-cloud/go-sdk v0.28.0
 ## explicit; go 1.21
 github.com/yandex-cloud/go-sdk
 github.com/yandex-cloud/go-sdk/dial
@@ -16080,8 +16082,10 @@ github.com/yandex-cloud/go-sdk/gen/logging
 github.com/yandex-cloud/go-sdk/gen/logingestion
 github.com/yandex-cloud/go-sdk/gen/logreading
 github.com/yandex-cloud/go-sdk/gen/marketplace/licensemanager
+github.com/yandex-cloud/go-sdk/gen/marketplace/licensemanagersaas
 github.com/yandex-cloud/go-sdk/gen/marketplace/metering
 github.com/yandex-cloud/go-sdk/gen/marketplace/pim
+github.com/yandex-cloud/go-sdk/gen/mcpgateway
 github.com/yandex-cloud/go-sdk/gen/mdb/clickhouse
 github.com/yandex-cloud/go-sdk/gen/mdb/elasticsearch
 github.com/yandex-cloud/go-sdk/gen/mdb/greenplum
@@ -16100,6 +16104,7 @@ github.com/yandex-cloud/go-sdk/gen/operation
 github.com/yandex-cloud/go-sdk/gen/organizationmanager
 github.com/yandex-cloud/go-sdk/gen/organizationmanager/idp
 github.com/yandex-cloud/go-sdk/gen/organizationmanager/idp/application/oauth
+github.com/yandex-cloud/go-sdk/gen/organizationmanager/idp/application/saml
 github.com/yandex-cloud/go-sdk/gen/organizationmanager/saml
 github.com/yandex-cloud/go-sdk/gen/quotamanager
 github.com/yandex-cloud/go-sdk/gen/resourcemanager
