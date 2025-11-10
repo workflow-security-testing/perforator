@@ -2168,7 +2168,26 @@ func (s *PerforatorServer) runMetricsServer(ctx context.Context, port uint32) er
 		w.Header().Set("Content-Type", "application/octet-stream")
 		_ = p.Write(w)
 	})
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+
+	srv := &http.Server{
+		Addr: fmt.Sprintf(":%d", port),
+		BaseContext: func(listener net.Listener) context.Context {
+			return ctx
+		},
+	}
+
+	unreg := context.AfterFunc(ctx, func() {
+		s.l.Info(ctx, "Stopping metrics server")
+		err := srv.Close()
+		if err != nil {
+			s.l.Error(ctx, "Failed to shutdown metrics server", log.Error(err))
+		} else {
+			s.l.Info(ctx, "Metrics server shutdown complete")
+		}
+	})
+	defer unreg()
+
+	return srv.ListenAndServe()
 }
 
 func (s *PerforatorServer) runGRPCServer(ctx context.Context, port uint32) error {
@@ -2183,12 +2202,37 @@ func (s *PerforatorServer) runGRPCServer(ctx context.Context, port uint32) error
 	s.healthServer.SetServingStatus("", healthgrpc.HealthCheckResponse_SERVING)
 	s.healthServer.SetServingStatus("NPerforator.NProto.Perforator", healthgrpc.HealthCheckResponse_SERVING)
 
+	unreg := context.AfterFunc(ctx, func() {
+		s.l.Info(ctx, "Stopping GRPC server", log.Error(context.Cause(ctx)))
+		s.grpcServer.Stop()
+		s.l.Info(ctx, "GRPC server shutdown complete")
+	})
+	defer unreg()
+
 	return s.grpcServer.Serve(lis)
 }
 
 func (s *PerforatorServer) runHTTPServer(ctx context.Context, port uint32) error {
 	s.l.Info(ctx, "Starting HTTP REST server on port", log.UInt32("port", port))
-	srv := &http.Server{Addr: fmt.Sprintf(":%d", port), Handler: s.httpRouter}
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: s.httpRouter,
+		BaseContext: func(listener net.Listener) context.Context {
+			return ctx
+		},
+	}
+
+	unreg := context.AfterFunc(ctx, func() {
+		s.l.Info(ctx, "Stopping HTTP server")
+		err := srv.Close()
+		if err != nil {
+			s.l.Error(ctx, "HTTP server shutdown failed", log.Error(err))
+		} else {
+			s.l.Info(ctx, "HTTP server shutdown complete")
+		}
+	})
+	defer unreg()
+
 	return srv.ListenAndServe()
 }
 
@@ -2196,7 +2240,7 @@ func (s *PerforatorServer) Run(ctx context.Context, conf *RunConfig) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		err := s.downloader.RunBackgroundDownloader(context.Background())
+		err := s.downloader.RunBackgroundDownloader(ctx)
 		if err != nil {
 			s.l.Error(ctx, "Failed background downloader", log.Error(err))
 		}
@@ -2204,7 +2248,7 @@ func (s *PerforatorServer) Run(ctx context.Context, conf *RunConfig) error {
 	})
 
 	g.Go(func() error {
-		err := s.bannedUsers.RunPoller(context.Background())
+		err := s.bannedUsers.RunPoller(ctx)
 		if err != nil {
 			s.l.Error(ctx, "Banned users poller failed", log.Error(err))
 		}
