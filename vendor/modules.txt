@@ -3754,8 +3754,8 @@ github.com/ProtonMail/gopenpgp/v3/internal
 github.com/ProtonMail/gopenpgp/v3/mime
 github.com/ProtonMail/gopenpgp/v3/mobile
 github.com/ProtonMail/gopenpgp/v3/profile
-# github.com/PuerkitoBio/goquery v1.9.3
-## explicit; go 1.18
+# github.com/PuerkitoBio/goquery v1.10.3
+## explicit; go 1.23.0
 github.com/PuerkitoBio/goquery
 # github.com/PuerkitoBio/purell v1.2.0
 ## explicit; go 1.19
@@ -4025,7 +4025,7 @@ github.com/andreyvit/diff
 ## explicit; go 1.13
 github.com/andybalholm/brotli
 github.com/andybalholm/brotli/matchfinder
-# github.com/andybalholm/cascadia v1.3.2
+# github.com/andybalholm/cascadia v1.3.3
 ## explicit; go 1.16
 github.com/andybalholm/cascadia
 github.com/andybalholm/cascadia/fuzz
@@ -7699,6 +7699,9 @@ github.com/go-faster/errors/cmd/gowrapper
 github.com/go-faster/jx
 github.com/go-faster/jx/internal/byteseq
 github.com/go-faster/jx/tools/mkint
+# github.com/go-faster/sdk v0.27.0
+## explicit; go 1.22.7
+github.com/go-faster/sdk/zctx
 # github.com/go-faster/xor v1.0.0
 ## explicit; go 1.15
 github.com/go-faster/xor
@@ -7934,7 +7937,7 @@ github.com/go-openapi/analysis/internal/flatten/sortref
 # github.com/go-openapi/errors v0.22.0
 ## explicit; go 1.20
 github.com/go-openapi/errors
-# github.com/go-openapi/inflect v0.21.0
+# github.com/go-openapi/inflect v0.21.2
 ## explicit; go 1.20
 github.com/go-openapi/inflect
 # github.com/go-openapi/jsonpointer v0.21.0
@@ -9543,8 +9546,8 @@ github.com/gostaticanalysis/forcetypeassert/cmd/forcetypeassert
 github.com/gosuri/uitable
 github.com/gosuri/uitable/util/strutil
 github.com/gosuri/uitable/util/wordwrap
-# github.com/gotd/getdoc v0.44.0
-## explicit; go 1.21
+# github.com/gotd/getdoc v0.49.0
+## explicit; go 1.23.0
 github.com/gotd/getdoc
 github.com/gotd/getdoc/dl
 github.com/gotd/getdoc/dl/internal/cache
@@ -9555,8 +9558,8 @@ github.com/gotd/ige
 # github.com/gotd/neo v0.1.5
 ## explicit; go 1.12
 github.com/gotd/neo
-# github.com/gotd/td v0.115.0
-## explicit; go 1.21
+# github.com/gotd/td v0.127.0
+## explicit; go 1.23.3
 github.com/gotd/td
 github.com/gotd/td/ascii
 github.com/gotd/td/bin
@@ -9592,7 +9595,6 @@ github.com/gotd/td/rpc
 github.com/gotd/td/session
 github.com/gotd/td/session/tdesktop
 github.com/gotd/td/syncio
-github.com/gotd/td/tdapi
 github.com/gotd/td/tdjson
 github.com/gotd/td/tdp
 github.com/gotd/td/tdp/internal
@@ -9602,8 +9604,8 @@ github.com/gotd/td/telegram
 github.com/gotd/td/telegram/auth
 github.com/gotd/td/telegram/auth/qrlogin
 github.com/gotd/td/telegram/dcs
+github.com/gotd/td/telegram/deeplink
 github.com/gotd/td/telegram/downloader
-github.com/gotd/td/telegram/internal/deeplink
 github.com/gotd/td/telegram/internal/e2etest
 github.com/gotd/td/telegram/internal/manager
 github.com/gotd/td/telegram/internal/upconv
@@ -9643,6 +9645,8 @@ github.com/gotd/td/telegram/uploader/source
 github.com/gotd/td/testutil
 github.com/gotd/td/tg
 github.com/gotd/td/tg/e2e
+github.com/gotd/td/tgacc
+github.com/gotd/td/tgacc/oas
 github.com/gotd/td/tgerr
 github.com/gotd/td/tgmock
 github.com/gotd/td/tgtest
@@ -10996,8 +11000,8 @@ github.com/k-sone/critbitgo
 # github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88
 ## explicit
 github.com/k0kubun/colorstring
-# github.com/k0kubun/pp/v3 v3.4.1
-## explicit; go 1.17
+# github.com/k0kubun/pp/v3 v3.5.0
+## explicit; go 1.23.0
 github.com/k0kubun/pp/v3
 # github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 ## explicit
@@ -17238,8 +17242,8 @@ go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconvut
 # go.opentelemetry.io/contrib/propagators/b3 v1.34.0
 ## explicit; go 1.22.0
 go.opentelemetry.io/contrib/propagators/b3
-# go.opentelemetry.io/contrib/propagators/jaeger v1.11.1
-## explicit; go 1.18
+# go.opentelemetry.io/contrib/propagators/jaeger v1.34.0
+## explicit; go 1.22.0
 go.opentelemetry.io/contrib/propagators/jaeger
 # go.opentelemetry.io/contrib/zpages v0.59.0
 ## explicit; go 1.22.0
@@ -20816,7 +20820,7 @@ mvdan.cc/gofumpt/internal/version
 # mvdan.cc/xurls/v2 v2.6.0
 ## explicit; go 1.22.0
 mvdan.cc/xurls/v2
-# nhooyr.io/websocket v1.8.11
+# nhooyr.io/websocket v1.8.17
 ## explicit; go 1.19
 nhooyr.io/websocket
 nhooyr.io/websocket/internal/bpool

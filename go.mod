@@ -193,7 +193,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.31
 	github.com/ProtonMail/gopenpgp/v3 v3.1.2
-	github.com/PuerkitoBio/goquery v1.9.3
+	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/Shopify/sarama v1.37.2
 	github.com/ThalesIgnite/crypto11 v1.2.5
 	github.com/TuyaInc/tuya_pulsar_sdk_go v0.0.0-20201113075236-46c1e459e32e
@@ -212,7 +212,7 @@ require (
 	github.com/alitto/pond v1.9.1
 	github.com/anatol/luks.go v0.0.0-20211210165108-5d9a15b4f614
 	github.com/andybalholm/brotli v1.1.1
-	github.com/andybalholm/cascadia v1.3.2
+	github.com/andybalholm/cascadia v1.3.3
 	github.com/annetutil/gnetcli v1.0.100
 	github.com/antchfx/htmlquery v1.3.2
 	github.com/antchfx/xpath v1.3.1
@@ -394,7 +394,7 @@ require (
 	github.com/go-ole/go-ole v1.2.7-0.20211215081658-ee6c8cce8e87
 	github.com/go-openapi/analysis v0.23.0
 	github.com/go-openapi/errors v0.22.0
-	github.com/go-openapi/inflect v0.21.0
+	github.com/go-openapi/inflect v0.21.2
 	github.com/go-openapi/jsonpointer v0.21.0
 	github.com/go-openapi/jsonreference v0.21.0
 	github.com/go-openapi/loads v0.22.0
@@ -474,7 +474,7 @@ require (
 	github.com/gosimple/unidecode v1.0.1
 	github.com/gosnmp/gosnmp v1.38.0
 	github.com/gostaticanalysis/forcetypeassert v0.1.0
-	github.com/gotd/td v0.115.0
+	github.com/gotd/td v0.127.0
 	github.com/graphql-go/graphql v0.8.1
 	github.com/graphql-go/handler v0.2.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -912,7 +912,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0
 	go.opentelemetry.io/contrib/propagators/b3 v1.34.0
-	go.opentelemetry.io/contrib/propagators/jaeger v1.11.1
+	go.opentelemetry.io/contrib/propagators/jaeger v1.34.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/bridge/opencensus v0.45.0
 	go.opentelemetry.io/otel/bridge/opentracing v1.28.0
@@ -1021,7 +1021,7 @@ require (
 	k8s.io/kubelet v0.26.1
 	k8s.io/kubernetes v1.26.1
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
-	nhooyr.io/websocket v1.8.11
+	nhooyr.io/websocket v1.8.17
 	oras.land/oras-go/v2 v2.6.0
 	sigs.k8s.io/controller-runtime v0.20.4
 	sigs.k8s.io/kustomize/api v0.12.1
@@ -1504,6 +1504,7 @@ require (
 	github.com/go-delve/liner v1.2.3-0.20231231155935-4726ab1d7f62 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-faker/faker/v4 v4.6.0 // indirect
+	github.com/go-faster/sdk v0.27.0 // indirect
 	github.com/go-faster/xor v1.0.0 // indirect
 	github.com/go-faster/yaml v0.4.6 // indirect
 	github.com/go-fed/httpsig v1.1.0 // indirect
@@ -1626,7 +1627,7 @@ require (
 	github.com/gostaticanalysis/comment v1.4.2 // indirect
 	github.com/gostaticanalysis/testutil v0.4.0 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect
-	github.com/gotd/getdoc v0.44.0 // indirect
+	github.com/gotd/getdoc v0.49.0 // indirect
 	github.com/gotd/ige v0.2.2 // indirect
 	github.com/gotd/neo v0.1.5 // indirect
 	github.com/gotd/tl v0.4.0 // indirect
@@ -1743,7 +1744,7 @@ require (
 	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/jung-kurt/gofpdf v1.16.2 // indirect
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
-	github.com/k0kubun/pp/v3 v3.4.1 // indirect
+	github.com/k0kubun/pp/v3 v3.5.0 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/karlseguin/expect v1.0.8 // indirect
 	github.com/karrick/godirwalk v1.17.0 // indirect
