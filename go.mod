@@ -1049,7 +1049,7 @@ require (
 	deps.dev/api/v3 v3.0.0-20250307021655-d811e36f9cad // indirect
 	deps.dev/util/maven v0.0.0-20250307021655-d811e36f9cad // indirect
 	deps.dev/util/resolve v0.0.0-20250310223405-f4cf91c9e684 // indirect
-	deps.dev/util/semver v0.0.0-20250307021655-d811e36f9cad // indirect
+	deps.dev/util/semver v0.0.0-20250902032900-f16136c5dcd3 // indirect
 	dmitri.shuralyov.com/gpu/mtl v0.0.0-20221208032759-85de2813cf6b // indirect
 	eliasnaur.com/font v0.0.0-20230308162249-dd43949cb42d // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect

@@ -1147,7 +1147,7 @@ deps.dev/util/resolve/maven
 deps.dev/util/resolve/npm
 deps.dev/util/resolve/schema
 deps.dev/util/resolve/version
-# deps.dev/util/semver v0.0.0-20250307021655-d811e36f9cad
+# deps.dev/util/semver v0.0.0-20250902032900-f16136c5dcd3
 ## explicit; go 1.23.4
 deps.dev/util/semver
 # dmitri.shuralyov.com/gpu/mtl v0.0.0-20221208032759-85de2813cf6b
