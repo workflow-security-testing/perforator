@@ -21,6 +21,10 @@ func validateUprobeSettings(uprobeSettings *cpo_proto.UprobeSettings) error {
 		if uprobeSettings.BinaryLocation.GetPath() == "" {
 			return errors.New("binary location path is not set")
 		}
+	case *cpo_proto.BinaryLocation_ChrootPath:
+		if uprobeSettings.BinaryLocation.GetChrootPath() == "" {
+			return errors.New("binary location namespaced path is not set")
+		}
 	case *cpo_proto.BinaryLocation_Detector:
 		// this requires scanning some binaries to find the necessary one
 		return errors.New("binary detector is not supported yet")

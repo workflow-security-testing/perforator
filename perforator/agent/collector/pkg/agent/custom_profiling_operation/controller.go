@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	"golang.org/x/exp/maps"
 
@@ -75,9 +76,9 @@ func outputProfileName(id models.OperationID) string {
 
 func (o *operationController) createUprobes(ctx context.Context, eventSettings *cpo_proto.EventSettings_Uprobe, target *cpo_proto.Target) error {
 	baseUprobeConfig := uprobe.Config{
-		Path:              eventSettings.Uprobe.BinaryLocation.GetPath(),
 		OutputProfileName: outputProfileName(o.id),
 	}
+
 	switch target := target.Target.(type) {
 	case *cpo_proto.Target_NodeProcess:
 		currentNamespacePID, err := o.convertTargetProcessToCurrentNamespace(target.NodeProcess)
@@ -86,6 +87,13 @@ func (o *operationController) createUprobes(ctx context.Context, eventSettings *
 		}
 
 		baseUprobeConfig.Pid = currentNamespacePID
+	}
+
+	switch location := eventSettings.Uprobe.BinaryLocation.Location.(type) {
+	case *cpo_proto.BinaryLocation_Path:
+		baseUprobeConfig.Path = location.Path
+	case *cpo_proto.BinaryLocation_ChrootPath:
+		baseUprobeConfig.Path = filepath.Join(fmt.Sprintf("/proc/%d/root", baseUprobeConfig.Pid), location.ChrootPath)
 	}
 
 	uprobeConfigs := []uprobe.Config{}
@@ -120,9 +128,10 @@ func (o *operationController) convertTargetProcessToCurrentNamespace(nodeProcess
 		linux.NamespacedPID(nodeProcessTarget.ProcessID),
 		linux.PIDNamespaceInode(nodeProcessTarget.PidNamespaceInode),
 	)
-	if resolvedPID == nil {
+	if resolvedPID == nil || *resolvedPID == 0 {
 		return linux.CurrentNamespacePID(0), errors.New("failed to resolve namespaced pid into current namespace pid")
 	}
+
 	return *resolvedPID, nil
 }
 
