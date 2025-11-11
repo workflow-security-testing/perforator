@@ -2539,6 +2539,31 @@
       "Release schedule": "https://github.com/nodejs/Release#release-schedule"
     },
     "versions": {
+      "25.1.0": {
+        "add_date": "2025-11-11T05:36:54",
+        "resources": [
+          {
+            "id": 10241564521,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 10241565735,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 10241566967,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 10241568526,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
       "25.0.0": {
         "add_date": "2025-11-04T05:37:48",
         "resources": [
@@ -2559,6 +2584,31 @@
           },
           {
             "id": 10183573978,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "24.11.0": {
+        "add_date": "2025-11-11T05:34:27",
+        "resources": [
+          {
+            "id": 10241559023,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 10241560107,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 10241561593,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 10241563031,
             "platform": "darwin",
             "arch": "arm64"
           }
@@ -3184,6 +3234,31 @@
           },
           {
             "id": 7401173821,
+            "platform": "darwin",
+            "arch": "arm64"
+          }
+        ]
+      },
+      "22.21.1": {
+        "add_date": "2025-11-11T05:31:47",
+        "resources": [
+          {
+            "id": 10241551830,
+            "platform": "linux",
+            "arch": "x64"
+          },
+          {
+            "id": 10241553050,
+            "platform": "linux",
+            "arch": "arm64"
+          },
+          {
+            "id": 10241554438,
+            "platform": "darwin",
+            "arch": "x64"
+          },
+          {
+            "id": 10241556672,
             "platform": "darwin",
             "arch": "arm64"
           }
