@@ -2147,7 +2147,7 @@
     "title": "Next.js",
     "description": "Сборщик-бандлер от проекта Next.js\n\nОчень opinionated, но кому-то подходит.\n\nВ tier-0 используется в модуле/макросе [`TS_NEXT()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_NEXT).",
     "type": "NPM_PACKAGE",
-    "default": "15.5.6",
+    "default": "16.0.0",
     "links": {
       "Home": "https://nextjs.org",
       "Sources": "https://github.com/vercel/next.js",
@@ -2156,6 +2156,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "16.0.0": {
+        "add_date": "2025-11-11T05:31:02",
+        "resources": []
+      },
       "15.5.6": {
         "add_date": "2025-11-04T05:33:25",
         "resources": []
@@ -6383,7 +6387,7 @@
     "title": "Vite",
     "description": "Современный сборщик frontend проектов\n\nПод капотом используется более низкоуровневый сборщик [rollup](https://rollupjs.org/).\n\nДля транспиляции TypeScript может использовать нативные способы: [esbuild](https://esbuild.github.io/), [SWC](https://swc.rs/)\n\nПоэтому, если требуется использовать `rollup` или `esbuild`/`SWC` на проекте - то `vite` - ваш выбор.\n\nВ tier-0 используется в модуле/макросе [`TS_VITE()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_VITE).",
     "type": "NPM_PACKAGE",
-    "default": "7.1.11",
+    "default": "7.1.12",
     "links": {
       "Home": "https://vitejs.dev/",
       "Sources": "https://github.com/vitejs/vite/tree/main",
@@ -6393,6 +6397,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "7.1.12": {
+        "add_date": "2025-11-11T05:39:15",
+        "resources": []
+      },
       "7.1.11": {
         "add_date": "2025-11-04T05:40:31",
         "resources": []
