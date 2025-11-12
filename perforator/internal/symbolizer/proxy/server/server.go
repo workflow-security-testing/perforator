@@ -105,6 +105,16 @@ type perforatorServerMetrics struct {
 	tasksStartedCount  metrics.CounterVec
 	tasksFinishedCount metrics.CounterVec
 	tasksFailedCount   metrics.CounterVec
+	// From enqueue to finish
+	tasksProcessingSucceededDuration metrics.TimerVec
+	// Same, but for failed tasks
+	tasksProcessingFailedDuration metrics.TimerVec
+	// From dequeue to finish
+	tasksExecutionSucceededDuration metrics.TimerVec
+	// Same, but for failed tasks
+	tasksExecutionFailedDuration metrics.TimerVec
+	// From enqueue to dequeue
+	tasksWaitDuration metrics.TimerVec
 
 	remoteSymbolizationCount             requestsMetrics
 	remoteSymbolizationCompletenessCount requestsMetrics
@@ -355,6 +365,8 @@ func NewPerforatorServer(
 }
 
 func (s *PerforatorServer) registerMetrics() {
+	tasksDurationBuckets := metrics.MakeExponentialDurationBuckets(time.Millisecond*500, 1.5, 23)
+
 	s.metrics = &perforatorServerMetrics{
 		listProfilesRequests: requestsMetrics{
 			successes: s.reg.WithTags(Tags{"status": "success"}).Counter("requests.list_profiles"),
@@ -390,10 +402,15 @@ func (s *PerforatorServer) registerMetrics() {
 			metrics.MakeLinearBuckets(0, float64(0.02), 50),
 		),
 
-		tasksRunningCount:  s.reg.IntGaugeVec("tasks.running.count", []string{"kind"}),
-		tasksStartedCount:  s.reg.CounterVec("tasks.started.count", []string{"kind"}),
-		tasksFinishedCount: s.reg.CounterVec("tasks.finished.count", []string{"kind"}),
-		tasksFailedCount:   s.reg.CounterVec("tasks.failed.count", []string{"kind"}),
+		tasksRunningCount:                s.reg.IntGaugeVec("tasks.running.count", []string{"kind"}),
+		tasksStartedCount:                s.reg.CounterVec("tasks.started.count", []string{"kind"}),
+		tasksFinishedCount:               s.reg.CounterVec("tasks.finished.count", []string{"kind"}),
+		tasksFailedCount:                 s.reg.CounterVec("tasks.failed.count", []string{"kind"}),
+		tasksProcessingSucceededDuration: s.reg.WithTags(Tags{"status": "success"}).DurationHistogramVec("tasks.processing.duration", tasksDurationBuckets, []string{"kind"}),
+		tasksProcessingFailedDuration:    s.reg.WithTags(Tags{"status": "fail"}).DurationHistogramVec("tasks.processing.duration", tasksDurationBuckets, []string{"kind"}),
+		tasksExecutionSucceededDuration:  s.reg.WithTags(Tags{"status": "success"}).DurationHistogramVec("tasks.execution.duration", tasksDurationBuckets, []string{"kind"}),
+		tasksExecutionFailedDuration:     s.reg.WithTags(Tags{"status": "fail"}).DurationHistogramVec("tasks.execution.duration", tasksDurationBuckets, []string{"kind"}),
+		tasksWaitDuration:                s.reg.DurationHistogramVec("tasks.wait.duration", tasksDurationBuckets, []string{"kind"}),
 
 		remoteSymbolizationCount: requestsMetrics{
 			successes: s.reg.WithTags(Tags{"status": "success"}).Counter("remote_symbolization.count"),

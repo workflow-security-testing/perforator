@@ -182,6 +182,10 @@ func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, st
 	s.metrics.tasksRunningCount.With(metricTags).Add(1)
 	defer s.metrics.tasksRunningCount.With(metricTags).Add(-1)
 
+	startTime := time.Now()
+	creationTime := time.UnixMicro(task.GetMeta().GetCreationTime())
+	s.metrics.tasksWaitDuration.With(metricTags).RecordDuration(time.Since(creationTime))
+
 	ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(task.Spec.GetTraceBaggage().GetBaggage()))
 	ctx, span := otel.Tracer("TaskService").Start(ctx, "PerforatorServer.runTask")
 	defer span.End()
@@ -196,6 +200,8 @@ func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, st
 	if err != nil {
 		if !errors.Is(err, merge.ErrNoProfilesToMerge) {
 			s.metrics.tasksFailedCount.With(metricTags).Inc()
+			s.metrics.tasksProcessingFailedDuration.With(metricTags).RecordDuration(time.Since(creationTime))
+			s.metrics.tasksExecutionFailedDuration.With(metricTags).RecordDuration(time.Since(startTime))
 			s.l.Error(ctx, "Failed async task", log.Error(err))
 		}
 
@@ -215,6 +221,8 @@ func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, st
 	}
 
 	s.metrics.tasksFinishedCount.With(metricTags).Inc()
+	s.metrics.tasksProcessingSucceededDuration.With(metricTags).RecordDuration(time.Since(creationTime))
+	s.metrics.tasksExecutionSucceededDuration.With(metricTags).RecordDuration(time.Since(startTime))
 	s.l.Info(ctx, "Finished async task")
 }
 
