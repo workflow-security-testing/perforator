@@ -13443,6 +13443,37 @@ github.com/pkg/sftp/server_standalone
 github.com/pkg/xattr
 # github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
 ## explicit; go 1.20
+github.com/planetscale/vtprotobuf/cmd/protoc-gen-go-vtproto
+github.com/planetscale/vtprotobuf/codec/drpc
+github.com/planetscale/vtprotobuf/codec/grpc
+github.com/planetscale/vtprotobuf/conformance
+github.com/planetscale/vtprotobuf/conformance/internal/conformance
+github.com/planetscale/vtprotobuf/features/clone
+github.com/planetscale/vtprotobuf/features/equal
+github.com/planetscale/vtprotobuf/features/grpc
+github.com/planetscale/vtprotobuf/features/marshal
+github.com/planetscale/vtprotobuf/features/pool
+github.com/planetscale/vtprotobuf/features/size
+github.com/planetscale/vtprotobuf/features/unmarshal
+github.com/planetscale/vtprotobuf/generator
+github.com/planetscale/vtprotobuf/generator/pattern
+github.com/planetscale/vtprotobuf/protohelpers
+github.com/planetscale/vtprotobuf/testproto/empty
+github.com/planetscale/vtprotobuf/testproto/grpc
+github.com/planetscale/vtprotobuf/testproto/grpc/inner
+github.com/planetscale/vtprotobuf/testproto/pool
+github.com/planetscale/vtprotobuf/testproto/proto2
+github.com/planetscale/vtprotobuf/testproto/proto3opt
+github.com/planetscale/vtprotobuf/testproto/unsafe
+github.com/planetscale/vtprotobuf/testproto/wkt
+github.com/planetscale/vtprotobuf/types/known/anypb
+github.com/planetscale/vtprotobuf/types/known/durationpb
+github.com/planetscale/vtprotobuf/types/known/emptypb
+github.com/planetscale/vtprotobuf/types/known/fieldmaskpb
+github.com/planetscale/vtprotobuf/types/known/structpb
+github.com/planetscale/vtprotobuf/types/known/timestamppb
+github.com/planetscale/vtprotobuf/types/known/wrapperspb
+github.com/planetscale/vtprotobuf/vtproto
 # github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 ## explicit
 github.com/pmezard/go-difflib/difflib
