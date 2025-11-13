@@ -20,6 +20,11 @@ func generateForSpec(pkg string, prefix string, spec *ebpf.CollectionSpec) (stri
 	f.SetPrefix(prefix)
 
 	for _, m := range spec.Maps {
+		if m.Name == ".rodata" {
+			// For some reason, .rodata section gets parsed as a map.
+			// But from our PoV it is not a map, so we skip it.
+			continue
+		}
 		f.AddPublicMap(m)
 	}
 	for _, p := range spec.Programs {

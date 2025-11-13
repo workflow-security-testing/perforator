@@ -152,6 +152,10 @@ func (f *GoFormatter) Print() error {
 
 func (f *GoFormatter) collectTypes() error {
 	for _, typ := range f.public {
+		_, ok := typ.(*btf.Datasec)
+		if ok {
+			continue
+		}
 		if err := f.collectChildren(typ); err != nil {
 			return err
 		}

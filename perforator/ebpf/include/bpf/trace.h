@@ -2,9 +2,13 @@
 
 #include "funcs.h"
 
+#define Q0(X) #X
+
+#define Q(X) Q0(X)
+
 #define BPF_PRINTK(fmt, ...)                                               \
     ({                                                                     \
-     char __fmt[] = fmt;                                                   \
+     static const char __fmt[] = "[perforator] " __FILE__ ":" Q(__LINE__) " " fmt;         \
      bpf_trace_printk(__fmt, sizeof(__fmt), ##__VA_ARGS__);                \
      })
 
