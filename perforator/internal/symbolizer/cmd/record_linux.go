@@ -429,8 +429,13 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 
 		err = prof.Run(ctx)
 		if err != nil {
-			if !errors.Is(context.Cause(ctx), profiler.ErrStopped) {
-				return fmt.Errorf("profiler failed: %w, cause: %w", err, context.Cause(ctx))
+			cerr := context.Cause(ctx)
+			if !errors.Is(cerr, profiler.ErrStopped) {
+				if cerr != nil {
+					return fmt.Errorf("profiler failed: %w, context error: %w", err, cerr)
+				} else {
+					return fmt.Errorf("profiler failed: %w", err)
+				}
 			}
 		}
 
