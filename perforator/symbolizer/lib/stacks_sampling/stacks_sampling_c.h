@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-void *CreateAggregatingStacksSampler(ui64 rate);
+void *CreateAggregatingStacksSampler(const char* sampleTypeName, ui64 rate);
 
 void DestroyAggregatingStacksSampler(void* sampler);
 

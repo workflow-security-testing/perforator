@@ -14,9 +14,11 @@ type StacksSampler struct {
 	sampler unsafe.Pointer
 }
 
-func NewStacksSampler(rate uint64) (*StacksSampler, error) {
+func NewStacksSampler(sampleTypeName string, rate uint64) (*StacksSampler, error) {
+	sampleTypeNameC := C.CString(sampleTypeName)
+	defer C.free(unsafe.Pointer(sampleTypeNameC))
 	return &StacksSampler{
-		sampler: C.CreateAggregatingStacksSampler(C.ui64(rate)),
+		sampler: C.CreateAggregatingStacksSampler(sampleTypeNameC, C.ui64(rate)),
 	}, nil
 }
 

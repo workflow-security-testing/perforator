@@ -14,8 +14,8 @@ NPerforator::NStacksSampling::TAggregatingSampler* FromOpaque(void* sampler) {
 
 }
 
-void *CreateAggregatingStacksSampler(ui64 rate) {
-    auto samplerPtr = std::make_unique<NPerforator::NStacksSampling::TAggregatingSampler>(rate);
+void *CreateAggregatingStacksSampler(const char* sampleTypeName, ui64 rate) {
+    auto samplerPtr = std::make_unique<NPerforator::NStacksSampling::TAggregatingSampler>(TString(sampleTypeName), rate);
 
     return samplerPtr.release();
 }

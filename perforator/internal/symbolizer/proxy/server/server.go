@@ -1011,7 +1011,7 @@ func (s *PerforatorServer) fetchProfiles(
 	targetEventType string,
 	performSampling bool,
 ) (*pprof.Profile, []richProfile, error) {
-	rawProfiles, err := s.selectProfiles(ctx, query, nil, makeSamplingOptions(performSampling))
+	rawProfiles, err := s.selectProfiles(ctx, query, nil, makeSamplingOptions(performSampling, targetEventType))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1643,6 +1643,7 @@ type samplingOptions struct {
 	samplingTarget uint64
 	// Run sampling in this number of threads
 	degreeOfParallelism uint16
+	targetEventType     string
 }
 
 func calculateSamplingRatio(profilesCount uint64, samplingTarget uint64) uint64 {
@@ -1667,7 +1668,7 @@ func calculateSamplingRatio(profilesCount uint64, samplingTarget uint64) uint64 
 	return samplingRatio
 }
 
-func makeSamplingOptions(performSampling bool) *samplingOptions {
+func makeSamplingOptions(performSampling bool, targetEventType string) *samplingOptions {
 	if !performSampling {
 		return nil
 	}
@@ -1678,6 +1679,7 @@ func makeSamplingOptions(performSampling bool) *samplingOptions {
 	return &samplingOptions{
 		samplingTarget:      kDefaultSamplingTarget,
 		degreeOfParallelism: kDefaultDegreeOfSamplingParallelism,
+		targetEventType:     targetEventType,
 	}
 }
 
@@ -1736,7 +1738,7 @@ func (s *PerforatorServer) selectProfiles(
 		g, ctx := errgroup.WithContext(ctx)
 		for i := range samplingParallelism {
 			g.Go(func() error {
-				sampler, err := symbolize.NewStacksSampler(uint64(samplingRatio))
+				sampler, err := symbolize.NewStacksSampler(samplingOptions.targetEventType, uint64(samplingRatio))
 				if err != nil {
 					return err
 				}

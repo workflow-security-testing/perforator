@@ -104,6 +104,14 @@ public:
         return newId;
     }
 
+    void SetSampleTypeIndex(size_t index) {
+        SampleTypeIndex_ = index;
+    }
+
+    size_t GetSampleTypeIndex() const {
+        return SampleTypeIndex_;
+    }
+
 private:
     static std::optional<ui64> TryFindMapping(const absl::flat_hash_map<ui64, ui64>& map, ui64 id) {
         const auto it = map.find(id);
@@ -118,13 +126,17 @@ private:
     absl::flat_hash_map<ui64, ui64> MappingsMapping_;
     absl::flat_hash_map<ui64, ui64> FunctionsMapping_;
     absl::flat_hash_map<ui64, ui64> LocationsMapping_;
+
+    size_t SampleTypeIndex_;
 };
 
 }
 
 class TAggregatingSampler::Impl final {
 public:
-    Impl() {
+    Impl(TString sampleTypeName)
+        : SampleTypeName_(std::move(sampleTypeName))
+    {
         InsertDummyString();
         InsertDummyMapping();
         InsertDummyFunction();
@@ -138,32 +150,28 @@ public:
     void ValidateAndPopulateSampleType(const TProfileLookup& lookup, TProfileLocalMappings& localMappings) {
         const auto& profile = lookup.GetProfile();
 
-        const auto currentSampleTypeSize = ResultingProfile_.sample_typeSize();
-        if (currentSampleTypeSize == 0) {
-            for (const auto& valueType : profile.Getsample_type()) {
-                NPerforator::NProto::NPProf::ValueType newValueType;
-                newValueType.set_type(RemapString(profile, localMappings, valueType.type()));
-                newValueType.set_unit(RemapString(profile, localMappings, valueType.unit()));
-                ResultingProfile_.mutable_sample_type()->Add(std::move(newValueType));
+        bool hasSampleType = false;
+        for (std::size_t i = 0; i < profile.sample_typeSize(); ++i) {
+            TStringBuf sampleTypeName = SampleTypeName_;
+            const auto& valueType = profile.sample_type(i);
+            if (
+                sampleTypeName.SkipPrefix(profile.string_table(valueType.type())) &&
+                sampleTypeName.SkipPrefix(".") &&
+                sampleTypeName == profile.string_table(valueType.unit())
+            ) {
+                localMappings.SetSampleTypeIndex(i);
+                hasSampleType = true;
             }
-        } else {
-            if (currentSampleTypeSize != profile.sample_typeSize()) {
-                throw std::logic_error{"unexpected sample_type size"};
-            }
+        }
 
-            for (std::size_t i = 0; i < profile.sample_typeSize(); ++i) {
-                const auto& currentValueType = ResultingProfile_.sample_type(i);
-                const ui64 currentType = currentValueType.type();
-                const ui64 currentUnit = currentValueType.unit();
+        Y_ENSURE(hasSampleType, "sample_type not found");
 
-                const auto& newValueType = profile.sample_type(i);
-                const ui64 newType = RemapString(profile, localMappings, newValueType.type());
-                const ui64 newUnit = RemapString(profile, localMappings, newValueType.unit());
-
-                if (currentType != newType || currentUnit != newUnit) {
-                    throw std::logic_error{"sample_type values missmatch"};
-                }
-            }
+        if (!ResultingProfile_.sample_typeSize()) {
+            const auto& valueType = profile.sample_type(localMappings.GetSampleTypeIndex());
+            NPerforator::NProto::NPProf::ValueType newValueType;
+            newValueType.set_type(RemapString(profile, localMappings, valueType.type()));
+            newValueType.set_unit(RemapString(profile, localMappings, valueType.unit()));
+            ResultingProfile_.mutable_sample_type()->Add(std::move(newValueType));
         }
     }
 
@@ -186,6 +194,10 @@ public:
         for (auto& locationId : *sample.mutable_location_id()) {
             locationId = RemapLocation(lookup, localMappings, lookup.GetLocation(locationId));
         }
+
+        Y_ENSURE(sample.valueSize() > 0, "invalid sample value count");
+        sample.set_value(0, sample.value(localMappings.GetSampleTypeIndex()));
+        sample.mutable_value()->Truncate(1);
 
         ResultingProfile_.mutable_sample()->Add(std::move(sample));
     }
@@ -372,6 +384,8 @@ private:
         label.set_num_unit(RemapString(profile, localMappings, label.num_unit()));
     }
 
+    TString SampleTypeName_;
+
     NPerforator::NProto::NPProf::Profile ResultingProfile_;
 
     absl::flat_hash_map<TString, ui64> StringsMapping_;
@@ -385,9 +399,9 @@ private:
     NPerforator::NProto::NPProf::Profile ProfileForMemoryReuse_;
 };
 
-TAggregatingSampler::TAggregatingSampler(ui64 rate)
+TAggregatingSampler::TAggregatingSampler(TString sampleTypeName, ui64 rate)
  : Rate_{rate == 0 ? 1UL : rate},
-   Impl_{std::make_unique<Impl>()} {}
+   Impl_{std::make_unique<Impl>(std::move(sampleTypeName))} {}
 
 TAggregatingSampler::~TAggregatingSampler() = default;
 

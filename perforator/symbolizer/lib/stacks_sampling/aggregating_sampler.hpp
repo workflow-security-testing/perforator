@@ -13,7 +13,7 @@ namespace NPerforator::NStacksSampling {
 
 class TAggregatingSampler final {
 public:
-    TAggregatingSampler(ui64 rate);
+    TAggregatingSampler(TString sampleTypeName, ui64 rate);
     ~TAggregatingSampler();
 
     void AddProfile(TArrayRef<const char> profileBytes);
