@@ -853,6 +853,7 @@ require (
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20240613141046-5cd1d285d744
 	go.etcd.io/etcd/raft/v3 v3.5.8
 	go.mongodb.org/mongo-driver v1.17.3
+	go.mongodb.org/mongo-driver/v2 v2.4.0
 	go.mozilla.org/pkcs7 v0.9.0
 	go.opentelemetry.io/collector v0.121.0
 	go.opentelemetry.io/collector/client v1.27.0
