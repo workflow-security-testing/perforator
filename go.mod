@@ -453,7 +453,7 @@ require (
 	github.com/google/go-tpm v0.9.0
 	github.com/google/gopacket v1.1.19
 	github.com/google/licensecheck v0.3.1
-	github.com/google/nftables v0.2.0
+	github.com/google/nftables v0.3.0
 	github.com/google/osv-scalibr v0.1.7
 	github.com/google/osv-scanner v1.8.1
 	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e
@@ -586,7 +586,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-sqlite3 v2.0.1+incompatible
 	github.com/maxence-charriere/go-app/v9 v9.8.0
-	github.com/mdlayher/netlink v1.7.2
+	github.com/mdlayher/netlink v1.7.3-0.20250113171957-fbb4dce95f42
 	github.com/mennanov/fieldmask-utils v0.7.0
 	github.com/mfridman/interpolate v0.0.2
 	github.com/mfridman/xflag v0.1.0
