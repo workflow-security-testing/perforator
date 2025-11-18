@@ -287,7 +287,7 @@ func baseFlags() flags {
 			"symbolize":  "None",
 			"no_browser": "",
 		},
-		args: []string{"http://example.com/pprof", "-no_browser"}, // dummy url to trigger fetching
+		args: []string{"http://example.com/pprof"}, // dummy url to trigger fetching
 	}
 }
 
