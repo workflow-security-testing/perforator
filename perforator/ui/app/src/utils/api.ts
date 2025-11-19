@@ -35,8 +35,8 @@ class PerforatorApiClient {
         return this.get('/api/v0/services', params, options);
     }
 
-    getSuggestions(params: RequestData, options: AllowedOptions): Promise<AxiosResponse<ListSuggestionsResponse>> {
-        return this.get('/api/v0/suggestions', params, options);
+    getSuggestions(params: RequestData): Promise<AxiosResponse<ListSuggestionsResponse>> {
+        return this.get('/api/v0/suggestions', params);
     }
 
     getProfiles(params: RequestData): Promise<AxiosResponse<ListProfilesResponse>> {
