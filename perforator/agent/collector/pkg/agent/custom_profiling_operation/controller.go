@@ -81,7 +81,7 @@ func (o *operationController) createUprobes(ctx context.Context, eventSettings *
 
 	switch target := target.Target.(type) {
 	case *cpo_proto.Target_NodeProcess:
-		currentNamespacePID, err := o.convertTargetProcessToCurrentNamespace(target.NodeProcess)
+		currentNamespacePID, err := o.convertTargetProcessToCurrentNamespace(ctx, target.NodeProcess)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (o *operationController) createUprobes(ctx context.Context, eventSettings *
 	return nil
 }
 
-func (o *operationController) convertTargetProcessToCurrentNamespace(nodeProcessTarget *cpo_proto.NodeProcessTarget) (linux.CurrentNamespacePID, error) {
+func (o *operationController) convertTargetProcessToCurrentNamespace(ctx context.Context, nodeProcessTarget *cpo_proto.NodeProcessTarget) (linux.CurrentNamespacePID, error) {
 	if nodeProcessTarget.PidNamespaceInode == 0 {
 		return linux.CurrentNamespacePID(nodeProcessTarget.ProcessID), nil
 	}
@@ -129,8 +129,22 @@ func (o *operationController) convertTargetProcessToCurrentNamespace(nodeProcess
 		linux.PIDNamespaceInode(nodeProcessTarget.PidNamespaceInode),
 	)
 	if resolvedPID == nil || *resolvedPID == 0 {
+		o.l.Warn(
+			ctx,
+			"Failed to resolve namespaced pid into current namespace pid",
+			log.Int("namespaced_pid", int(nodeProcessTarget.ProcessID)),
+			log.Int("pid_namespace_inode", int(nodeProcessTarget.PidNamespaceInode)),
+		)
 		return linux.CurrentNamespacePID(0), errors.New("failed to resolve namespaced pid into current namespace pid")
 	}
+
+	o.l.Info(
+		ctx,
+		"Resolved namespaced pid into current namespace pid",
+		log.Int("resolved_pid", int(*resolvedPID)),
+		log.Int("namespaced_pid", int(nodeProcessTarget.ProcessID)),
+		log.Int("pid_namespace_inode", int(nodeProcessTarget.PidNamespaceInode)),
+	)
 
 	return *resolvedPID, nil
 }
@@ -138,9 +152,9 @@ func (o *operationController) convertTargetProcessToCurrentNamespace(nodeProcess
 func (o *operationController) Start(ctx context.Context) (err error) {
 	defer func() {
 		if err != nil {
-			err := o.releaseProfilerResources()
-			if err != nil {
-				o.l.Logger().Error("Failed to release profiler resources on CPO start failure", log.Error(err))
+			releaseErr := o.releaseProfilerResources()
+			if releaseErr != nil {
+				o.l.Error(ctx, "Failed to release profiler resources on CPO start failure", log.Error(releaseErr))
 			}
 		}
 	}()
@@ -171,7 +185,7 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 
 	switch target := o.spec.Target.Target.(type) {
 	case *cpo_proto.Target_NodeProcess:
-		currentNamespacePID, err := o.convertTargetProcessToCurrentNamespace(target.NodeProcess)
+		currentNamespacePID, err := o.convertTargetProcessToCurrentNamespace(ctx, target.NodeProcess)
 		if err != nil {
 			return err
 		}

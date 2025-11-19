@@ -30,19 +30,24 @@ func NewHandler(l xlog.Logger, registry models.OperationExecutionRegistry, repor
 }
 
 func (h *handler) tryFailOperation(ctx context.Context, operation *cpo_proto.Operation, operationError error) {
-	err := h.reporter.UpdateOperationStatus(ctx, operation.ID, &models.OperationStatus{
+	status := &models.OperationStatus{
 		State:     cpo_proto.OperationState_Failed,
 		Timestamp: timestamppb.Now(),
 		Error:     operationError.Error(),
-	})
-	if err != nil {
-		h.l.Error(ctx, "Failed to report operation status", log.Error(err))
 	}
+	err := h.reporter.UpdateOperationStatus(ctx, operation.ID, status)
+	if err != nil {
+		h.l.Error(ctx, "Failed to report operation status", log.Error(err), log.String("operation_id", string(operation.ID)))
+		return
+	}
+
+	h.l.Info(ctx, "Reported operation status status", log.Any("status", status), log.String("operation_id", string(operation.ID)))
 }
 
 func (h *handler) Handle(ctx context.Context, operation *cpo_proto.Operation) error {
 	cancelExecutionCtx, err := h.registry.Ensure(ctx, operation)
 	if err != nil {
+		h.l.Warn(ctx, "Failed to ensure operation execution", log.Error(err), log.String("operation_id", string(operation.ID)))
 		go func() {
 			h.tryFailOperation(ctx, operation, err)
 		}()

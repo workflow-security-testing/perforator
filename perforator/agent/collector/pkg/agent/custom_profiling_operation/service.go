@@ -102,6 +102,7 @@ func (p *Service) runHandleLoop(ctx context.Context) error {
 		if err != nil {
 			p.l.Error(ctx, "Failed to handle operation", log.Error(err))
 			p.metrics.failedHandlesCount.Inc()
+			continue
 		}
 
 		p.l.Info(ctx, "Handled operation", log.String("id", operation.ID), log.Any("spec", operation.Spec))

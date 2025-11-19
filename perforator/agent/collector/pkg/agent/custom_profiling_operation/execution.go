@@ -53,7 +53,8 @@ type operationExecution struct {
 
 	stopOnce sync.Once
 
-	statusChan chan *models.OperationStatus
+	statusChan       chan *models.OperationStatus
+	closedStatusChan bool
 
 	metrics operationExecutionMetrics
 }
@@ -100,7 +101,7 @@ func newOperationExecution(
 // sendStatusSafe sends a clone of the current status to the channel to avoid sharing the same pointer.
 // It the statusChan is closed, the status is not sent.
 func (e *operationExecution) sendStatusSafe() {
-	if e.statusChan == nil {
+	if e.closedStatusChan {
 		return
 	}
 
@@ -175,7 +176,10 @@ func (e *operationExecution) runReportStatus(ctx context.Context) {
 		err := e.reporter.UpdateOperationStatus(ctx, e.id, status)
 		if err != nil {
 			e.l.Error(ctx, "Failed to report status", log.Error(err))
+			continue
 		}
+
+		e.l.Info(ctx, "Reported status", log.Any("status", status))
 	}
 }
 
@@ -228,14 +232,18 @@ func (e *operationExecution) Run(ctx context.Context) {
 	_ = g.Wait()
 }
 
-func (e *operationExecution) closeStatusChan() {
+func (e *operationExecution) closeStatusChanSafe() {
+	if e.closedStatusChan {
+		return
+	}
+
 	close(e.statusChan)
-	e.statusChan = nil
+	e.closedStatusChan = true
 }
 
-func (e *operationExecution) maybeCloseStatusChan() {
+func (e *operationExecution) maybeCloseStatusChanSafe() {
 	if cpo_models.IsTerminalState(e.status.State) {
-		e.closeStatusChan()
+		e.closeStatusChanSafe()
 	}
 }
 
@@ -244,12 +252,12 @@ func (e *operationExecution) failOperation(operationError error) {
 	e.status.Timestamp = timestamppb.Now()
 	e.status.State = cpo_proto.OperationState_Failed
 	e.sendStatusSafe()
-	e.closeStatusChan()
+	e.closeStatusChanSafe()
 }
 
 func (e *operationExecution) updateState(state cpo_proto.OperationState) {
 	e.status.State = state
 	e.status.Timestamp = timestamppb.Now()
 	e.sendStatusSafe()
-	e.maybeCloseStatusChan()
+	e.maybeCloseStatusChanSafe()
 }

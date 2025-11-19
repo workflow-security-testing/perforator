@@ -53,14 +53,12 @@ func createOperationExecution(l xlog.Logger, reg metrics.Registry, profiler *pro
 		return nil, errors.New("operation is already in a terminal state")
 	}
 
-	logger := l.With(log.String("operation_id", string(operation.ID)))
-
-	controller, err := newOperationController(logger, profiler, operation.ID, operation.Spec)
+	controller, err := newOperationController(l, profiler, operation.ID, operation.Spec)
 	if err != nil {
 		return nil, err
 	}
 
-	execution, err := newOperationExecution(logger, reg, operation.ID, controller, reporter, operation.Spec.TimeInterval)
+	execution, err := newOperationExecution(l, reg, operation.ID, controller, reporter, operation.Spec.TimeInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -78,12 +76,14 @@ func (r *registry) Ensure(ctx context.Context, operation *cpo_proto.Operation) (
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	logger := r.l.With(log.String("operation_id", string(operation.ID)))
+
 	currentExecution, ok := r.executions[operation.ID]
 	if ok {
 		return currentExecution.cancelExecutionCtx, nil
 	}
 
-	operationExecution, err := createOperationExecution(r.l, r.reg, r.profiler, r.reporter, operation)
+	operationExecution, err := createOperationExecution(logger, r.reg, r.profiler, r.reporter, operation)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +99,7 @@ func (r *registry) Ensure(ctx context.Context, operation *cpo_proto.Operation) (
 	go func() {
 		operationExecution.Run(executionCtx)
 		r.releaseExecution(id)
+		logger.Info(ctx, "Removed operation execution from registry")
 	}()
 
 	return executionCtxCancel, nil
