@@ -53,7 +53,7 @@ func (s *APIService) GetClusterTopAggregatedByService(ctx context.Context, req *
 		return nil, status.Errorf(codes.InvalidArgument, "For service aggregation must provide non-empty function search pattern")
 	}
 
-	return s.clusterTopGenerationStorage.AggregateClusterTop(ctx, req.GetGeneration(), req.GetFunctionPattern(), aggregated.GroupByFunction)
+	return s.clusterTopGenerationStorage.AggregateClusterTop(ctx, req.GetGeneration(), req.GetFunctionPattern(), aggregated.GroupByService)
 }
 
 // ListClusterTopGenerations implements perforator.ListClusterTopGenerations
