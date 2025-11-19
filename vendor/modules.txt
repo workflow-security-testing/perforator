@@ -19524,8 +19524,8 @@ google.golang.org/grpc/security/advancedtls/testdata
 # google.golang.org/grpc/stats/opencensus v1.0.0
 ## explicit; go 1.17
 google.golang.org/grpc/stats/opencensus
-# google.golang.org/protobuf v1.36.6
-## explicit; go 1.22
+# google.golang.org/protobuf v1.36.10
+## explicit; go 1.23
 google.golang.org/protobuf
 google.golang.org/protobuf/cmd/protoc-gen-go
 google.golang.org/protobuf/cmd/protoc-gen-go/builder_test
@@ -19535,6 +19535,8 @@ google.golang.org/protobuf/cmd/protoc-gen-go/name_clash_test
 google.golang.org/protobuf/cmd/protoc-gen-go/opaque_default_test
 google.golang.org/protobuf/cmd/protoc-gen-go/opaque_map_test
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/enumprefix
+google.golang.org/protobuf/cmd/protoc-gen-go/testdata/import_option
+google.golang.org/protobuf/cmd/protoc-gen-go/testdata/import_option_custom
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/nameclash/test_name_clash_hybrid
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/nameclash/test_name_clash_hybrid3
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/nameclash/test_name_clash_opaque
@@ -19542,6 +19544,7 @@ google.golang.org/protobuf/cmd/protoc-gen-go/testdata/nameclash/test_name_clash_
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/nameclash/test_name_clash_open
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/nameclash/test_name_clash_open3
 google.golang.org/protobuf/cmd/protoc-gen-go/testdata/retention
+google.golang.org/protobuf/cmd/protoc-gen-go/testdata/visibility
 google.golang.org/protobuf/compiler/protogen
 google.golang.org/protobuf/encoding
 google.golang.org/protobuf/encoding/protodelim
