@@ -13,6 +13,12 @@ from build.plugins.lib.nots.package_manager import (
     PackageJson,
     utils as pm_utils,
 )
+from build.plugins.lib.nots.package_manager.base.constants import (
+    NODE_MODULES_DIRNAME,
+)
+from build.plugins.lib.nots.package_manager.pnpm.constants import (
+    VIRTUAL_STORE_DIRNAME,
+)
 from build.plugins.lib.nots.typescript import TsConfig
 from devtools.frontend_build_platform.libraries.logging import timeit
 from ..models import BuildError, CommonBuildersOptions, CommonTsBuildersOptions
@@ -127,7 +133,17 @@ class BaseBuilder(object):
         # Set directory with the `node` executable as the PATH
         env['PATH'] = os.path.dirname(self.options.nodejs_bin)
 
-        env['NODE_PATH'] = pm_utils.build_nm_path(self.options.bindir)
+        bindir_node_modules_path = os.path.join(self.options.bindir, NODE_MODULES_DIRNAME)
+        node_path = [
+            os.path.join(
+                pm_utils.build_vs_store_path(self.options.arcadia_build_root, self.options.moddir), NODE_MODULES_DIRNAME
+            ),
+            # TODO: remove - no longer needed
+            os.path.join(bindir_node_modules_path, VIRTUAL_STORE_DIRNAME, NODE_MODULES_DIRNAME),
+            bindir_node_modules_path,
+        ]
+
+        env['NODE_PATH'] = os.pathsep.join(node_path)
 
         return env
 
