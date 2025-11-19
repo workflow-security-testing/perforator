@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-10-21T11:47:08Z",
+    "created": "2025-11-19T18:19:22Z",
     "pr": {
-      "id": 9961292,
-      "author": "khoden",
-      "summary": "FBP-2517: nots/builder: Убрать слишком подробный трейсинг рекурсивного копирования"
+      "id": 10741366,
+      "author": "vturov",
+      "summary": "FBP-2508: feature: prepare node paths for external virtual store"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10057919999"
+      "uri": "sbr:10334096155"
     },
     "darwin-arm64": {
-      "uri": "sbr:10057916635"
+      "uri": "sbr:10334093841"
     },
     "linux": {
-      "uri": "sbr:10057926803"
+      "uri": "sbr:10334100843"
     },
     "linux-aarch64": {
-      "uri": "sbr:10057923083"
+      "uri": "sbr:10334098654"
     }
   }
 }
