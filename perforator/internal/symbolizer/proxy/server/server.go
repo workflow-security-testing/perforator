@@ -62,6 +62,7 @@ import (
 	blob "github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/s3"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
+	clustertop "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
@@ -130,12 +131,13 @@ type PerforatorServer struct {
 	reg  xmetrics.Registry
 	auth *auth.Provider
 
-	microscopeStorage microscope.Storage
-	profileStorage    profilestorage.Storage
-	renderedProfiles  blob.Storage
-	bannedUsers       *BannedUsersRegistry
-	tasks             asynctask.TaskService
-	tasksemaphore     *semaphore.Weighted
+	microscopeStorage           microscope.Storage
+	profileStorage              profilestorage.Storage
+	clusterTopGenerationStorage clustertop.Storage
+	renderedProfiles            blob.Storage
+	bannedUsers                 *BannedUsersRegistry
+	tasks                       asynctask.TaskService
+	tasksemaphore               *semaphore.Weighted
 
 	downloader *downloader.Downloader
 	httpclient *resty.Client
@@ -316,26 +318,27 @@ func NewPerforatorServer(
 	healthgrpc.RegisterHealthServer(grpcServer, healthServer)
 
 	server = &PerforatorServer{
-		l:                      l,
-		c:                      conf,
-		reg:                    reg,
-		microscopeStorage:      storageBundle.MicroscopeStorage,
-		profileStorage:         storageBundle.ProfileStorage,
-		renderedProfiles:       renderedProfiles,
-		bannedUsers:            bannedUsers,
-		tasks:                  storageBundle.TaskStorage,
-		tasksemaphore:          semaphore.NewWeighted(conf.Tasks.ConcurrencyLimit),
-		httpclient:             resty.New().SetTimeout(time.Hour).SetRetryCount(3),
-		downloader:             downloaderInstance,
-		llvmTools:              llvmTools,
-		symbolizer:             symbolizer,
-		mergemanager:           mergemanager,
-		bpClient:               bpClient,
-		grpcServer:             grpcServer,
-		httpRouter:             httpr,
-		healthServer:           healthServer,
-		otelShutdown:           shutdown,
-		additionalGrpcServices: additionalGrpcServices,
+		l:                           l,
+		c:                           conf,
+		reg:                         reg,
+		microscopeStorage:           storageBundle.MicroscopeStorage,
+		profileStorage:              storageBundle.ProfileStorage,
+		clusterTopGenerationStorage: storageBundle.ClusterTopGenerationsStorage,
+		renderedProfiles:            renderedProfiles,
+		bannedUsers:                 bannedUsers,
+		tasks:                       storageBundle.TaskStorage,
+		tasksemaphore:               semaphore.NewWeighted(conf.Tasks.ConcurrencyLimit),
+		httpclient:                  resty.New().SetTimeout(time.Hour).SetRetryCount(3),
+		downloader:                  downloaderInstance,
+		llvmTools:                   llvmTools,
+		symbolizer:                  symbolizer,
+		mergemanager:                mergemanager,
+		bpClient:                    bpClient,
+		grpcServer:                  grpcServer,
+		httpRouter:                  httpr,
+		healthServer:                healthServer,
+		otelShutdown:                shutdown,
+		additionalGrpcServices:      additionalGrpcServices,
 	}
 
 	mux := runtime.NewServeMux()
@@ -356,6 +359,9 @@ func NewPerforatorServer(
 	for _, service := range server.additionalGrpcServices {
 		if err := service.Register(server.grpcServer); err != nil {
 			return nil, fmt.Errorf("failed to register grpc service: %w", err)
+		}
+		if err := service.RegisterHandler(ctx, mux); err != nil {
+			return nil, err
 		}
 	}
 

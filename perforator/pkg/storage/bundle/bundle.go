@@ -10,6 +10,8 @@ import (
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarycompound "github.com/yandex/perforator/perforator/pkg/storage/binary/compound"
+	clustertop "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
+	clustertop_factory "github.com/yandex/perforator/perforator/pkg/storage/cluster_top/factory"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	cpo_factory "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation/factory"
 	"github.com/yandex/perforator/perforator/pkg/storage/databases"
@@ -38,6 +40,7 @@ type StorageBundle struct {
 	MicroscopeStorage               microscope.Storage
 	TaskStorage                     asynctask.TaskService
 	CustomProfilingOperationStorage custom_profiling_operation.Storage
+	ClusterTopGenerationsStorage    clustertop.Storage
 }
 
 // bgCtx should be valid for as long as databases are used
@@ -119,6 +122,19 @@ func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger,
 		}
 	}
 
+	if c.ClusterTopStorage != nil {
+		opts, err := res.createOptsFromClusterTopGenerationsStorageType(*c.ClusterTopStorage)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create cluster top storage options: %w", err)
+		}
+
+		res.ClusterTopGenerationsStorage, err = clustertop_factory.NewStorage(l, opts...)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to init cluster top storage: %w", err)
+		}
+	}
+
 	if c.TaskStorage != nil {
 		opts, err := res.createOptsFromTasksStorageType(c.TaskStorage.StorageType)
 		if err != nil {
@@ -181,6 +197,23 @@ func (b *StorageBundle) createCPOStorageOpts(storageType custom_profiling_operat
 		}
 
 		opts = append(opts, cpo_factory.WithPostgresCluster(b.DBs.PostgresCluster))
+	}
+
+	return opts, nil
+}
+
+func (b *StorageBundle) createOptsFromClusterTopGenerationsStorageType(config clustertop.Config) ([]clustertop_factory.Option, error) {
+	opts := []clustertop_factory.Option{}
+	switch config.GenerationsStorage {
+	case clustertop.Postgres:
+		if b.DBs.PostgresCluster == nil {
+			return nil, ErrPostgresClusterNotSpecified
+		}
+		if b.DBs.ClickhouseConn == nil {
+			return nil, ErrClickhouseConnNotSpecified
+		}
+
+		opts = append(opts, clustertop_factory.WithPostgresCluster(b.DBs.PostgresCluster), clustertop_factory.WithClickhouseConnection(b.DBs.ClickhouseConn))
 	}
 
 	return opts, nil

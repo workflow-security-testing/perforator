@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/gofrs/uuid"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -52,6 +53,10 @@ func NewService(
 
 func (s *APIService) Register(server *grpc.Server) error {
 	perforator_proto.RegisterCustomProfilingOperationAPIServer(server, s)
+	return nil
+}
+
+func (s *APIService) RegisterHandler(ctx context.Context, mux *runtime.ServeMux) error {
 	return nil
 }
 

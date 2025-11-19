@@ -2,10 +2,9 @@ package cluster_top
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	cluster_top_storage "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
 )
 
 type clickhouseRow struct {
@@ -17,49 +16,21 @@ type clickhouseRow struct {
 }
 
 type ClickhousePerfTopAggregator struct {
-	clickhouseConn driver.Conn
+	aggregatedStorage cluster_top_storage.Storage
 }
 
 const kMaxFunctionNameLength = 512
 
 func (a *ClickhousePerfTopAggregator) Save(ctx context.Context, servicePerfTop *ServicePerfTop) error {
-	batch, err := a.clickhouseConn.PrepareBatch(
-		ctx,
-		"INSERT INTO cluster_top(generation, service, function, self_cycles, cumulative_cycles)",
-	)
-	if err != nil {
-		return fmt.Errorf("failed to prepare clickhouse batch: %w", err)
-	}
-
-	defer func() { _ = batch.Abort() }()
-
-	for _, function := range servicePerfTop.Functions {
-		lengthLimitedFunctionName := function.Name
-		if len(lengthLimitedFunctionName) > kMaxFunctionNameLength {
-			lengthLimitedFunctionName = lengthLimitedFunctionName[:kMaxFunctionNameLength]
-		}
-		clickhouseRow := clickhouseRow{
-			Generation:       servicePerfTop.Generation,
-			Service:          servicePerfTop.ServiceName,
-			Function:         lengthLimitedFunctionName,
-			SelfCycles:       function.SelfCycles,
-			CumulativeCycles: function.CumulativeCycles,
-		}
-		err := batch.AppendStruct(&clickhouseRow)
-		if err != nil {
-			return fmt.Errorf("failed to serialize clickhouse row: %w", err)
-		}
-	}
-
-	return batch.Send()
+	return a.aggregatedStorage.SaveClusterTopEntry(ctx, servicePerfTop)
 }
 
 func (a *ClickhousePerfTopAggregator) Print(context.Context) error {
 	return nil
 }
 
-func NewClickhousePerfTopAggregator(clickhouseConn driver.Conn) *ClickhousePerfTopAggregator {
+func NewClickhousePerfTopAggregator(aggregatedStorage cluster_top_storage.Storage) *ClickhousePerfTopAggregator {
 	return &ClickhousePerfTopAggregator{
-		clickhouseConn: clickhouseConn,
+		aggregatedStorage: aggregatedStorage,
 	}
 }

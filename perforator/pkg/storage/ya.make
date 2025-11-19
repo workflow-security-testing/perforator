@@ -11,4 +11,5 @@ RECURSE(
     storage
     tvm
     util
+    cluster_top
 )

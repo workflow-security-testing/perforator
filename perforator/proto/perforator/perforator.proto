@@ -60,6 +60,26 @@ service Perforator {
     }
 }
 
+service ClusterTop {
+    rpc GetClusterTopAggregatedByFunction(ClusterTopRequest) returns (ClusterTopResponse) {
+        option (google.api.http) = {
+            get: "/api/v0/top/functions"
+        };
+    }
+
+     rpc GetClusterTopAggregatedByService(ClusterTopRequest) returns (ClusterTopResponse) {
+        option (google.api.http) = {
+            get: "/api/v0/top/service"
+        };
+     }
+
+     rpc ListClusterTopGenerations(ListClusterTopGenerationRequest) returns (ListClusterTopGenerationResponse) {
+        option (google.api.http) = {
+            get: "/api/v0/top/generations"
+        };
+     }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 message SortOrder {
@@ -182,6 +202,51 @@ message GetProfileResponse {
     // Profile metainformation.
     ProfileMeta ProfileMeta = 2;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+message ClusterTopRequest {
+  optional string ServicePattern = 1;
+  optional string FunctionPattern = 2;
+  // sequential generation number
+  uint32 Generation = 3;
+  // cpu_cycles or cumulative_cycles
+  string OrderBy = 4;
+  NPerforator.NProto.NPagination.Paginated Pagination = 5;
+}
+
+message ClusterTopEntry {
+  string Name = 1;
+  ClusterTopCount Count = 2;
+}
+
+message ClusterTopResponse {
+  repeated ClusterTopEntry Instances = 1;
+}
+
+message ClusterTopCount {
+  // Cpu-hours
+  double Self = 1;
+  // Cpu-hours
+  double Cumulative = 2;
+}
+
+message ListClusterTopGenerationRequest {}
+
+message ClusterTopGeneration {
+    // sequential generation number
+    uint32 ID = 1;
+    google.protobuf.Timestamp From = 2;
+    google.protobuf.Timestamp To = 3;
+}
+
+message ListClusterTopGenerationResponse {
+    repeated ClusterTopGeneration Generations = 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -87,7 +87,7 @@ var (
 
 			serviceSelector := cluster_top.NewPgServiceSelector(storageBundle.DBs.PostgresCluster)
 
-			clusterPerfTopAggregator := cluster_top.NewClickhousePerfTopAggregator(storageBundle.DBs.ClickhouseConn)
+			clusterPerfTopAggregator := cluster_top.NewClickhousePerfTopAggregator(storageBundle.ClusterTopGenerationsStorage)
 
 			return clusterTop.Run(
 				ctx,

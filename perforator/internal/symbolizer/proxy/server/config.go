@@ -71,6 +71,7 @@ type ProfileMergerConfig struct {
 
 type FeaturesConfig struct {
 	EnableCPOExperimental     *bool `yaml:"enable_custom_profiling_operation"`
+	EnableClusterTopService   *bool `yaml:"enable_cluster_top"`
 	EnableNewProfileMerger    *bool `yaml:"enable_new_profile_merger"`
 	EnableRemoteSymbolization *bool `yaml:"enable_remote_symbolization"`
 }
@@ -78,6 +79,9 @@ type FeaturesConfig struct {
 func (c *FeaturesConfig) FillDefault() {
 	if c.EnableCPOExperimental == nil {
 		c.EnableCPOExperimental = ptr.Bool(false)
+	}
+	if c.EnableClusterTopService == nil {
+		c.EnableClusterTopService = ptr.Bool(false)
 	}
 	if c.EnableNewProfileMerger == nil {
 		c.EnableNewProfileMerger = ptr.Bool(false)

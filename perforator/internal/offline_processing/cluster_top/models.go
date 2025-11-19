@@ -2,8 +2,9 @@ package cluster_top
 
 import (
 	"context"
-	"math/big"
 	"time"
+
+	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
 )
 
 type TimeRange struct {
@@ -25,18 +26,9 @@ type ServiceSelector interface {
 	SelectService(ctx context.Context, heavy bool) (ServiceProcessingHandler, error)
 }
 
-type Function struct {
-	Name             string
-	SelfCycles       big.Int
-	CumulativeCycles big.Int
-}
+type Function = aggregated.Function
 
-type ServicePerfTop struct {
-	Generation  int
-	ServiceName string
-
-	Functions []Function
-}
+type ServicePerfTop = aggregated.ServicePerfTop
 
 type ClusterPerfTopAggregator interface {
 	Save(ctx context.Context, servicePerfTop *ServicePerfTop) error

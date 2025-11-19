@@ -149,6 +149,7 @@ func NewWebService(
 
 	perforator.RegisterPerforatorServer(service.grpcServer, service)
 	perforator.RegisterTaskServiceServer(service.grpcServer, service)
+	perforator.RegisterClusterTopServer(service.grpcServer, service)
 	perforator.RegisterMicroscopeServiceServer(service.grpcServer, service)
 	reflection.Register(service.grpcServer)
 

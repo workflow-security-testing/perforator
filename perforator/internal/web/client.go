@@ -32,6 +32,7 @@ type Client struct {
 	client            perforator.PerforatorClient
 	microscopesClient perforator.MicroscopeServiceClient
 	taskClient        perforator.TaskServiceClient
+	clusterTopClient  perforator.ClusterTopClient
 }
 
 func NewClient(cfg *ClientConfig, l xlog.Logger) (*Client, error) {
@@ -59,6 +60,7 @@ func NewClient(cfg *ClientConfig, l xlog.Logger) (*Client, error) {
 		client:            perforator.NewPerforatorClient(conn),
 		microscopesClient: perforator.NewMicroscopeServiceClient(conn),
 		taskClient:        perforator.NewTaskServiceClient(conn),
+		clusterTopClient:  perforator.NewClusterTopClient(conn),
 	}, nil
 }
 

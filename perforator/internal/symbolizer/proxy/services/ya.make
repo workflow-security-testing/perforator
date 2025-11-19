@@ -8,4 +8,5 @@ END()
 
 RECURSE(
     custom_profiling_operation
+    cluster_top
 )
