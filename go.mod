@@ -337,6 +337,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/eapache/channels v1.1.0
 	github.com/eclipse/paho.golang v0.22.0
+	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/elastic/go-elasticsearch/v7 v7.17.1
 	github.com/elimity-com/scim v0.0.0-20220121082953-15165b1a61c8
 	github.com/emersion/go-imap v1.2.1

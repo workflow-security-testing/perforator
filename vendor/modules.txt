@@ -6595,6 +6595,18 @@ github.com/eclipse/paho.golang/paho/session
 github.com/eclipse/paho.golang/paho/session/state
 github.com/eclipse/paho.golang/paho/store/file
 github.com/eclipse/paho.golang/paho/store/memory
+# github.com/eclipse/paho.mqtt.golang v1.5.1
+## explicit; go 1.24.0
+github.com/eclipse/paho.mqtt.golang
+github.com/eclipse/paho.mqtt.golang/cmd/custom_store
+github.com/eclipse/paho.mqtt.golang/cmd/httpproxy
+github.com/eclipse/paho.mqtt.golang/cmd/routing
+github.com/eclipse/paho.mqtt.golang/cmd/sample
+github.com/eclipse/paho.mqtt.golang/cmd/simple
+github.com/eclipse/paho.mqtt.golang/cmd/ssl
+github.com/eclipse/paho.mqtt.golang/cmd/stdinpub
+github.com/eclipse/paho.mqtt.golang/cmd/stdoutsub
+github.com/eclipse/paho.mqtt.golang/packets
 # github.com/edsrzf/mmap-go v1.2.0
 ## explicit; go 1.17
 github.com/edsrzf/mmap-go
