@@ -1,4 +1,5 @@
 RECURSE(
+    analysis
     unwind
     jvmattach
 )

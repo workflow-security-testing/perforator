@@ -33,7 +33,7 @@ class Main {
     }
 
     void bar(int x) {
-        Native.unwindIfZero0(x);
+        new Unwinder().unwindIfZero(x);
     }
 
 

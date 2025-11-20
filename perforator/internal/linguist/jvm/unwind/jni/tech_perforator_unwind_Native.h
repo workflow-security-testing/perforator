@@ -10,18 +10,26 @@ extern "C" {
 /*
  * Class:     tech_perforator_unwind_Native
  * Method:    unwind0
- * Signature: ()V
+ * Signature: (J)V
  */
 JNIEXPORT void JNICALL Java_tech_perforator_unwind_Native_unwind0
-  (JNIEnv *, jclass);
+  (JNIEnv *, jclass, jlong);
 
 /*
  * Class:     tech_perforator_unwind_Native
  * Method:    unwindIfZero0
- * Signature: (I)V
+ * Signature: (JI)V
  */
 JNIEXPORT void JNICALL Java_tech_perforator_unwind_Native_unwindIfZero0
-  (JNIEnv *, jclass, jint);
+  (JNIEnv *, jclass, jlong, jint);
+
+/*
+ * Class:     tech_perforator_unwind_Native
+ * Method:    make0
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_tech_perforator_unwind_Native_make0
+  (JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

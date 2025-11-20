@@ -14,6 +14,10 @@ ELSE()
 
 ENDIF()
 
+PEERDIR(
+    perforator/internal/linguist/jvm/analysis
+)
+
 # TODO: get rid of this
 NO_COMPILER_WARNINGS()
 

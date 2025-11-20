@@ -56,19 +56,19 @@ struct TGrowableArrayPtr {
 
 
 class TShadow {
-    NPerforator::NLinguist::NJvm::TJvmVersionInfo Layout_;
+    NPerforator::NLinguist::NJvm::TJvmInfo Layout_;
 private:
     size_t NextSegment(TCodeHeapPtr heap) {
-        return *reinterpret_cast<const size_t*>(reinterpret_cast<const char*>(heap.P) + Layout_.CodeHeapLayout.NextSegmentFieldOffset);
+        return *reinterpret_cast<const size_t*>(reinterpret_cast<const char*>(heap.P) + Layout_.CodeHeapNextSegmentFieldOffset);
     }
 
     size_t Log2SegmentSize(TCodeHeapPtr heap) {
-        return *reinterpret_cast<const int*>(reinterpret_cast<const char*>(heap.P) + Layout_.CodeHeapLayout.Log2SegmentSizeFieldOffset);
+        return *reinterpret_cast<const int*>(reinterpret_cast<const char*>(heap.P) + Layout_.Analysis.CodeHeapLayout.Log2SegmentSizeFieldOffset);
     }
 
     const char* MemoryLow(TCodeHeapPtr heap) {
-        const char* heapMemory = (reinterpret_cast<const char*>(heap.P) + Layout_.CodeHeapLayout.MemoryFieldOffset);
-        return *reinterpret_cast<char const* const*>(heapMemory + Layout_.VirtualSpaceLayout.LowFieldOffset);
+        const char* heapMemory = (reinterpret_cast<const char*>(heap.P) + Layout_.Analysis.CodeHeapLayout.MemoryFieldOffset);
+        return *reinterpret_cast<char const* const*>(heapMemory + Layout_.Analysis.VirtualSpaceLayout.LowFieldOffset);
     }
 
     THeapBlockPtr BlockAt(TCodeHeapPtr heap, size_t i) {
@@ -83,15 +83,15 @@ private:
     }
 
     uint32_t BlockLength(THeapBlockPtr block) {
-        return *reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(block.P) + Layout_.HeapBlockLayout.HeaderFieldOffset + Layout_.HeapBlockHeaderLayout.LengthFieldOffset);
+        return *reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(block.P) + Layout_.Analysis.HeapBlockLayout.HeaderFieldOffset + Layout_.Analysis.HeapBlockHeaderLayout.LengthFieldOffset);
     }
 
     bool BlockUsed(THeapBlockPtr block) {
-        return *reinterpret_cast<const bool*>(reinterpret_cast<const char*>(block.P) + Layout_.HeapBlockLayout.HeaderFieldOffset + Layout_.HeapBlockHeaderLayout.UsedFieldOffset);
+        return *reinterpret_cast<const bool*>(reinterpret_cast<const char*>(block.P) + Layout_.Analysis.HeapBlockLayout.HeaderFieldOffset + Layout_.Analysis.HeapBlockHeaderLayout.UsedFieldOffset);
     }
 
 public:
-    TShadow(NPerforator::NLinguist::NJvm::TJvmVersionInfo layout) : Layout_(layout) {}
+    TShadow(NPerforator::NLinguist::NJvm::TJvmInfo layout) : Layout_(layout) {}
     THeapBlockPtr FirstBlock(TCodeHeapPtr heap) {
         if (0 < NextSegment(heap)) {
             return BlockAt(heap, 0);
@@ -121,28 +121,28 @@ public:
     }
 
     TCodeBlobPtr AllocatedSpace(THeapBlockPtr block) {
-        return TCodeBlobPtr{.P = reinterpret_cast<const char*>(block.P) + Layout_.HeapBlockLayout.AllocatedSpaceOffset};
+        return TCodeBlobPtr{.P = reinterpret_cast<const char*>(block.P) + Layout_.Analysis.HeapBlockLayout.AllocatedSpaceOffset};
     }
 
     uintptr_t CodeBegin(TCodeBlobPtr blob) {
-        int offset = *reinterpret_cast<const int*>(reinterpret_cast<const char*>(blob.P) + Layout_.CodeBlobLayout.CodeOffsetFieldOffset);
+        int offset = *reinterpret_cast<const int*>(reinterpret_cast<const char*>(blob.P) + Layout_.Analysis.CodeBlobLayout.CodeOffsetFieldOffset);
         uintptr_t res = reinterpret_cast<uintptr_t>(blob.P) + offset;
         return res;
     }
 
     uintptr_t CodeEnd(TCodeBlobPtr blob) {
-        int offset = *reinterpret_cast<const int*>(reinterpret_cast<const char*>(blob.P) + Layout_.CodeBlobLayout.DataOffsetFieldOffset);
+        int offset = *reinterpret_cast<const int*>(reinterpret_cast<const char*>(blob.P) + Layout_.Analysis.CodeBlobLayout.DataOffsetFieldOffset);
         return reinterpret_cast<uintptr_t>(blob.P) + offset;
     }
 
     const char* CodeBlobName(TCodeBlobPtr blob) {
-        return *reinterpret_cast<char const* const*>(reinterpret_cast<const char*>(blob.P) + Layout_.CodeBlobLayout.NameFieldOffset);
+        return *reinterpret_cast<char const* const*>(reinterpret_cast<const char*>(blob.P) + Layout_.Analysis.CodeBlobLayout.NameFieldOffset);
     }
 
 private:
     std::string StringifySymbol(TSymbolPtr symbol) {
-        ui16 length = *reinterpret_cast<const ui16*>(reinterpret_cast<const char*>(symbol.P) + Layout_.SymbolLayout.LengthFieldOffset);
-        const ui8* bytes = reinterpret_cast<const ui8*>(symbol.P) + Layout_.SymbolLayout.BodyFieldOffset;
+        ui16 length = *reinterpret_cast<const ui16*>(reinterpret_cast<const char*>(symbol.P) + Layout_.Analysis.SymbolLayout.LengthFieldOffset);
+        const ui8* bytes = reinterpret_cast<const ui8*>(symbol.P) + Layout_.Analysis.SymbolLayout.BodyFieldOffset;
         std::basic_string_view sv{bytes, length};
         std::string s;
         for (ui8 c : sv) {
@@ -152,41 +152,44 @@ private:
     }
 
     const char* GetConstantFromPool(const char* constantPool, size_t index) {
-        const char* addr = constantPool + Layout_.ConstantPoolLayout.BaseOffset + index * sizeof(void*);
+        const char* addr = constantPool + Layout_.Analysis.ConstantPoolLayout.BaseOffset + index * sizeof(void*);
         return *reinterpret_cast<char const* const*>(addr);
     }
 
 public:
     TMethodPtr GetMethod(TNmethodPtr nmethod) {
         return TMethodPtr{
-            .P = *reinterpret_cast<void const* const*>(reinterpret_cast<const char*>(nmethod.P) + Layout_.NmethodLayout.MethodFieldOffset)
+            .P = *reinterpret_cast<void const* const*>(reinterpret_cast<const char*>(nmethod.P) + Layout_.Analysis.NmethodLayout.MethodFieldOffset)
         };
     }
 
     std::string MethodName(TMethodPtr method) {
-        const char* constMethod = *reinterpret_cast<char const* const*>(reinterpret_cast<const char*>(method.P) + Layout_.MethodLayout.ConstMethodFieldOffset);
-        const char* constantPool = *reinterpret_cast<char const* const*>(constMethod + Layout_.ConstMethodLayout.ConstantsFieldOffset);
-        ui16 nameIndex = *reinterpret_cast<ui16 const*>(constMethod + Layout_.ConstMethodLayout.NameIndexFieldOffset);
+        const char* constMethod = *reinterpret_cast<char const* const*>(reinterpret_cast<const char*>(method.P) + Layout_.Analysis.MethodLayout.ConstMethodFieldOffset);
+        const char* constantPool = *reinterpret_cast<char const* const*>(constMethod + Layout_.Analysis.ConstMethodLayout.ConstantsFieldOffset);
+        ui16 nameIndex = *reinterpret_cast<ui16 const*>(constMethod + Layout_.Analysis.ConstMethodLayout.NameIndexFieldOffset);
+        Cerr << "Method name index: " << nameIndex << Endl;
         const char* nameSym = GetConstantFromPool(constantPool, nameIndex);
+        Cerr << "Method name symbol: " << SHex(reinterpret_cast<uintptr_t>(nameSym)) << Endl;
         std::string selfName = StringifySymbol(TSymbolPtr{.P = nameSym});
-        const char* poolHolder = *reinterpret_cast<char const* const*>(constantPool + Layout_.ConstantPoolLayout.PoolHolderFieldOffset);
-        const char* klassNameSym = *reinterpret_cast<char const* const*>(poolHolder + Layout_.KlassLayout.NameFieldOffset);
+        const char* poolHolder = *reinterpret_cast<char const* const*>(constantPool + Layout_.Analysis.ConstantPoolLayout.PoolHolderFieldOffset);
+        const char* klassNameSym = *reinterpret_cast<char const* const*>(poolHolder + Layout_.Analysis.KlassLayout.NameFieldOffset);
+        Cerr << "Class name symbol: " << SHex(reinterpret_cast<uintptr_t>(klassNameSym)) << Endl;
         std::string klassName = StringifySymbol(TSymbolPtr{.P = klassNameSym});
         return klassName + '.' + selfName;
     }
 
     uintptr_t StubQueueCodeBegin(TStubQueuePtr queue) {
-        return *reinterpret_cast<uintptr_t const*>(reinterpret_cast<const char*>(queue.P) + Layout_.StubQueueLayout.StubBufferFieldOffset);
+        return *reinterpret_cast<uintptr_t const*>(reinterpret_cast<const char*>(queue.P) + Layout_.Analysis.StubQueueLayout.StubBufferFieldOffset);
     }
 
     size_t StubQueueCodeSize(TStubQueuePtr queue) {
-        return *reinterpret_cast<const int*>(reinterpret_cast<const char*>(queue.P) + Layout_.StubQueueLayout.BufferLimitFieldOffset);
+        return *reinterpret_cast<const int*>(reinterpret_cast<const char*>(queue.P) + Layout_.Analysis.StubQueueLayout.BufferLimitFieldOffset);
     }
 
     template<typename T>
     std::span<const T> ArrayData(TGrowableArrayPtr array) {
-        const T* data = *reinterpret_cast<T const* const*>(reinterpret_cast<const char*>(array.P) + Layout_.GrowableArrayLayout.DataFieldOffset);
-        size_t size = *reinterpret_cast<const int*>(reinterpret_cast<const char*>(array.P) + Layout_.GrowableArrayLayout.LenFieldOffset);
+        const T* data = *reinterpret_cast<T const* const*>(reinterpret_cast<const char*>(array.P) + Layout_.Analysis.GrowableArrayLayout.DataFieldOffset);
+        size_t size = *reinterpret_cast<const int*>(reinterpret_cast<const char*>(array.P) + Layout_.Analysis.GrowableArrayLayout.LenFieldOffset);
         return std::span<const T>(data, size);
     }
 
@@ -243,12 +246,12 @@ struct TJvmInfo {
         TMaybe<THashMap<TStringBuf, NPerforator::NELF::TLocation>> symbols = NPerforator::NELF::RetrieveSymbolsFromSymtab(
             *elf,
             NPerforator::NLinguist::NJvm::TVMStructsAddresses::StructsAddressSym,
-            NPerforator::NLinguist::NJvm::TVMStructsAddresses::StructsLengthSym,
-            NPerforator::NLinguist::NJvm::TVMStructsAddresses::TypesAddressSym,
-            NPerforator::NLinguist::NJvm::TVMStructsAddresses::TypesLengthSym
+            //NPerforator::NLinguist::NJvm::TVMStructsAddresses::StructsLengthSym,
+            NPerforator::NLinguist::NJvm::TVMStructsAddresses::TypesAddressSym//,
+            //NPerforator::NLinguist::NJvm::TVMStructsAddresses::TypesLengthSym
         );
         Y_ABORT_UNLESS(symbols.Defined());
-        Y_ABORT_UNLESS(symbols->size() == 4);
+        Y_ABORT_UNLESS(symbols->size() == 2);
         NPerforator::NLinguist::NJvm::TVMStructsAddresses addresses;
         auto getOffset = [&symbols, &libjvm](const TStringBuf& name) {
             uintptr_t address = libjvm.Base + symbols->at(name).Address;
@@ -256,14 +259,15 @@ struct TJvmInfo {
             return reinterpret_cast<void*>(address);
         };
         addresses.StructsAddress = getOffset(NPerforator::NLinguist::NJvm::TVMStructsAddresses::StructsAddressSym);
-        addresses.StructsLength = reinterpret_cast<size_t(*)()>(getOffset(NPerforator::NLinguist::NJvm::TVMStructsAddresses::StructsLengthSym))();
         addresses.TypesAddress = getOffset(NPerforator::NLinguist::NJvm::TVMStructsAddresses::TypesAddressSym);
-        addresses.TypesLength = reinterpret_cast<size_t(*)()>(getOffset(NPerforator::NLinguist::NJvm::TVMStructsAddresses::TypesLengthSym))();
 
-        NPerforator::NLinguist::NJvm::TJvmVersionInfo access = NPerforator::NLinguist::NJvm::GetFromVMStructs(addresses);
+        NPerforator::NLinguist::NJvm::TJvmInfo access = NPerforator::NLinguist::NJvm::GetFromVMStructs(addresses);
+        Cout << "Interpteter code pointer address: " << SHex(access.Analysis.AbstractInterpreterCodeAddress) << Endl;
+
         TShadow shadow{access};
 
-        const void* heapsAddress = *reinterpret_cast<void const* const*>(access.CodeCacheHeapsAddress);
+
+        const void* heapsAddress = *reinterpret_cast<void const* const*>(access.Analysis.CodeCacheHeapsAddress);
         std::span<const TCodeHeapPtr> heaps = shadow.ArrayData<TCodeHeapPtr>(TGrowableArrayPtr{.P = heapsAddress});
         std::vector<TMethodInfo> methods;
         {
@@ -290,9 +294,9 @@ struct TJvmInfo {
                     minfo.End = shadow.CodeEnd(cb);
                     ++blocks;
 
-                    auto cbKind = *reinterpret_cast<const unsigned char*>(reinterpret_cast<const char*>(cb.P) + access.CodeBlobLayout.KindFieldOffset);
+                    auto cbKind = *reinterpret_cast<const unsigned char*>(reinterpret_cast<const char*>(cb.P) + access.KindFieldOffset);
 
-                    if (cbKind == access.CodeBlobLayout.NmethodKind) {
+                    if (cbKind == access.NmethodKind) {
                         minfo.Desc = "nmethod";
                         TMethodPtr method = shadow.GetMethod(TNmethodPtr{.P = cb.P});
                         minfo.Compiled = true;
@@ -318,7 +322,7 @@ struct TJvmInfo {
             Cout << "Code heap parsed!" << Endl;
         }
         TJvmInfo result{shadow};
-        TStubQueuePtr queue{.P = *reinterpret_cast<void**>(access.AbstractInterpreterCodeAddress)};
+        TStubQueuePtr queue{.P = *reinterpret_cast<void**>(access.Analysis.AbstractInterpreterCodeAddress)};
         result.InterpreterBegin = shadow.StubQueueCodeBegin(queue);
         result.InterpreterEnd = result.InterpreterBegin + shadow.StubQueueCodeSize(queue);
         result.Methods = std::move(methods);
@@ -376,27 +380,41 @@ struct TUnwinder {
         Y_UNUSED(ip); // TODO - resolve line
         Cout << "Kind: interpreted" << Endl;
 
+        Cerr << "Return address located at: " << SHex(rbp + Info.Shadow.ReturnAddressOffset()) << Endl;
         uintptr_t callerIp = *reinterpret_cast<uintptr_t*>(rbp + Info.Shadow.ReturnAddressOffset());
+        Cerr << "Return address: " << SHex(callerIp) << Endl;
         const void* method;
+        Cerr << "Method pointer located at: " << SHex(rbp + Info.Shadow.InterpreterFrameMethodOffset()) << Endl;
         method = *reinterpret_cast<void const* const*>(rbp + Info.Shadow.InterpreterFrameMethodOffset());
+        Cerr << "Method pointer: " << SHex(reinterpret_cast<uintptr_t>(method)) << Endl;
         Cout << "Name: " << Info.Shadow.MethodName(TMethodPtr{.P = method}) << Endl;
 
+        Cerr << "Old frame pointer located at: " << SHex(rbp) << Endl;
         uintptr_t prevFrame = *reinterpret_cast<uintptr_t*>(rbp);
+        Cerr << "Restored frame pointer: " << SHex(prevFrame) << Endl;
         ProcessFrame(prevFrame, callerIp);
     }
 };
 
-void Unwind(uintptr_t callerFrameStart, uintptr_t callerIp) {
-    TJvmInfo jvmInfo = TJvmInfo::Resolve();
-    TUnwinder unwinder{jvmInfo};
+void Unwind(TUnwinder& unwinder, uintptr_t callerFrameStart, uintptr_t callerIp) {
     Cout << "\n\n\n>>>>>> Unwinding started" << Endl;
-    Cout << "Interpreter: [" << SHex(jvmInfo.InterpreterBegin) << ", " << SHex(jvmInfo.InterpreterEnd) << ")" << Endl;
     unwinder.ProcessFrame(callerFrameStart, callerIp);
     Cout << "<<<<<< Unwinding finished" << Endl;
 }
 }
 
-JNIEXPORT void JNICALL Java_tech_perforator_unwind_Native_unwind0(JNIEnv* env, jclass cls) {
+extern "C" {
+
+JNIEXPORT jlong JNICALL Java_tech_perforator_unwind_Native_make0(JNIEnv* env, jclass cls) {
+    Y_UNUSED(env, cls);
+    TJvmInfo jvmInfo = TJvmInfo::Resolve();
+    Cout << "Interpreter: [" << SHex(jvmInfo.InterpreterBegin) << ", " << SHex(jvmInfo.InterpreterEnd) << ")" << Endl;
+
+    auto u = new TUnwinder{jvmInfo};
+    return reinterpret_cast<jlong>(u);
+}
+
+JNIEXPORT void JNICALL Java_tech_perforator_unwind_Native_unwind0(JNIEnv* env, jclass cls, jlong impl) {
     Y_UNUSED(env, cls);
     uintptr_t rbp = 0;
     __asm__("mov %%rbp, %0" : "=r"(rbp));
@@ -404,10 +422,10 @@ JNIEXPORT void JNICALL Java_tech_perforator_unwind_Native_unwind0(JNIEnv* env, j
     uintptr_t callerIp;
     std::memcpy(&callerFrameStart, reinterpret_cast<void*>(rbp), sizeof(callerFrameStart));
     std::memcpy(&callerIp, reinterpret_cast<void*>(rbp + sizeof(void*)), sizeof(callerIp));
-    Unwind(callerFrameStart, callerIp);
+    Unwind(*reinterpret_cast<TUnwinder*>(impl), callerFrameStart, callerIp);
 }
 
-JNIEXPORT void JNICALL Java_tech_perforator_unwind_Native_unwindIfZero0(JNIEnv* env, jclass cls, jint x) {
+JNIEXPORT void JNICALL Java_tech_perforator_unwind_Native_unwindIfZero0(JNIEnv* env, jclass cls, jlong impl, jint x) {
     Y_UNUSED(env, cls);
     uintptr_t rbp = 0;
     __asm__("mov %%rbp, %0" : "=r"(rbp));
@@ -416,6 +434,8 @@ JNIEXPORT void JNICALL Java_tech_perforator_unwind_Native_unwindIfZero0(JNIEnv* 
     std::memcpy(&callerFrameStart, reinterpret_cast<void*>(rbp), sizeof(callerFrameStart));
     std::memcpy(&callerIp, reinterpret_cast<void*>(rbp + sizeof(void*)), sizeof(callerIp));
     if (x == 0) {
-        Unwind(callerFrameStart, callerIp);
+        Unwind(*reinterpret_cast<TUnwinder*>(impl), callerFrameStart, callerIp);
     }
+}
+
 }

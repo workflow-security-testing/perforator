@@ -18,7 +18,7 @@ TOffsets TOffsets::Get() {
     Unimplemented();
 }
 
-TJvmVersionInfo GetFromVMStructs(TVMStructsAddresses) {
+TJvmInfo GetFromVMStructs(TVMStructsAddresses) {
     Unimplemented();
 }
 
