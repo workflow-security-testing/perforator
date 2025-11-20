@@ -58,7 +58,9 @@ export interface FlamegraphProps extends Pick<RenderFlamegraphOptions, 'onFinish
     onKeepOnlyFound?: (value: boolean) => void;
 }
 
+const MAX_FIREFOX_DEPTH = 768;
 
+const FIREFOX_CANVAS_SIZE_ERROR = 'CanvasRenderingContext2D.scale: Canvas exceeds max size.';
 export const Flamegraph: React.FC<FlamegraphProps> = ({
     isDiff,
     theme,
@@ -95,14 +97,15 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     const search = getQuery('flamegraphQuery');
     const reverse = (getQuery('flamegraphReverse') ?? String(userSettings.reverseFlameByDefault)) === 'true';
     const isDiffSwitchingSupported = profileData.meta.version > 1;
+    const [shouldTrim, setShouldTrim] = React.useState(false);
 
     React.useLayoutEffect(() => {
         if (profileData) {
-            const offsetter = new FlamegraphOffseter(profileData.rows, { reverse, levelHeight });
+            const offsetter = new FlamegraphOffseter(shouldTrim ? profileData.rows.slice(0, MAX_FIREFOX_DEPTH) : profileData.rows, { reverse, levelHeight });
             flamegraphOffsets.current = offsetter;
             setOffsetterRef?.({ offsetter, canvas: flamegraphCanvas.current });
         }
-    }, [profileData, reverse, levelHeight]);
+    }, [profileData, reverse, levelHeight, shouldTrim]);
 
     const handleSearch = React.useCallback(() => {
         setShowDialog(true);
@@ -165,10 +168,21 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 onFinishRendering,
             };
 
-            return newFlame(flamegraphContainer.current, profileData, flamegraphOffsets.current, renderOptions);
+            try {
+                const destructor = newFlame(flamegraphContainer.current, { ...profileData, rows: shouldTrim ? profileData.rows.slice(0, MAX_FIREFOX_DEPTH) : profileData.rows }, flamegraphOffsets.current, renderOptions);
+                return destructor;
+            } catch (e) {
+                console.error(e);
+                // see https://github.com/mozilla-firefox/firefox/blob/89b2affdc5d2a1588763e5cb4ac046093c4136a9/dom/canvas/CanvasRenderingContext2D.cpp#L1748
+                if (e?.message === FIREFOX_CANVAS_SIZE_ERROR) {
+                    setShouldTrim(true);
+                } else {
+                    throw e;
+                }
+            }
         }
         return () => { };
-    }, [exactMatch, getQuery, isDiff, keepOnlyFound, profileData, reverse, search, setQuery, theme, userSettings, levelHeight, onFinishRendering, isLeftHeavy]);
+    }, [exactMatch, getQuery, isDiff, keepOnlyFound, profileData, reverse, search, setQuery, theme, userSettings, levelHeight, onFinishRendering, isLeftHeavy, shouldTrim]);
 
     const handleContextMenu = React.useCallback((event: React.MouseEvent) => {
         if (!flamegraphContainer.current || !profileData || !flamegraphOffsets.current) {

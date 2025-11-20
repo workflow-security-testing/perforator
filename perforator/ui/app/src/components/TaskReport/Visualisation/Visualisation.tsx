@@ -9,6 +9,7 @@ import { Loader } from '@gravity-ui/uikit';
 import { Tabs } from '@gravity-ui/uikit/legacy';
 
 import { Beta } from 'src/components/Beta/Beta';
+import { ErrorBoundary } from 'src/components/ErrorBoundary/ErrorBoundary';
 import { useFullscreen } from 'src/components/Fullscreen/FullscreenContext';
 import { uiFactory } from 'src/factory';
 import { withMeasureTime } from 'src/utils/logging';
@@ -210,9 +211,11 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
         } : null;
 
         if (tab === 'flame' ) {
-            content = <Flamegraph
-                {...flamegraphProps}
-            />;
+            content = <ErrorBoundary>
+                <Flamegraph
+                    {...flamegraphProps}
+                />
+            </ErrorBoundary>;
         }
         if (tab === 'top' && topTableProps) {
             content = <TopTable
@@ -220,10 +223,12 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             />;
         }
         if ( tab === 'sbs' && topTableProps) {
-            content = <SideBySide
-                {...flamegraphProps}
-                navigate={navigate}
-            />;
+            content = <ErrorBoundary>
+                <SideBySide
+                    {...flamegraphProps}
+                    navigate={navigate}
+                />
+            </ErrorBoundary>;
         }
     }
 
