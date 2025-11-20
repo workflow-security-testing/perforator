@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -174,7 +175,8 @@ func (s *PerforatorServer) pollTasks(ctx context.Context) (spawned bool, err err
 }
 
 func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, stop func()) {
-	defer s.tasksemaphore.Release(1)
+	release := sync.OnceFunc(func() { s.tasksemaphore.Release(1) })
+	defer release()
 	defer stop()
 
 	kind := s.taskKindString(task.GetSpec())
@@ -196,7 +198,7 @@ func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, st
 	s.l.Info(ctx, "Starting async task")
 	s.metrics.tasksStartedCount.With(metricTags).Inc()
 
-	res, err := s.runTaskImpl(ctx, task.GetSpec())
+	res, err := s.runTaskImpl(ctx, task.GetSpec(), release)
 	if err != nil {
 		if !errors.Is(err, merge.ErrNoProfilesToMerge) {
 			s.metrics.tasksFailedCount.With(metricTags).Inc()
@@ -230,7 +232,7 @@ func (s *PerforatorServer) isBannedUser(user string) bool {
 	return s.bannedUsers.IsBanned(user)
 }
 
-func (s *PerforatorServer) runTaskImpl(ctx context.Context, spec *perforator.TaskSpec) (*perforator.TaskResult, error) {
+func (s *PerforatorServer) runTaskImpl(ctx context.Context, spec *perforator.TaskSpec, release func()) (*perforator.TaskResult, error) {
 	if user := auth.UserFromContext(ctx); user != nil && s.isBannedUser(user.Login) {
 		s.l.Error(ctx, "User is banned, skipping task", log.String("user", user.Login))
 		return nil, fmt.Errorf("user %s is banned", user.Login)
@@ -248,6 +250,8 @@ func (s *PerforatorServer) runTaskImpl(ctx context.Context, spec *perforator.Tas
 		return result, nil
 
 	case *perforator.TaskSpec_DiffProfiles:
+		// Since diff task spawns two merge tasks, it can deadlock if limited
+		release()
 		res, err := s.DiffProfiles(ctx, v.DiffProfiles)
 		if err != nil {
 			return nil, err
