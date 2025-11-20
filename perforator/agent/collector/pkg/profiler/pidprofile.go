@@ -8,16 +8,14 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 type trackedProcess struct {
-	pid      linux.CurrentNamespacePID
-	features traceFeatures
-	builder  *multiProfileBuilder
-	bpf      *machine.BPF
+	pid            linux.CurrentNamespacePID
+	sampleConsumer SampleConsumer
+	bpf            *machine.BPF
 }
 
-func newTrackedProcess(
+func (p *Profiler) newTrackedProcess(
 	pid linux.CurrentNamespacePID,
-	labels map[string]string,
-	features traceFeatures,
+	sampleConsumer SampleConsumer,
 	bpf *machine.BPF,
 ) (*trackedProcess, error) {
 	err := bpf.AddTracedProcess(pid)
@@ -26,15 +24,10 @@ func newTrackedProcess(
 	}
 
 	return &trackedProcess{
-		pid:      pid,
-		features: features,
-		builder:  newMultiProfileBuilder(labels),
-		bpf:      bpf,
+		pid:            pid,
+		sampleConsumer: sampleConsumer,
+		bpf:            bpf,
 	}, nil
-}
-
-func (t *trackedProcess) traceFeatures() traceFeatures {
-	return t.features
 }
 
 func (t *trackedProcess) close() error {

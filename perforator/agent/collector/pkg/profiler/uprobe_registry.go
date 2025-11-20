@@ -23,6 +23,9 @@ type Uprobe interface {
 	// Close detaches the uprobe from the bpf program and releases the resources.
 	// It is safe to close both attached and detached uprobe.
 	Close() error
+
+	// Info returns the uprobe info.
+	Info() *uprobe.UprobeInfo
 }
 
 // UprobeManager is a Profiler's user interface for
@@ -113,6 +116,10 @@ type uprobeWrapper struct {
 	attached   bool
 	registryID uint64
 	registry   *uprobeRegistry
+}
+
+func (u *uprobeWrapper) Info() *uprobe.UprobeInfo {
+	return u.uprobe.Info()
 }
 
 func (u *uprobeWrapper) Attach() error {

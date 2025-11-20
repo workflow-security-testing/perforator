@@ -8,6 +8,8 @@ SRCS(
     profile_builder.go
     profiler.go
     sample_consumer.go
+    sample_consumer_registry.go
+    sample_filter.go
     stack_processor.go
     uprobe_registry.go
 )

@@ -141,7 +141,7 @@ func (e *operationExecution) stopOperationImpl(ctx context.Context, finalState c
 	}
 
 	e.l.Info(ctx, "Stopping CPO")
-	err := e.operationController.Stop()
+	err := e.operationController.Stop(ctx)
 	if err != nil {
 		e.l.Error(ctx, "Failed to stop CPO", log.Error(err))
 		// This should never occur - set up monitoring for this

@@ -22,19 +22,20 @@ type trackedCgroup struct {
 	conf            *CgroupConfig
 	bpf             *machine.BPF
 	freezerCgroupID uint64
-	builder         *multiProfileBuilder
+	sampleConsumer  SampleConsumer
 }
 
-func newTrackedCgroup(
+func (p *Profiler) newTrackedCgroup(
 	conf *CgroupConfig,
+	sampleConsumer SampleConsumer,
 	bpf *machine.BPF,
 	l log.Logger,
 ) (*trackedCgroup, error) {
 	t := &trackedCgroup{
-		l:       log.With(l, log.String("cgroup", conf.Name)),
-		conf:    conf,
-		bpf:     bpf,
-		builder: newMultiProfileBuilder(conf.Labels),
+		l:              log.With(l, log.String("cgroup", conf.Name)),
+		conf:           conf,
+		bpf:            bpf,
+		sampleConsumer: sampleConsumer,
 	}
 
 	return t, nil

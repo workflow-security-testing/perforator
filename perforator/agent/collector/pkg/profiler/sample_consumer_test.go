@@ -11,12 +11,17 @@ import (
 
 func TestEnvWhitelist(t *testing.T) {
 	var sample unwinder.RecordSample
-	sampleConsumer := NewSampleConsumer(&Profiler{}, map[string]struct{}{
-		"key1": {},
-		"key2": {},
-	}, &sample)
-
-	sampleConsumer.profileBuilder = newMultiProfileBuilder(nil)
+	sampleConsumer := newOneShotSampleConsumer(
+		&Profiler{
+			envWhitelist: map[string]struct{}{
+				"key1": {},
+				"key2": {},
+			},
+		},
+		DefaultSampleConsumerFeatures(),
+		newMultiProfileBuilder(nil),
+		&sample,
+	)
 
 	processEnvs := map[string]string{"secret1": "value1", "key1": "value1"}
 	sampleConsumer.doCollectEnvironment(processEnvs)
@@ -42,12 +47,17 @@ func TestEnvWhitelist(t *testing.T) {
 
 func TestNoEmptySamples(t *testing.T) {
 	var sample unwinder.RecordSample
-	sampleConsumer := NewSampleConsumer(&Profiler{}, map[string]struct{}{
-		"key1": {},
-		"key2": {},
-	}, &sample)
-
-	sampleConsumer.profileBuilder = newMultiProfileBuilder(nil)
+	sampleConsumer := newOneShotSampleConsumer(
+		&Profiler{
+			envWhitelist: map[string]struct{}{
+				"key1": {},
+				"key2": {},
+			},
+		},
+		DefaultSampleConsumerFeatures(),
+		newMultiProfileBuilder(nil),
+		&sample,
+	)
 
 	builder := sampleConsumer.initBuilderMinimal("cpu", []profile.SampleType{{Kind: "cpu", Unit: "cycles"}})
 	// Mark sample as nonzero to prevent compaction.

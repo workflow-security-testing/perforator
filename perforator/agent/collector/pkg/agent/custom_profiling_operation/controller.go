@@ -25,9 +25,11 @@ var (
 )
 
 type operationController struct {
-	l                        xlog.Logger
-	profiler                 *profiler.Profiler
-	profilerResourcesClosers []profiler.Closer
+	l        xlog.Logger
+	profiler *profiler.Profiler
+
+	uprobes            []profiler.Uprobe
+	sampleConsumerName string
 
 	id   models.OperationID
 	spec *models.OperationSpec
@@ -60,24 +62,24 @@ func newOperationController(l xlog.Logger, profiler *profiler.Profiler, id model
 
 func (o *operationController) releaseProfilerResources() error {
 	errs := []error{}
-	for _, closer := range o.profilerResourcesClosers {
-		err := closer.Close()
+	for _, uprobe := range o.uprobes {
+		err := uprobe.Close()
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
 
+	o.profiler.SampleConsumerRegistry().Unregister(o.sampleConsumerName)
+
 	return errors.Join(errs...)
 }
 
-func outputProfileName(id models.OperationID) string {
+func buildSampleConsumerName(id models.OperationID) string {
 	return fmt.Sprintf("cpo_%s", string(id))
 }
 
 func (o *operationController) createUprobes(ctx context.Context, eventSettings *cpo_proto.EventSettings_Uprobe, target *cpo_proto.Target) error {
-	baseUprobeConfig := uprobe.Config{
-		OutputProfileName: outputProfileName(o.id),
-	}
+	baseUprobeConfig := uprobe.Config{}
 
 	switch target := target.Target.(type) {
 	case *cpo_proto.Target_NodeProcess:
@@ -113,7 +115,7 @@ func (o *operationController) createUprobes(ctx context.Context, eventSettings *
 			return fmt.Errorf("failed to attach uprobe: %w", err)
 		}
 		o.l.Info(ctx, "Attached uprobe", log.Error(err))
-		o.profilerResourcesClosers = append(o.profilerResourcesClosers, uprobe)
+		o.uprobes = append(o.uprobes, uprobe)
 	}
 
 	return nil
@@ -173,33 +175,52 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 	}
 	profileLabels[profilequerylang.CPOIDLabel] = string(o.id)
 
-	traceOpts := []profiler.TraceOption{
-		profiler.WithProfileLabels(profileLabels),
-	}
+	sampleConsumerFeatures := profiler.DefaultSampleConsumerFeatures()
 	for _, feature := range o.spec.Features {
 		switch feature.Feature.(type) {
 		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
-			traceOpts = append(traceOpts, profiler.WithAbsoluteSampleTimeCollection())
+			sampleConsumerFeatures.EnableSampleTimeCollection = true
 		}
 	}
 
-	switch target := o.spec.Target.Target.(type) {
-	case *cpo_proto.Target_NodeProcess:
-		currentNamespacePID, err := o.convertTargetProcessToCurrentNamespace(ctx, target.NodeProcess)
-		if err != nil {
-			return err
-		}
-
-		closer, err := o.profiler.TracePid(currentNamespacePID, traceOpts...)
-		if err != nil {
-			return fmt.Errorf("failed to trace pid %d: %w", currentNamespacePID, err)
-		}
-		o.profilerResourcesClosers = append(o.profilerResourcesClosers, closer)
+	allowedUprobes := make(map[uprobe.BinaryInfo]struct{})
+	for _, uprobe := range o.uprobes {
+		allowedUprobes[uprobe.Info().BinaryInfo] = struct{}{}
 	}
+
+	sampleConsumerName := buildSampleConsumerName(o.id)
+	err = o.profiler.SampleConsumerRegistry().Register(
+		sampleConsumerName,
+		profiler.NewFilterSampleConsumerAdapter(
+			profiler.NewSimpleSampleConsumer(o.profiler, sampleConsumerFeatures, profileLabels),
+			profiler.NewUprobeSampleFilter(o.profiler, allowedUprobes),
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register sample consumer: %w", err)
+	}
+	o.sampleConsumerName = sampleConsumerName
 
 	return nil
 }
 
-func (o *operationController) Stop() error {
-	return o.releaseProfilerResources()
+func (o *operationController) Stop(ctx context.Context) error {
+	errs := []error{}
+	sampleConsumer := o.profiler.SampleConsumerRegistry().Get(o.sampleConsumerName)
+	if sampleConsumer != nil { // sanity check
+		err := sampleConsumer.Flush(ctx)
+		if err != nil {
+			o.l.Error(ctx, "Failed to flush CPO sample consumer", log.Error(err))
+			errs = append(errs, err)
+		} else {
+			o.l.Info(ctx, "Successfully flushed CPO sample consumer")
+		}
+	}
+
+	err := o.releaseProfilerResources()
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
 }

@@ -22,7 +22,7 @@ type OperationReporter interface {
 // OperationController controls operation state
 type OperationController interface {
 	Start(ctx context.Context) error
-	Stop() error
+	Stop(ctx context.Context) error
 }
 
 // OperationExecution executes operation

@@ -24,6 +24,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/perfmap"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/logfield"
@@ -39,7 +40,8 @@ import (
 )
 
 const (
-	PerfReaderTimeout = 5 * time.Second
+	PerfReaderTimeout      = 5 * time.Second
+	mainSampleConsumerName = "main_sample_consumer"
 )
 
 type initialTargets struct {
@@ -91,10 +93,13 @@ type Profiler struct {
 	phpSymbolizer    *symbolizer.Symbolizer
 
 	// Profiling targets
-	wholeSystem *multiProfileBuilder
+	wholeSystem SampleConsumer
 	cgroups     *cgroups.Tracker
 	pids        map[linux.CurrentNamespacePID]*trackedProcess
 	pidsmu      sync.RWMutex
+
+	mainSampleConsumer     SampleConsumer
+	sampleConsumerRegistry *sampleConsumerRegistry
 
 	profileChan  chan client.LabeledProfile
 	commonLabels map[string]string
@@ -212,15 +217,16 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 	}
 
 	profiler := &Profiler{
-		conf:           c,
-		log:            l,
-		mounts:         mountinfo.NewWatcher(l, r),
-		events:         make(map[perfevent.Type]*perfevent.EventBundle),
-		pids:           make(map[linux.CurrentNamespacePID]*trackedProcess),
-		profileChan:    make(chan client.LabeledProfile, 64),
-		debugmode:      c.Debug,
-		envWhitelist:   envWhitelist,
-		initialTargets: &initialTargets{},
+		conf:                   c,
+		log:                    l,
+		mounts:                 mountinfo.NewWatcher(l, r),
+		events:                 make(map[perfevent.Type]*perfevent.EventBundle),
+		pids:                   make(map[linux.CurrentNamespacePID]*trackedProcess),
+		profileChan:            make(chan client.LabeledProfile, 64),
+		debugmode:              c.Debug,
+		envWhitelist:           envWhitelist,
+		initialTargets:         &initialTargets{},
+		sampleConsumerRegistry: newSampleConsumerRegistry(),
 
 		sampleReaderShutdown:    graceful.NewShutdownCookie(),
 		profileUploaderShutdown: graceful.NewShutdownCookie(),
@@ -474,6 +480,29 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	return nil
 }
 
+func (p *Profiler) registerMainSampleConsumer() error {
+	// TODO: later add filters only for perf events specified in profiler config.
+	allowedUprobes := make(map[uprobe.BinaryInfo]struct{})
+	for _, uprobe := range p.initialUprobes {
+		allowedUprobes[uprobe.Info().BinaryInfo] = struct{}{}
+	}
+
+	mainSampleConsumer := NewFilterSampleConsumerAdapter(
+		newContinuousProfilingSampleConsumer(p),
+		NewORSampleFilter(
+			NewNonUprobeSampleFilter(),
+			NewUprobeSampleFilter(p, allowedUprobes),
+		),
+	)
+	err := p.sampleConsumerRegistry.Register(mainSampleConsumerName, mainSampleConsumer)
+	if err != nil {
+		return fmt.Errorf("failed to register main sample consumer: %w", err)
+	}
+
+	p.mainSampleConsumer = mainSampleConsumer
+	return nil
+}
+
 func (p *Profiler) initializeTargets() error {
 	if p.initialTargets.selfTargetLabels != nil {
 		_, err := p.TraceSelf(p.initialTargets.selfTargetLabels)
@@ -565,6 +594,10 @@ func (p *Profiler) setupUprobes() {
 
 func (p *Profiler) UprobeManager() UprobeManager {
 	return p.uprobeRegistry
+}
+
+func (p *Profiler) SampleConsumerRegistry() SampleConsumerRegistry {
+	return p.sampleConsumerRegistry
 }
 
 func (p *Profiler) PidNamespaceIndex() process.PidNamespaceIndex {
@@ -794,6 +827,11 @@ func (p *Profiler) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to attach uprobes: %w", err)
 	}
 
+	err = p.registerMainSampleConsumer()
+	if err != nil {
+		return fmt.Errorf("failed to register main sample consumer: %w", err)
+	}
+
 	p.wg, ctx = errgroup.WithContext(ctx)
 	if p.enablePerfMaps {
 		p.wg.Go(func() error {
@@ -940,7 +978,10 @@ func (p *Profiler) readSample(ctx context.Context, reader *machine.PerfReader, s
 
 	p.metrics.samplesDuration.Add(int64(sample.Runtime))
 
-	NewSampleConsumer(p, p.envWhitelist, sample).Consume(ctx)
+	consumers := p.sampleConsumerRegistry.Consumers()
+	for _, consumer := range consumers {
+		consumer.Consume(ctx, sample)
+	}
 
 	return true
 }
@@ -962,22 +1003,13 @@ drainloop:
 	p.pidsmu.Lock()
 	defer p.pidsmu.Unlock()
 
-	if p.wholeSystem != nil {
-		p.log.Info("Finishing whole system profile")
-		p.trySaveProfiles(ctx, p.wholeSystem.RestartProfiles())
+	if p.mainSampleConsumer != nil {
+		p.log.Info("Flushing main sample consumer")
+		err := p.mainSampleConsumer.Flush(ctx)
+		if err != nil {
+			p.log.Error("Failed to flush main sample consumer", log.Error(err))
+		}
 	}
-
-	for pid, process := range p.pids {
-		p.log.Info("Finishing process profile", logfield.CurrentNamespacePID(pid))
-		p.trySaveProfiles(ctx, process.builder.RestartProfiles())
-	}
-
-	_ = p.cgroups.ForEachCgroup(func(event cgroups.CgroupEventListener) error {
-		cgroup := event.(*trackedCgroup)
-		p.log.Info("Finishing cgroup profile", log.String("cgroup", cgroup.conf.Name))
-		p.trySaveProfiles(ctx, cgroup.builder.RestartProfiles())
-		return nil
-	})
 }
 
 func (p *Profiler) flushProfile(profile client.LabeledProfile) bool {
@@ -1102,7 +1134,8 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 
 	conf.Labels = p.enrichProfileLabels(conf.Labels)
 
-	cg, err := newTrackedCgroup(conf, p.bpf, p.log)
+	// TODO: For now we do not provide a way to enable features through AddCgroup
+	cg, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels), p.bpf, p.log)
 	if err != nil {
 		return err
 	}
@@ -1115,7 +1148,7 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 
 func (p *Profiler) TraceWholeSystem(labels map[string]string) error {
 	labels = p.enrichProfileLabels(labels)
-	p.wholeSystem = newMultiProfileBuilder(labels)
+	p.wholeSystem = NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), labels)
 	return p.bpf.PatchConfig(func(conf *unwinder.ProfilerConfig) error {
 		conf.TraceWholeSystem = true
 		return nil
@@ -1127,7 +1160,7 @@ func (p *Profiler) TraceSelf(labels map[string]string) (Closer, error) {
 }
 
 type Closer interface {
-	Close() error
+	Close(ctx context.Context) error
 }
 
 type pidTracingCloser struct {
@@ -1135,7 +1168,7 @@ type pidTracingCloser struct {
 	pid      linux.CurrentNamespacePID
 }
 
-func (p *pidTracingCloser) Close() error {
+func (p *pidTracingCloser) Close(ctx context.Context) error {
 	trackedProcess := p.profiler.removeTracedPid(p.pid)
 	if trackedProcess == nil {
 		return nil
@@ -1144,24 +1177,14 @@ func (p *pidTracingCloser) Close() error {
 	return trackedProcess.close()
 }
 
-type traceFeatures struct {
-	enableSampleTimeCollection bool
-}
-
-func defaultTraceFeatures() traceFeatures {
-	return traceFeatures{
-		enableSampleTimeCollection: false,
-	}
-}
-
 type traceOptions struct {
 	profileLabels map[string]string
-	features      traceFeatures
+	features      SampleConsumerFeatures
 }
 
 func defaultTraceOptions() *traceOptions {
 	return &traceOptions{
-		features:      defaultTraceFeatures(),
+		features:      DefaultSampleConsumerFeatures(),
 		profileLabels: make(map[string]string),
 	}
 }
@@ -1170,7 +1193,7 @@ type TraceOption func(o *traceOptions)
 
 func WithAbsoluteSampleTimeCollection() TraceOption {
 	return func(o *traceOptions) {
-		o.features.enableSampleTimeCollection = true
+		o.features.EnableSampleTimeCollection = true
 	}
 }
 
@@ -1188,7 +1211,7 @@ func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, optAppliers ...TraceO
 
 	labels := p.enrichProfileLabels(opts.profileLabels)
 
-	trackedProcess, err := newTrackedProcess(pid, labels, opts.features, p.bpf)
+	trackedProcess, err := p.newTrackedProcess(pid, NewSimpleSampleConsumer(p, opts.features, labels), p.bpf)
 	if err != nil {
 		return nil, err
 	}
@@ -1226,7 +1249,8 @@ func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 	for _, conf := range configs {
 		conf.Labels = p.enrichProfileLabels(conf.Labels)
 
-		profiledCgroup, err := newTrackedCgroup(conf, p.bpf, p.log)
+		// TODO: For now we do not provide a way to enable features through TraceCgroups
+		profiledCgroup, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels), p.bpf, p.log)
 		if err != nil {
 			return err
 		}
@@ -1323,6 +1347,8 @@ func (p *Profiler) Close() error {
 		}
 	}
 
+	p.sampleConsumerRegistry.Unregister(mainSampleConsumerName)
+
 	return p.bpf.Close()
 }
 
@@ -1372,6 +1398,8 @@ func (p *Profiler) Stop(ctx context.Context) error {
 	if p.shutdownCancel != nil {
 		p.shutdownCancel(ErrStopped)
 	}
+
+	p.sampleConsumerRegistry.Unregister(mainSampleConsumerName)
 
 	p.log.Info("Waiting for background workers to stop")
 	return p.Wait()

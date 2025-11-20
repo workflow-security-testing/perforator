@@ -110,7 +110,7 @@ func TestTimeBoundedOperationExecution_Success(t *testing.T) {
 	}
 
 	mockController.EXPECT().Start(gomock.Any()).Return(nil).Times(1)
-	mockController.EXPECT().Stop().Return(nil).Times(1)
+	mockController.EXPECT().Stop(gomock.Any()).Return(nil).Times(1)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -205,7 +205,7 @@ func TestTimeBoundedOperationExecution_ImmediateStartAndCancel(t *testing.T) {
 	}
 
 	mockController.EXPECT().Start(gomock.Any()).Return(nil).Times(1)
-	mockController.EXPECT().Stop().Return(nil).Times(1)
+	mockController.EXPECT().Stop(gomock.Any()).Return(nil).Times(1)
 
 	ctx, cancel := context.WithCancel(context.Background())
 

@@ -3,6 +3,7 @@ package profiler
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"strings"
 	"syscall"
@@ -11,10 +12,12 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
+	"github.com/yandex/perforator/perforator/internal/logfield"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -23,12 +26,160 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/tls"
 )
 
-type SampleConsumer struct {
+type SampleConsumerFeatures struct {
+	EnableSampleTimeCollection bool
+}
+
+func DefaultSampleConsumerFeatures() SampleConsumerFeatures {
+	return SampleConsumerFeatures{
+		EnableSampleTimeCollection: false,
+	}
+}
+
+// SampleConsumer is used for sequential consumption of multiple samples during its lifetime
+type SampleConsumer interface {
+	Consume(ctx context.Context, sample *unwinder.RecordSample)
+	Flush(ctx context.Context) error
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var (
+	_ SampleConsumer = (*continuousProfilingSampleConsumer)(nil)
+)
+
+type continuousProfilingSampleConsumer struct {
+	p *Profiler
+}
+
+func newContinuousProfilingSampleConsumer(p *Profiler) *continuousProfilingSampleConsumer {
+	return &continuousProfilingSampleConsumer{
+		p: p,
+	}
+}
+
+func (c *continuousProfilingSampleConsumer) tryGetProcessSampleConsumer(sample *unwinder.RecordSample) SampleConsumer {
+	c.p.pidsmu.RLock()
+	defer c.p.pidsmu.RUnlock()
+	if trackedProcess := c.p.pids[linux.CurrentNamespacePID(sample.Pid)]; trackedProcess != nil {
+		return trackedProcess.sampleConsumer
+	}
+	if trackedProcess := c.p.pids[linux.CurrentNamespacePID(sample.Tid)]; trackedProcess != nil {
+		return trackedProcess.sampleConsumer
+	}
+	return nil
+}
+
+func (c *continuousProfilingSampleConsumer) getTargetSampleConsumer(sample *unwinder.RecordSample) SampleConsumer {
+	if c.p.wholeSystem != nil {
+		return c.p.wholeSystem
+	}
+
+	if collector := c.tryGetProcessSampleConsumer(sample); collector != nil {
+		return collector
+	}
+
+	if trackedEvent := c.p.cgroups.GetTrackedEvent(sample.ParentCgroup); trackedEvent != nil {
+		return trackedEvent.(*trackedCgroup).sampleConsumer
+	}
+
+	return nil
+}
+
+func (c *continuousProfilingSampleConsumer) Consume(ctx context.Context, sample *unwinder.RecordSample) {
+	targetConsumer := c.getTargetSampleConsumer(sample)
+	if targetConsumer == nil {
+		c.p.log.Debug(
+			"No target sample consumer for profiling sample",
+			log.UInt32("pid", sample.Pid),
+			log.UInt32("tid", sample.Tid),
+			log.UInt64("cgroupid", sample.ParentCgroup),
+			log.String("name", c.p.cgroups.CgroupFullName(sample.ParentCgroup)),
+		)
+		return
+	}
+
+	targetConsumer.Consume(ctx, sample)
+}
+
+func (c *continuousProfilingSampleConsumer) Flush(ctx context.Context) error {
+	errs := make([]error, 0)
+
+	if c.p.wholeSystem != nil {
+		c.p.log.Info("Flushing whole system profile")
+		err := c.p.wholeSystem.Flush(ctx)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to flush whole system profile: %w", err))
+		}
+	}
+
+	for pid, process := range c.p.pids {
+		c.p.log.Info("Flushing process profile", logfield.CurrentNamespacePID(pid))
+		err := process.sampleConsumer.Flush(ctx)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to flush process %d profile: %w", pid, err))
+		}
+	}
+
+	err := c.p.cgroups.ForEachCgroup(func(event cgroups.CgroupEventListener) error {
+		cgroup := event.(*trackedCgroup)
+		c.p.log.Info("Flushing cgroup profile", log.String("cgroup", cgroup.conf.Name))
+		err := cgroup.sampleConsumer.Flush(ctx)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to flush cgroup %s profile: %w", cgroup.conf.Name, err))
+		}
+		return nil
+	})
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var (
+	_ SampleConsumer = (*simpleSampleConsumer)(nil)
+)
+
+type simpleSampleConsumer struct {
+	p              *Profiler
+	features       SampleConsumerFeatures
+	profileBuilder *multiProfileBuilder
+}
+
+func NewSimpleSampleConsumer(
+	p *Profiler,
+	features SampleConsumerFeatures,
+	labels map[string]string,
+) *simpleSampleConsumer {
+	return &simpleSampleConsumer{
+		features:       features,
+		profileBuilder: newMultiProfileBuilder(labels),
+		p:              p,
+	}
+}
+
+func (c *simpleSampleConsumer) Consume(ctx context.Context, sample *unwinder.RecordSample) {
+	oneShotConsumer := newOneShotSampleConsumer(c.p, c.features, c.profileBuilder, sample)
+	oneShotConsumer.consume(ctx)
+}
+
+func (c *simpleSampleConsumer) Flush(ctx context.Context) error {
+	c.p.trySaveProfiles(ctx, c.profileBuilder.RestartProfiles())
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// oneShotSampleConsumer is a sample consumer which can only consume one sample during its lifetime
+type oneShotSampleConsumer struct {
 	p      *Profiler
 	sample *unwinder.RecordSample
 
 	profileBuilder *multiProfileBuilder
-	traceFeatures  traceFeatures
+	features       SampleConsumerFeatures
 	envWhitelist   map[string]struct{}
 
 	stacklen  int
@@ -40,18 +191,24 @@ type SampleConsumer struct {
 	phpProcessor    *sampleStackProcessor
 }
 
-func NewSampleConsumer(p *Profiler, envWhitelist map[string]struct{}, sample *unwinder.RecordSample) *SampleConsumer {
-	return &SampleConsumer{
+func newOneShotSampleConsumer(
+	p *Profiler,
+	features SampleConsumerFeatures,
+	profileBuilder *multiProfileBuilder,
+	sample *unwinder.RecordSample,
+) *oneShotSampleConsumer {
+	return &oneShotSampleConsumer{
 		p:               p,
-		traceFeatures:   defaultTraceFeatures(),
+		profileBuilder:  profileBuilder,
+		features:        features,
 		sample:          sample,
-		envWhitelist:    envWhitelist,
+		envWhitelist:    p.envWhitelist,
 		pythonProcessor: newPythonSampleStackProcessor(p.pythonSymbolizer),
 		phpProcessor:    newPHPSampleStackProcessor(p.phpSymbolizer),
 	}
 }
 
-func (c *SampleConsumer) countMetrics(ctx context.Context) {
+func (c *oneShotSampleConsumer) countMetrics(ctx context.Context) {
 	// Count mappings cache hit/miss rate.
 	var stacklen uint64
 	for _, ip := range c.sample.Userstack {
@@ -69,59 +226,12 @@ func (c *SampleConsumer) countMetrics(ctx context.Context) {
 	}
 }
 
-func (c *SampleConsumer) initializeProcessTarget(p *trackedProcess) {
-	c.profileBuilder = p.builder
-	c.traceFeatures = p.traceFeatures()
-}
-
-func (c *SampleConsumer) tryInitializeProcessTarget() bool {
-	c.p.pidsmu.RLock()
-	defer c.p.pidsmu.RUnlock()
-
-	if trackedProcess := c.p.pids[linux.CurrentNamespacePID(c.sample.Pid)]; trackedProcess != nil {
-		c.initializeProcessTarget(trackedProcess)
-		return true
-	}
-	if trackedProcess := c.p.pids[linux.CurrentNamespacePID(c.sample.Tid)]; trackedProcess != nil {
-		c.initializeProcessTarget(trackedProcess)
-		return true
-	}
-
-	return false
-}
-
-func (c *SampleConsumer) getSampleCollector() bool {
-	if c.p.wholeSystem != nil {
-		c.profileBuilder = c.p.wholeSystem
-		return true
-	}
-
-	if c.tryInitializeProcessTarget() {
-		return true
-	}
-
-	if trackedEvent := c.p.cgroups.GetTrackedEvent(c.sample.ParentCgroup); trackedEvent != nil {
-		c.profileBuilder = trackedEvent.(*trackedCgroup).builder
-		return true
-	}
-
-	c.p.log.Debug(
-		"Failed to find tracked event",
-		log.UInt32("pid", c.sample.Pid),
-		log.UInt32("tid", c.sample.Tid),
-		log.UInt64("cgroupid", c.sample.ParentCgroup),
-		log.String("name", c.p.cgroups.CgroupFullName(c.sample.ParentCgroup)),
-	)
-
-	return false
-}
-
 const (
 	// (u64)-1, must match END_OF_CGROUP_LIST in cgroups.h
 	endOfCgroupList = ^uint64(0)
 )
 
-func (c *SampleConsumer) collectWorkloadInto(builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectWorkloadInto(builder *profile.SampleBuilder) {
 	var parts []string
 
 	var i int
@@ -197,7 +307,7 @@ type formattedTLSVariable struct {
 	Value string
 }
 
-func (c *SampleConsumer) collectTLS(ctx context.Context) {
+func (c *oneShotSampleConsumer) collectTLS(ctx context.Context) {
 	c.tls = make([]formattedTLSVariable, 0)
 
 	for _, variable := range c.sample.TlsValues.Values {
@@ -244,7 +354,7 @@ func (c *SampleConsumer) collectTLS(ctx context.Context) {
 	}
 }
 
-func (c *SampleConsumer) collectTLSInto(builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectTLSInto(builder *profile.SampleBuilder) {
 	for _, tlsVariable := range c.tls {
 		builder.AddStringLabel(tlsVariable.Key, tlsVariable.Value)
 	}
@@ -255,12 +365,12 @@ type formattedEnvVariable struct {
 	Value string
 }
 
-func (c *SampleConsumer) collectEnvironment() {
+func (c *oneShotSampleConsumer) collectEnvironment() {
 	processEnvs := c.p.procs.GetEnvs(linux.CurrentNamespacePID(c.sample.Pid))
 	c.doCollectEnvironment(processEnvs)
 }
 
-func (c *SampleConsumer) doCollectEnvironment(processEnvs map[string]string) {
+func (c *oneShotSampleConsumer) doCollectEnvironment(processEnvs map[string]string) {
 	c.env = make([]formattedEnvVariable, 0, len(processEnvs))
 	for key, value := range processEnvs {
 		_, ok := c.envWhitelist[key]
@@ -273,13 +383,13 @@ func (c *SampleConsumer) doCollectEnvironment(processEnvs map[string]string) {
 	}
 }
 
-func (c *SampleConsumer) collectEnvironmentInto(builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectEnvironmentInto(builder *profile.SampleBuilder) {
 	for _, env := range c.env {
 		builder.AddStringLabel(env.Key, env.Value)
 	}
 }
 
-func (c *SampleConsumer) collectKernelStackInto(builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBuilder) {
 	for _, ip := range c.sample.Kernstack {
 		if ip == 0 {
 			continue
@@ -302,7 +412,7 @@ func (c *SampleConsumer) collectKernelStackInto(builder *profile.SampleBuilder) 
 	}
 }
 
-func (c *SampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64) {
+func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64) {
 	if c.p.enablePerfMaps {
 		name, ok := c.p.perfmap.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
 		if ok {
@@ -340,7 +450,7 @@ func (c *SampleConsumer) processUserSpaceLocation(ctx context.Context, loc *prof
 	loc.Finish()
 }
 
-func (c *SampleConsumer) collectUserStackInto(ctx context.Context, builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectUserStackInto(ctx context.Context, builder *profile.SampleBuilder) {
 	for _, ip := range c.sample.Userstack {
 		if ip == 0 {
 			continue
@@ -352,7 +462,7 @@ func (c *SampleConsumer) collectUserStackInto(ctx context.Context, builder *prof
 	}
 }
 
-func (c *SampleConsumer) collectInterpreterStackInto(
+func (c *oneShotSampleConsumer) collectInterpreterStackInto(
 	langMtr *languageCollectionMetrics,
 	builder *profile.SampleBuilder,
 	stackProcessor *sampleStackProcessor,
@@ -364,7 +474,7 @@ func (c *SampleConsumer) collectInterpreterStackInto(
 	langMtr.unsymbolizedFrameCount.Add(int64(mtr.unsymbolizedFramesCount))
 }
 
-func (c *SampleConsumer) collectStacksInto(ctx context.Context, builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *profile.SampleBuilder) {
 	if enablePython := c.p.conf.BPF.TracePython; enablePython != nil && *enablePython {
 		c.collectInterpreterStackInto(
 			&c.p.metrics.pythonMetrics,
@@ -387,7 +497,7 @@ func (c *SampleConsumer) collectStacksInto(ctx context.Context, builder *profile
 	c.collectUserStackInto(ctx, builder)
 }
 
-func (c *SampleConsumer) collectSampleTime(builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectSampleTime(builder *profile.SampleBuilder) {
 	btime, err := procfs.GetBootTime()
 	if err == nil {
 		builder.AddIntLabel("absolute_timestamp_ns", int64(btime+c.sample.Starttime), "absolute_timestamp_ns")
@@ -396,15 +506,15 @@ func (c *SampleConsumer) collectSampleTime(builder *profile.SampleBuilder) {
 	}
 }
 
-func (c *SampleConsumer) collectWallTime(builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectWallTime(builder *profile.SampleBuilder) {
 	builder.AddValue(int64(c.sample.Timedelta))
 }
 
-func (c *SampleConsumer) collectEventCount(builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectEventCount(builder *profile.SampleBuilder) {
 	builder.AddValue(int64(c.sample.Value))
 }
 
-func (c *SampleConsumer) collectSignalInto(builder *profile.SampleBuilder) error {
+func (c *oneShotSampleConsumer) collectSignalInto(builder *profile.SampleBuilder) error {
 	if c.sample.SampleType != unwinder.SampleTypeTracepointSignalDeliver {
 		return fmt.Errorf("cannot collect signal info from sample of type %s", c.sample.SampleType.String())
 	}
@@ -416,7 +526,7 @@ func (c *SampleConsumer) collectSignalInto(builder *profile.SampleBuilder) error
 	return nil
 }
 
-func (c *SampleConsumer) collectLBRStackInto(ctx context.Context, builder *profile.SampleBuilder) {
+func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder *profile.SampleBuilder) {
 	for i := 0; i < int(c.sample.LbrValues.Nr); i++ {
 		lbrEntry := c.sample.LbrValues.Entries[i]
 		from := lbrEntry.From
@@ -435,11 +545,11 @@ func (c *SampleConsumer) collectLBRStackInto(ctx context.Context, builder *profi
 }
 
 // for testing purposes
-func (c *SampleConsumer) initBuilderMinimal(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
+func (c *oneShotSampleConsumer) initBuilderMinimal(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
 	return c.profileBuilder.EnsureBuilder(name, sampleTypes).Add(c.sample.Pid)
 }
 
-func (c *SampleConsumer) initBuilderCommon(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
+func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
 	builder := c.initBuilderMinimal(name, sampleTypes).
 		AddIntLabel("pid", int64(c.sample.Pid), "pid").
 		AddIntLabel("tid", int64(c.sample.Tid), "tid").
@@ -456,7 +566,7 @@ func (c *SampleConsumer) initBuilderCommon(name string, sampleTypes []profile.Sa
 	return builder
 }
 
-func (c *SampleConsumer) recordSample(ctx context.Context) {
+func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 	var err error
 
 	c.collectEnvironment()
@@ -480,7 +590,7 @@ func (c *SampleConsumer) recordSample(ctx context.Context) {
 }
 
 // On CPU / perf event profiling.
-func (c *SampleConsumer) recordCPUSample(ctx context.Context) {
+func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
 	hasWallTime := c.p.conf.BPF.TraceWallTime != nil && *c.p.conf.BPF.TraceWallTime
 
 	sampleTypes := []profile.SampleType{{Kind: "cpu", Unit: "cycles"}}
@@ -492,7 +602,7 @@ func (c *SampleConsumer) recordCPUSample(ctx context.Context) {
 
 	c.collectEventCount(builder)
 	c.collectStacksInto(ctx, builder)
-	if c.traceFeatures.enableSampleTimeCollection {
+	if c.features.EnableSampleTimeCollection {
 		c.collectSampleTime(builder)
 	}
 
@@ -503,7 +613,7 @@ func (c *SampleConsumer) recordCPUSample(ctx context.Context) {
 	builder.Finish()
 }
 
-func (c *SampleConsumer) recordLBRSample(ctx context.Context) {
+func (c *oneShotSampleConsumer) recordLBRSample(ctx context.Context) {
 	if enable := c.p.conf.BPF.TraceLBR; enable == nil || !*enable {
 		return
 	}
@@ -515,7 +625,7 @@ func (c *SampleConsumer) recordLBRSample(ctx context.Context) {
 	builder.Finish()
 }
 
-func (c *SampleConsumer) recordSignalSample(ctx context.Context) error {
+func (c *oneShotSampleConsumer) recordSignalSample(ctx context.Context) error {
 	if enable := c.p.conf.BPF.TraceSignals; enable == nil || !*enable {
 		return nil
 	}
@@ -525,7 +635,7 @@ func (c *SampleConsumer) recordSignalSample(ctx context.Context) error {
 
 	builder.AddValue(1)
 	c.collectStacksInto(ctx, builder)
-	if c.traceFeatures.enableSampleTimeCollection {
+	if c.features.EnableSampleTimeCollection {
 		c.collectSampleTime(builder)
 	}
 
@@ -538,7 +648,7 @@ func (c *SampleConsumer) recordSignalSample(ctx context.Context) error {
 	return nil
 }
 
-func (c *SampleConsumer) resolveUprobe(ctx context.Context) *uprobe.UprobeInfo {
+func (c *oneShotSampleConsumer) resolveUprobe(ctx context.Context) *uprobe.UprobeInfo {
 	topStackIP := c.sample.Userstack[0]
 	if topStackIP == 0 {
 		return nil
@@ -562,7 +672,7 @@ func (c *SampleConsumer) resolveUprobe(ctx context.Context) *uprobe.UprobeInfo {
 	})
 }
 
-func (c *SampleConsumer) recordUprobeSample(ctx context.Context) {
+func (c *oneShotSampleConsumer) recordUprobeSample(ctx context.Context) {
 	uprobeInfo := c.resolveUprobe(ctx)
 	if uprobeInfo == nil {
 		c.p.log.Warn("Failed to resolve uprobe info", log.UInt64("top_stack_ip", c.sample.Userstack[0]))
@@ -582,14 +692,14 @@ func (c *SampleConsumer) recordUprobeSample(ctx context.Context) {
 
 	builder.AddValue(1)
 	c.collectStacksInto(ctx, builder)
-	if c.traceFeatures.enableSampleTimeCollection {
+	if c.features.EnableSampleTimeCollection {
 		c.collectSampleTime(builder)
 	}
 
 	builder.Finish()
 }
 
-func (c *SampleConsumer) logSample(err error) {
+func (c *oneShotSampleConsumer) logSample(err error) {
 	c.p.log.Debug("Consumed sample",
 		log.Error(err),
 		log.Stringer("sampletype", c.sample.SampleType),
@@ -614,7 +724,7 @@ func (c *SampleConsumer) logSample(err error) {
 	)
 }
 
-func (c *SampleConsumer) maybeFlushProfile() {
+func (c *oneShotSampleConsumer) maybeFlushProfile() {
 	if time.Since(c.profileBuilder.ProfileStartTime()) >= c.p.conf.Egress.Interval {
 		labeledProfiles := c.profileBuilder.RestartProfiles()
 		for _, profile := range labeledProfiles.Profiles {
@@ -629,15 +739,9 @@ func (c *SampleConsumer) maybeFlushProfile() {
 	}
 }
 
-func (c *SampleConsumer) Consume(ctx context.Context) {
+func (c *oneShotSampleConsumer) consume(ctx context.Context) {
 	c.p.procs.DiscoverProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	c.countMetrics(ctx)
-
-	found := c.getSampleCollector()
-	if !found {
-		return
-	}
-
 	c.recordSample(ctx)
 	c.maybeFlushProfile()
 }
