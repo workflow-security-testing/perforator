@@ -359,6 +359,7 @@ require (
 	github.com/florianl/go-tc v0.4.2
 	github.com/flosch/pongo2/v4 v4.0.2
 	github.com/fluent/fluent-bit-go v0.0.0-20230515084116-b93d969da46d
+	github.com/fogleman/gg v1.3.0
 	github.com/forPelevin/gomoji v1.3.0
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/fsouza/go-dockerclient v1.10.1
@@ -1483,7 +1484,6 @@ require (
 	github.com/flowstack/go-jsonschema v0.1.1 // indirect
 	github.com/fluent/fluent-logger-golang v1.9.0 // indirect
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
-	github.com/fogleman/gg v1.3.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.5+incompatible // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/foxcpp/go-mockdns v1.1.0 // indirect
