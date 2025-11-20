@@ -1026,9 +1026,9 @@ require (
 	nhooyr.io/websocket v1.8.17
 	oras.land/oras-go/v2 v2.6.0
 	sigs.k8s.io/controller-runtime v0.20.4
-	sigs.k8s.io/kustomize/api v0.12.1
-	sigs.k8s.io/kustomize/kyaml v0.13.9
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/kustomize/api v0.20.1
+	sigs.k8s.io/kustomize/kyaml v0.20.1
+	sigs.k8s.io/yaml v1.5.0
 	software.sslmate.com/src/go-pkcs12 v0.5.0
 )
 
@@ -1587,7 +1587,7 @@ require (
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/google/cel-spec v0.6.0 // indirect
 	github.com/google/certificate-transparency-go v1.1.6 // indirect
-	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
+	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20220517194345-84eb52633e96 // indirect
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20220516044946-14395f1b4b4e // indirect
 	github.com/google/go-dap v0.12.0 // indirect
@@ -2282,6 +2282,8 @@ require (
 	go.uber.org/dig v1.19.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
+	go.yaml.in/yaml/v2 v2.4.3 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go4.org/intern v0.0.0-20220617035311-6925f38cc365 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	gocloud.dev v0.19.0 // indirect
@@ -2352,7 +2354,7 @@ require (
 	k8s.io/kms v0.28.0-alpha.0 // indirect
 	k8s.io/kube-aggregator v0.27.0-alpha.0 // indirect
 	k8s.io/kube-controller-manager v0.26.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
+	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7 // indirect
 	k8s.io/kube-proxy v0.26.1 // indirect
 	k8s.io/kube-scheduler v0.26.1 // indirect
 	k8s.io/kubectl v0.26.4 // indirect

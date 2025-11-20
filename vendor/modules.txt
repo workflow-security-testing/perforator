@@ -8796,8 +8796,8 @@ github.com/google/gnostic/jsonschema
 github.com/google/gnostic/openapiv2
 github.com/google/gnostic/openapiv3
 github.com/google/gnostic/openapiv3/schema-generator
-# github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49
-## explicit; go 1.18
+# github.com/google/gnostic-models v0.6.9
+## explicit; go 1.21
 github.com/google/gnostic-models/compiler
 github.com/google/gnostic-models/extensions
 github.com/google/gnostic-models/jsonschema
@@ -18258,6 +18258,12 @@ go.uber.org/zap/exp/zapslog
 go.withmatt.com/connect-brotli
 go.withmatt.com/connect-brotli/internal/gen/connect/ping/v1
 go.withmatt.com/connect-brotli/internal/gen/connect/ping/v1/pingv1connect
+# go.yaml.in/yaml/v2 v2.4.3
+## explicit; go 1.15
+go.yaml.in/yaml/v2
+# go.yaml.in/yaml/v3 v3.0.4
+## explicit; go 1.16
+go.yaml.in/yaml/v3
 # go4.org/intern v0.0.0-20220617035311-6925f38cc365
 ## explicit; go 1.13
 # go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760
@@ -19716,6 +19722,7 @@ gopkg.in/check.v1
 ## explicit
 # gopkg.in/evanphx/json-patch.v4 v4.12.0
 ## explicit
+gopkg.in/evanphx/json-patch.v4
 # gopkg.in/fsnotify.v1 v1.4.7
 ## explicit
 # gopkg.in/gcfg.v1 v1.2.3
@@ -20763,13 +20770,14 @@ k8s.io/kube-aggregator/pkg/apis/apiregistration
 k8s.io/kube-aggregator/pkg/apis/apiregistration/v1
 # k8s.io/kube-controller-manager v0.26.1 => k8s.io/kube-controller-manager v0.26.1
 ## explicit; go 1.19
-# k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f
-## explicit; go 1.20
+# k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7
+## explicit; go 1.21
 k8s.io/kube-openapi/pkg/cached
 k8s.io/kube-openapi/pkg/common
 k8s.io/kube-openapi/pkg/handler3
 k8s.io/kube-openapi/pkg/internal
 k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json
+k8s.io/kube-openapi/pkg/internal/third_party/govalidator
 k8s.io/kube-openapi/pkg/schemaconv
 k8s.io/kube-openapi/pkg/spec3
 k8s.io/kube-openapi/pkg/util/jsontesting
@@ -21099,8 +21107,8 @@ sigs.k8s.io/gateway-api/apis/v1beta1
 ## explicit; go 1.21
 sigs.k8s.io/json
 sigs.k8s.io/json/internal/golang/encoding/json
-# sigs.k8s.io/kustomize/api v0.12.1
-## explicit; go 1.18
+# sigs.k8s.io/kustomize/api v0.20.1
+## explicit; go 1.22.7
 sigs.k8s.io/kustomize/api
 sigs.k8s.io/kustomize/api/builtins
 sigs.k8s.io/kustomize/api/filesys
@@ -21124,12 +21132,15 @@ sigs.k8s.io/kustomize/api/filters/suffix
 sigs.k8s.io/kustomize/api/filters/valueadd
 sigs.k8s.io/kustomize/api/hasher
 sigs.k8s.io/kustomize/api/ifc
-sigs.k8s.io/kustomize/api/image
 sigs.k8s.io/kustomize/api/internal/accumulator
 sigs.k8s.io/kustomize/api/internal/builtins
 sigs.k8s.io/kustomize/api/internal/generators
 sigs.k8s.io/kustomize/api/internal/git
+sigs.k8s.io/kustomize/api/internal/image
+sigs.k8s.io/kustomize/api/internal/konfig/builtinpluginconsts
 sigs.k8s.io/kustomize/api/internal/kusterr
+sigs.k8s.io/kustomize/api/internal/loader
+sigs.k8s.io/kustomize/api/internal/localizer
 sigs.k8s.io/kustomize/api/internal/plugins
 sigs.k8s.io/kustomize/api/internal/plugins/builtinconfig
 sigs.k8s.io/kustomize/api/internal/plugins/builtinhelpers
@@ -21142,22 +21153,23 @@ sigs.k8s.io/kustomize/api/internal/target
 sigs.k8s.io/kustomize/api/internal/utils
 sigs.k8s.io/kustomize/api/internal/validate
 sigs.k8s.io/kustomize/api/konfig
-sigs.k8s.io/kustomize/api/konfig/builtinpluginconsts
 sigs.k8s.io/kustomize/api/krusty
-sigs.k8s.io/kustomize/api/krusty/openapitests
+sigs.k8s.io/kustomize/api/krusty/localizer
 sigs.k8s.io/kustomize/api/kv
-sigs.k8s.io/kustomize/api/loader
+sigs.k8s.io/kustomize/api/pkg/loader
+sigs.k8s.io/kustomize/api/pkg/util
 sigs.k8s.io/kustomize/api/provenance
 sigs.k8s.io/kustomize/api/provider
 sigs.k8s.io/kustomize/api/resmap
 sigs.k8s.io/kustomize/api/resource
 sigs.k8s.io/kustomize/api/testutils/filtertest
 sigs.k8s.io/kustomize/api/testutils/kusttest
+sigs.k8s.io/kustomize/api/testutils/localizertest
 sigs.k8s.io/kustomize/api/testutils/resmaptest
 sigs.k8s.io/kustomize/api/testutils/valtest
 sigs.k8s.io/kustomize/api/types
-# sigs.k8s.io/kustomize/kyaml v0.13.9
-## explicit; go 1.18
+# sigs.k8s.io/kustomize/kyaml v0.20.1
+## explicit; go 1.22.7
 sigs.k8s.io/kustomize/kyaml
 sigs.k8s.io/kustomize/kyaml/commandutil
 sigs.k8s.io/kustomize/kyaml/comments
@@ -21167,7 +21179,6 @@ sigs.k8s.io/kustomize/kyaml/ext
 sigs.k8s.io/kustomize/kyaml/fieldmeta
 sigs.k8s.io/kustomize/kyaml/filesys
 sigs.k8s.io/kustomize/kyaml/filtersutil
-sigs.k8s.io/kustomize/kyaml/fix/fixsetters
 sigs.k8s.io/kustomize/kyaml/fn/framework
 sigs.k8s.io/kustomize/kyaml/fn/framework/command
 sigs.k8s.io/kustomize/kyaml/fn/framework/example
@@ -21176,10 +21187,7 @@ sigs.k8s.io/kustomize/kyaml/fn/framework/parser
 sigs.k8s.io/kustomize/kyaml/fn/runtime/container
 sigs.k8s.io/kustomize/kyaml/fn/runtime/exec
 sigs.k8s.io/kustomize/kyaml/fn/runtime/runtimeutil
-sigs.k8s.io/kustomize/kyaml/fn/runtime/starlark
 sigs.k8s.io/kustomize/kyaml/inpututil
-sigs.k8s.io/kustomize/kyaml/internal/forked/github.com/go-yaml/yaml
-sigs.k8s.io/kustomize/kyaml/internal/forked/github.com/qri-io/starlib/util
 sigs.k8s.io/kustomize/kyaml/kio
 sigs.k8s.io/kustomize/kyaml/kio/filters
 sigs.k8s.io/kustomize/kyaml/kio/filters/testyaml
@@ -21187,15 +21195,13 @@ sigs.k8s.io/kustomize/kyaml/kio/kioutil
 sigs.k8s.io/kustomize/kyaml/krmfile
 sigs.k8s.io/kustomize/kyaml/openapi
 sigs.k8s.io/kustomize/kyaml/openapi/kubernetesapi
-sigs.k8s.io/kustomize/kyaml/openapi/kubernetesapi/v1212
+sigs.k8s.io/kustomize/kyaml/openapi/kubernetesapi/v1_21_2
 sigs.k8s.io/kustomize/kyaml/openapi/kustomizationapi
 sigs.k8s.io/kustomize/kyaml/order
 sigs.k8s.io/kustomize/kyaml/pathutil
 sigs.k8s.io/kustomize/kyaml/resid
 sigs.k8s.io/kustomize/kyaml/runfn
 sigs.k8s.io/kustomize/kyaml/sets
-sigs.k8s.io/kustomize/kyaml/setters2
-sigs.k8s.io/kustomize/kyaml/setters2/settersutil
 sigs.k8s.io/kustomize/kyaml/sliceutil
 sigs.k8s.io/kustomize/kyaml/testutil
 sigs.k8s.io/kustomize/kyaml/utils
@@ -21227,8 +21233,8 @@ sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/testing_frameworks v0.1.2
 ## explicit; go 1.13
-# sigs.k8s.io/yaml v1.4.0
-## explicit; go 1.12
+# sigs.k8s.io/yaml v1.5.0
+## explicit; go 1.22
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
 sigs.k8s.io/yaml/goyaml.v3

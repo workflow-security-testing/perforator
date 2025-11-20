@@ -6,18 +6,16 @@ LICENSE(
     MIT
 )
 
-VERSION(v1.4.0)
+VERSION(v1.5.0)
 
 SRCS(
     fields.go
     yaml.go
-    yaml_go110.go
 )
 
 GO_TEST_SRCS(
     bench_test.go
     err_test.go
-    yaml_go110_test.go
     yaml_test.go
 )
 

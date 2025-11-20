@@ -12,7 +12,7 @@ import (
 	"os"
 
 	. "gopkg.in/check.v1"
-	"sigs.k8s.io/yaml/goyaml.v2"
+	"go.yaml.in/yaml/v2"
 )
 
 type jsonNumberT string
