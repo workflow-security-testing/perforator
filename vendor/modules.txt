@@ -4034,7 +4034,7 @@ github.com/andybalholm/cascadia/fuzz
 # github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 ## explicit; go 1.13
 github.com/anmitsu/go-shlex
-# github.com/annetutil/gnetcli v1.0.100
+# github.com/annetutil/gnetcli v1.1.5
 ## explicit; go 1.21
 github.com/annetutil/gnetcli
 github.com/annetutil/gnetcli/cmd/cli
@@ -4053,8 +4053,10 @@ github.com/annetutil/gnetcli/pkg/devconf
 github.com/annetutil/gnetcli/pkg/device
 github.com/annetutil/gnetcli/pkg/device/arista
 github.com/annetutil/gnetcli/pkg/device/aruos
+github.com/annetutil/gnetcli/pkg/device/asa
 github.com/annetutil/gnetcli/pkg/device/bcomos
 github.com/annetutil/gnetcli/pkg/device/cisco
+github.com/annetutil/gnetcli/pkg/device/eltex
 github.com/annetutil/gnetcli/pkg/device/genericcli
 github.com/annetutil/gnetcli/pkg/device/h3c
 github.com/annetutil/gnetcli/pkg/device/huawei
