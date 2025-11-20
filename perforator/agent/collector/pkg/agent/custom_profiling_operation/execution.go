@@ -29,6 +29,7 @@ var (
 
 const (
 	defaultStatusOutputChannelSize = 10
+	defaultFinishOperationTimeout  = 10 * time.Second
 )
 
 type operationExecutionMetrics struct {
@@ -40,11 +41,31 @@ type operationExecutionMetrics struct {
 	zombie   metrics.Counter
 }
 
+type operationExecutionOptions struct {
+	finishOperationTimeout time.Duration
+}
+
+func defaultOperationExecutionOptions() *operationExecutionOptions {
+	return &operationExecutionOptions{
+		finishOperationTimeout: defaultFinishOperationTimeout,
+	}
+}
+
+type operationExecutionOption func(o *operationExecutionOptions)
+
+func withFinishOperationTimeout(timeout time.Duration) operationExecutionOption {
+	return func(o *operationExecutionOptions) {
+		o.finishOperationTimeout = timeout
+	}
+}
+
 type operationExecution struct {
 	l            xlog.Logger
 	id           models.OperationID
 	reporter     models.OperationReporter
 	timeInterval *time_interval.TimeInterval
+
+	opts *operationExecutionOptions
 
 	// This mutex is used to protect concurrent access to operation and status
 	mutex               sync.Mutex
@@ -66,7 +87,13 @@ func newOperationExecution(
 	operationController models.OperationController,
 	reporter models.OperationReporter,
 	timeInterval *time_interval.TimeInterval,
+	optAppliers ...operationExecutionOption,
 ) (*operationExecution, error) {
+	options := defaultOperationExecutionOptions()
+	for _, opt := range optAppliers {
+		opt(options)
+	}
+
 	if timeInterval.To.AsTime().Before(time.Now()) {
 		return nil, errors.New("operation time interval has expired")
 	}
@@ -92,6 +119,7 @@ func newOperationExecution(
 			finished: reg.Counter("finished.count"),
 			zombie:   reg.Counter("zombie.count"),
 		},
+		opts: options,
 	}
 	execution.sendStatusSafe()
 
@@ -215,10 +243,14 @@ func (e *operationExecution) Run(ctx context.Context) {
 		<-gCtx.Done()
 
 		cause := context.Cause(gCtx)
+
+		finishCtx, cancelFinishCtx := context.WithTimeout(ctx, e.opts.finishOperationTimeout)
+		defer cancelFinishCtx()
+
 		if errors.Is(cause, errFinished) {
-			e.finishOperation(gCtx)
+			e.finishOperation(finishCtx)
 		} else {
-			e.stopOperation(gCtx)
+			e.stopOperation(finishCtx)
 		}
 
 		return nil

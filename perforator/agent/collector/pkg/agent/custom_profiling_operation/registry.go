@@ -48,17 +48,20 @@ func NewOperationExecutionRegistry(
 	}
 }
 
-func createOperationExecution(l xlog.Logger, reg metrics.Registry, profiler *profiler.Profiler, reporter models.OperationReporter, operation *cpo_proto.Operation) (models.OperationExecution, error) {
+func (r *registry) createOperationExecution(
+	l xlog.Logger,
+	operation *cpo_proto.Operation,
+) (models.OperationExecution, error) {
 	if operation.Status != nil && cpo_storage_models.IsTerminalState(operation.Status.State) {
 		return nil, errors.New("operation is already in a terminal state")
 	}
 
-	controller, err := newOperationController(l, profiler, operation.ID, operation.Spec)
+	controller, err := newOperationController(l, r.profiler, operation.ID, operation.Spec)
 	if err != nil {
 		return nil, err
 	}
 
-	execution, err := newOperationExecution(l, reg, operation.ID, controller, reporter, operation.Spec.TimeInterval)
+	execution, err := newOperationExecution(l, r.reg, operation.ID, controller, r.reporter, operation.Spec.TimeInterval)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +86,7 @@ func (r *registry) Ensure(ctx context.Context, operation *cpo_proto.Operation) (
 		return currentExecution.cancelExecutionCtx, nil
 	}
 
-	operationExecution, err := createOperationExecution(logger, r.reg, r.profiler, r.reporter, operation)
+	operationExecution, err := r.createOperationExecution(logger, operation)
 	if err != nil {
 		return nil, err
 	}
