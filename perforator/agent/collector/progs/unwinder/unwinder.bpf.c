@@ -713,6 +713,9 @@ int perforator_perf_event(struct bpf_perf_event_data* ctx) {
 static NOINLINE int profiler_do_sample_amd_fam19h_brs_perfevent(void* ctx, struct profiler_sample_args* args) {
     PROFILER_DO_SAMPLE_COMMON_PROLOGUE;
 
+    PROFILER_DEFINE_STAGE(profiler_stage_start(ctx, state, config), METRIC_ERROR_STAGE_START_COUNT);
+    PROFILER_DEFINE_STAGE(profiler_stage_locate_traceee(state, config), METRIC_ERROR_STAGE_LOCATETRACEEE_COUNT);
+    PROFILER_DEFINE_STAGE(profiler_stage_collect_tls(ctx, state, config), METRIC_ERROR_STAGE_TLS_COUNT);
     PROFILER_DEFINE_STAGE(profiler_stage_collect_lbr_stack(ctx, state), METRIC_ERROR_STAGE_LBR_STACK_COUNT);
 
     PROFILER_DO_SAMPLE_COMMON_EPILOGUE;

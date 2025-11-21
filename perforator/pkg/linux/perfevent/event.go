@@ -271,7 +271,7 @@ func fillPerfAttrConfig(attr *unix.PerfEventAttr, options *Options) error {
 		attr.Type = unix.PERF_TYPE_RAW
 		// AMD-specific constant, not present in unix package
 		// https://github.com/torvalds/linux/blob/07e27ad16399afcd693be20211b0dfae63e0615f/arch/x86/events/perf_event.h#L1453
-		attr.Config = 0xc4
+		attr.Config = AMD_RetiredTakenBranchInstructions_PerfEventConfig
 
 	// Software events
 	case CPUClock:

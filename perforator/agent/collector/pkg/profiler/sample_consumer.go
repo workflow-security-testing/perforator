@@ -21,6 +21,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/tls"
@@ -574,7 +575,10 @@ func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 
 	switch c.sample.SampleType {
 	case unwinder.SampleTypePerfEvent:
-		c.recordCPUSample(ctx)
+		// FIXME(ayles) We should also check event type, because id is not unique.
+		if c.sample.SampleConfig != perfevent.AMD_RetiredTakenBranchInstructions_PerfEventConfig {
+			c.recordCPUSample(ctx)
+		}
 		c.recordLBRSample(ctx)
 	case unwinder.SampleTypeKprobeFinishTaskSwitch:
 		c.recordCPUSample(ctx)

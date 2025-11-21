@@ -4,6 +4,8 @@ type Type string
 
 // See man 2 perf_event_open for the description of the event types.
 
+const AMD_RetiredTakenBranchInstructions_PerfEventConfig = 0xc4
+
 const (
 	// Hardware events
 	CPUCycles             Type = "CPUCycles"
