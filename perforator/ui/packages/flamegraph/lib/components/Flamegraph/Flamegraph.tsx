@@ -394,7 +394,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     </div>
                     <template className="flamegraph__label-template" dangerouslySetInnerHTML={{
                         __html: '<div class="flamegraph__label"></div>' }} />
-                    <div className="flamegraph__labels-container" />
+                    <div className="flamegraph__labels-container" translate="no"/>
                     <div className='flamegraph__highlight'>
                         <span />
                     </div>
