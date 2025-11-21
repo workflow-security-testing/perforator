@@ -52,6 +52,12 @@ func NewNonUprobeSampleFilter() SampleFilterFunc {
 	}
 }
 
+func NewPerfEventSampleFilter() SampleFilterFunc {
+	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+		return sample.SampleType == unwinder.SampleTypePerfEvent
+	}
+}
+
 func NewPIDSampleFilter(pid linux.CurrentNamespacePID) SampleFilterFunc {
 	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
 		return linux.CurrentNamespacePID(sample.Pid) == pid

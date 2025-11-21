@@ -153,6 +153,63 @@ func (o *operationController) convertTargetProcessToCurrentNamespace(ctx context
 	return *resolvedPID, nil
 }
 
+func (o *operationController) setupSampleConsumer(ctx context.Context) (err error) {
+	profileLabels := map[string]string{}
+	if o.spec.ProfileLabels != nil {
+		maps.Copy(profileLabels, o.spec.ProfileLabels)
+	}
+	profileLabels[profilequerylang.CPOIDLabel] = string(o.id)
+
+	sampleConsumerFeatures := profiler.DefaultSampleConsumerFeatures()
+	for _, feature := range o.spec.Features {
+		switch feature.Feature.(type) {
+		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
+			sampleConsumerFeatures.EnableSampleTimeCollection = true
+		}
+	}
+
+	var pid linux.CurrentNamespacePID
+	switch target := o.spec.Target.Target.(type) {
+	case *cpo_proto.Target_NodeProcess:
+		pid, err = o.convertTargetProcessToCurrentNamespace(ctx, target.NodeProcess)
+		if err != nil {
+			return fmt.Errorf("failed to convert target process to current namespace: %w", err)
+		}
+	}
+
+	allowedUprobes := make(map[uprobe.BinaryInfo]struct{})
+	for _, uprobe := range o.uprobes {
+		allowedUprobes[uprobe.Info().BinaryInfo] = struct{}{}
+	}
+
+	sampleConsumerName := buildIDString(o.id)
+	eventSampleFilters := []profiler.SampleFilterFunc{
+		profiler.NewUprobeSampleFilter(o.profiler, allowedUprobes),
+	}
+	for _, feature := range o.spec.Features {
+		switch feature.Feature.(type) {
+		case *cpo_proto.Feature_ExperimentalCollectSystemWidePerfEventSamplesFeature:
+			eventSampleFilters = append(eventSampleFilters, profiler.NewPerfEventSampleFilter())
+		}
+	}
+	err = o.profiler.SampleConsumerRegistry().Register(
+		sampleConsumerName,
+		profiler.NewFilterSampleConsumerAdapter(
+			profiler.NewSimpleSampleConsumer(o.profiler, sampleConsumerFeatures, profileLabels),
+			profiler.NewANDSampleFilter(
+				profiler.NewORSampleFilter(eventSampleFilters...),
+				profiler.NewPIDOrTIDSampleFilter(pid),
+			),
+		),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register sample consumer: %w", err)
+	}
+	o.sampleConsumerName = sampleConsumerName
+
+	return nil
+}
+
 func (o *operationController) Start(ctx context.Context) (err error) {
 	defer func() {
 		if err != nil {
@@ -173,37 +230,10 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 		}
 	}
 
-	profileLabels := map[string]string{}
-	if o.spec.ProfileLabels != nil {
-		maps.Copy(profileLabels, o.spec.ProfileLabels)
-	}
-	profileLabels[profilequerylang.CPOIDLabel] = string(o.id)
-
-	sampleConsumerFeatures := profiler.DefaultSampleConsumerFeatures()
-	for _, feature := range o.spec.Features {
-		switch feature.Feature.(type) {
-		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
-			sampleConsumerFeatures.EnableSampleTimeCollection = true
-		}
-	}
-
-	allowedUprobes := make(map[uprobe.BinaryInfo]struct{})
-	for _, uprobe := range o.uprobes {
-		allowedUprobes[uprobe.Info().BinaryInfo] = struct{}{}
-	}
-
-	sampleConsumerName := buildIDString(o.id)
-	err = o.profiler.SampleConsumerRegistry().Register(
-		sampleConsumerName,
-		profiler.NewFilterSampleConsumerAdapter(
-			profiler.NewSimpleSampleConsumer(o.profiler, sampleConsumerFeatures, profileLabels),
-			profiler.NewUprobeSampleFilter(o.profiler, allowedUprobes),
-		),
-	)
+	err = o.setupSampleConsumer(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to register sample consumer: %w", err)
+		return fmt.Errorf("failed to setup sample consumer: %w", err)
 	}
-	o.sampleConsumerName = sampleConsumerName
 
 	return nil
 }

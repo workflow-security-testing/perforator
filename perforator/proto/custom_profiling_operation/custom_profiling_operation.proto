@@ -121,9 +121,13 @@ message Event {
 
 message CollectStackAbsoluteTimestampsFeature {}
 
+message ExperimentalCollectSystemWidePerfEventSamplesFeature {}
+
 message Feature {
     oneof Feature {
         CollectStackAbsoluteTimestampsFeature CollectStackAbsoluteTimestampsFeature = 11;
+        // This feature is experimental and may be removed in the future
+        ExperimentalCollectSystemWidePerfEventSamplesFeature ExperimentalCollectSystemWidePerfEventSamplesFeature = 12;
     }
 }
 
