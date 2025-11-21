@@ -70,6 +70,27 @@ func validateTimeInterval(timeInterval *time_interval.TimeInterval) error {
 	return nil
 }
 
+func validateEvent(event *cpo_proto.Event) error {
+	if event.Settings == nil {
+		return errors.New("event settings are not set")
+	}
+
+	switch eventSettings := event.Settings.Settings.(type) {
+	case *cpo_proto.EventSettings_Uprobe:
+		err := validateUprobeSettings(eventSettings.Uprobe)
+		if err != nil {
+			return err
+		}
+	case *cpo_proto.EventSettings_PerfEvent:
+		// Not implemented yet.
+		// This requires mathcing samples from BPF with events by perf_event_id
+		// and routing each event's sample to the corresponding profile.
+		return errors.New("perf event is not supported yet")
+	}
+
+	return nil
+}
+
 func ValidateOperationSpec(spec *cpo_proto.OperationSpec) error {
 	if spec == nil {
 		return errors.New("spec is not set")
@@ -92,21 +113,15 @@ func ValidateOperationSpec(spec *cpo_proto.OperationSpec) error {
 		}
 	}
 
-	if spec.Event == nil || spec.Event.Settings == nil {
-		return errors.New("event is not set")
+	if len(spec.Events) == 0 {
+		return errors.New("events are not set")
 	}
 
-	switch eventSettings := spec.Event.Settings.Settings.(type) {
-	case *cpo_proto.EventSettings_Uprobe:
-		err := validateUprobeSettings(eventSettings.Uprobe)
+	for _, event := range spec.Events {
+		err := validateEvent(event)
 		if err != nil {
 			return err
 		}
-	case *cpo_proto.EventSettings_PerfEvent:
-		// Not implemented yet.
-		// This requires mathcing samples from BPF with events by perf_event_id
-		// and routing each event's sample to the corresponding profile.
-		return errors.New("perf event is not supported yet")
 	}
 
 	err := validateTimeInterval(spec.TimeInterval)

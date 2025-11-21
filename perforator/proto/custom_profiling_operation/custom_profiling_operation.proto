@@ -131,8 +131,8 @@ message OperationSpec {
     // Target to record
     Target Target = 1;
 
-    // Event to record
-    Event Event = 2;
+    // Events to record
+    repeated Event Events = 2;
 
     // Features for recording: e.g collect stack timestamps
     repeated Feature Features = 3;

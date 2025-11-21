@@ -74,12 +74,14 @@ func (o *operationController) releaseProfilerResources() error {
 	return errors.Join(errs...)
 }
 
-func buildSampleConsumerName(id models.OperationID) string {
+func buildIDString(id models.OperationID) string {
 	return fmt.Sprintf("cpo_%s", string(id))
 }
 
-func (o *operationController) createUprobes(ctx context.Context, eventSettings *cpo_proto.EventSettings_Uprobe, target *cpo_proto.Target) error {
-	baseUprobeConfig := uprobe.Config{}
+func (o *operationController) createUprobesForEvent(ctx context.Context, eventSettings *cpo_proto.EventSettings_Uprobe, target *cpo_proto.Target) error {
+	baseUprobeConfig := uprobe.Config{
+		OutputProfileName: buildIDString(o.id),
+	}
 
 	switch target := target.Target.(type) {
 	case *cpo_proto.Target_NodeProcess:
@@ -161,11 +163,13 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 		}
 	}()
 
-	switch eventSettings := o.spec.Event.Settings.Settings.(type) {
-	case *cpo_proto.EventSettings_Uprobe:
-		err := o.createUprobes(ctx, eventSettings, o.spec.Target)
-		if err != nil {
-			return fmt.Errorf("failed to create uprobes: %w", err)
+	for _, event := range o.spec.Events {
+		switch eventSettings := event.Settings.Settings.(type) {
+		case *cpo_proto.EventSettings_Uprobe:
+			err := o.createUprobesForEvent(ctx, eventSettings, o.spec.Target)
+			if err != nil {
+				return fmt.Errorf("failed to create uprobes: %w", err)
+			}
 		}
 	}
 
@@ -188,7 +192,7 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 		allowedUprobes[uprobe.Info().BinaryInfo] = struct{}{}
 	}
 
-	sampleConsumerName := buildSampleConsumerName(o.id)
+	sampleConsumerName := buildIDString(o.id)
 	err = o.profiler.SampleConsumerRegistry().Register(
 		sampleConsumerName,
 		profiler.NewFilterSampleConsumerAdapter(
