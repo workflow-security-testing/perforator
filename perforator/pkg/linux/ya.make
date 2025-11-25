@@ -8,6 +8,7 @@ SRCS(
 END()
 
 RECURSE(
+    btime
     cpuinfo
     cpulist
     kallsyms

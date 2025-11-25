@@ -1,4 +1,4 @@
-package procfs
+package btime
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 func TestBootTimeInitialized(t *testing.T) {
 	btime, err := GetBootTime()
 	require.NoError(t, err)
-	require.NotZero(t, btime)
+	require.False(t, btime.IsZero())
 }

@@ -14,7 +14,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	cpo_internal "github.com/yandex/perforator/perforator/internal/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/linux"
-	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
+	"github.com/yandex/perforator/perforator/pkg/linux/btime"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
@@ -44,7 +44,7 @@ func newOperationController(l xlog.Logger, profiler *profiler.Profiler, id model
 	for _, feature := range spec.Features {
 		switch feature.Feature.(type) {
 		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
-			if _, err := procfs.GetBootTime(); err != nil {
+			if _, err := btime.GetBootTime(); err != nil {
 				return nil, fmt.Errorf("failed to get host boot time: %w", err)
 			}
 		}

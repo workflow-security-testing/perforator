@@ -21,8 +21,8 @@ import (
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	"github.com/yandex/perforator/perforator/pkg/linux/btime"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
-	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/tls"
 )
@@ -499,9 +499,9 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 }
 
 func (c *oneShotSampleConsumer) collectSampleTime(builder *profile.SampleBuilder) {
-	btime, err := procfs.GetBootTime()
+	bootTime, err := btime.GetBootTime()
 	if err == nil {
-		builder.AddIntLabel("absolute_timestamp_ns", int64(btime+c.sample.Starttime), "absolute_timestamp_ns")
+		builder.AddIntLabel("absolute_timestamp_ns", bootTime.UnixNano()+int64(c.sample.Starttime), "absolute_timestamp_ns")
 	} else {
 		panic(fmt.Sprintf("failed to get system boot time: %v", err))
 	}

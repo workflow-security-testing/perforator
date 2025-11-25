@@ -9,7 +9,6 @@ IF (NOT OPENSOURCE)
 ENDIF()
 
 SRCS(
-    btime.go
     fs.go
     maps.go
     meminfo.go
@@ -20,7 +19,6 @@ SRCS(
 )
 
 GO_TEST_SRCS(
-    btime_test.go
     meminfo_test.go
     process_test.go
 )
