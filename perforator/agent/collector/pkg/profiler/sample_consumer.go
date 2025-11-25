@@ -501,7 +501,7 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 func (c *oneShotSampleConsumer) collectSampleTime(builder *profile.SampleBuilder) {
 	bootTime, err := btime.GetBootTime()
 	if err == nil {
-		builder.AddIntLabel("absolute_timestamp_ns", bootTime.UnixNano()+int64(c.sample.Starttime), "absolute_timestamp_ns")
+		builder.AddIntLabel("absolute_timestamp", bootTime.UnixNano()+int64(c.sample.Starttime), "ns")
 	} else {
 		panic(fmt.Sprintf("failed to get system boot time: %v", err))
 	}
