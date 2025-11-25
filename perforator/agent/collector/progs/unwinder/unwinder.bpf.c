@@ -219,6 +219,7 @@ static ALWAYS_INLINE void record_sample(
 
     u64 ktime = bpf_ktime_get_ns();
     sample->runtime = ktime - state->prog_starttime;
+    sample->collection_time = state->prog_starttime;
 
     sample->tls_values = state->tls;
 

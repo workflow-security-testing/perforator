@@ -66,6 +66,10 @@ struct record_sample {
     // in terms of bpf_ktime_get_ns (clock_gettime(CLOCK_MONOTONIC))
     u32 runtime;
 
+    // Denotes the time when the sample was collected. (computed as state->prog_starttime)
+    // Number of nanoseconds since system boot time (monotonic clock).
+    u64 collection_time;
+
     u8 thread_comm[TASK_COMM_LEN];
     u8 process_comm[TASK_COMM_LEN];
     u32 pid;
