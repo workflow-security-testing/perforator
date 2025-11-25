@@ -778,7 +778,7 @@ require (
 	github.com/tiktoken-go/tokenizer v0.7.0
 	github.com/timakin/bodyclose v0.0.0-20230421092635-574207250966
 	github.com/tink-crypto/tink-go/v2 v2.2.0
-	github.com/tinylib/msgp v1.1.8
+	github.com/tinylib/msgp v1.5.0
 	github.com/tmccombs/hcl2json v0.5.0
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1
 	github.com/trinodb/trino-go-client v0.313.0
@@ -1988,7 +1988,7 @@ require (
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5 // indirect
 	github.com/phayes/permbits v0.0.0-20190612203442-39d7c581d2ee // indirect
 	github.com/phf/go-queue v0.0.0-20170504031614-9abe38d0371d // indirect
-	github.com/philhofer/fwd v1.1.2 // indirect
+	github.com/philhofer/fwd v1.2.0 // indirect
 	github.com/phpdave11/gofpdf v1.4.2 // indirect
 	github.com/phpdave11/gofpdi v1.0.15 // indirect
 	github.com/pingcap/check v0.0.0-20211026125417-57bd13f7b5f0 // indirect

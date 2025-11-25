@@ -13074,8 +13074,8 @@ github.com/phayes/freeport
 # github.com/phf/go-queue v0.0.0-20170504031614-9abe38d0371d
 ## explicit
 github.com/phf/go-queue/queue
-# github.com/philhofer/fwd v1.1.2
-## explicit; go 1.15
+# github.com/philhofer/fwd v1.2.0
+## explicit; go 1.20
 github.com/philhofer/fwd
 # github.com/phin1x/go-ipp v1.6.1
 ## explicit; go 1.13
@@ -15328,11 +15328,12 @@ github.com/tink-crypto/tink-go/v2/testkeyset
 github.com/tink-crypto/tink-go/v2/testutil
 github.com/tink-crypto/tink-go/v2/testutil/hybrid
 github.com/tink-crypto/tink-go/v2/tink
-# github.com/tinylib/msgp v1.1.8
-## explicit; go 1.15
+# github.com/tinylib/msgp v1.5.0
+## explicit; go 1.22
 github.com/tinylib/msgp
 github.com/tinylib/msgp/gen
 github.com/tinylib/msgp/msgp
+github.com/tinylib/msgp/msgp/setof
 github.com/tinylib/msgp/parse
 github.com/tinylib/msgp/printer
 github.com/tinylib/msgp/tinygotest
