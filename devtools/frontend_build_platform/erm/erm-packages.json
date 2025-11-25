@@ -6,7 +6,7 @@
     "title": "Biome",
     "description": "Biome is a fast formatter for JavaScript, TypeScript, JSX, TSX, JSON, CSS and GraphQL that scores 97% compatibility with Prettier, saving CI and developer time.\n\n[Подробнее про линтинг в tier-0](https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint)",
     "type": "NPM_PACKAGE",
-    "default": "2.3.0",
+    "default": "2.3.4",
     "links": {
       "Home": "https://biomejs.dev/",
       "Sources": "https://github.com/biomejs/biome",
@@ -16,6 +16,10 @@
     "specifier": ">=2.0.0",
     "useDirectly": true,
     "versions": {
+      "2.3.4": {
+        "add_date": "2025-11-25T05:31:47",
+        "resources": []
+      },
       "2.3.0": {
         "add_date": "2025-11-07T12:38:42",
         "resources": []
@@ -26,7 +30,7 @@
     "title": "rspack CLI",
     "description": "CLI часть от `rspack`, вынесенная в отдельный пакет.\n\nНеобходима на проекте для того, чтобы мочь в принципе запускать сборку `rspack`.",
     "type": "NPM_PACKAGE",
-    "default": "1.6.0",
+    "default": "1.6.1",
     "links": {
       "Home": "https://rspack.rs/api/cli",
       "Sources": "https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-cli",
@@ -36,6 +40,10 @@
     "specifier": ">=1.3.11",
     "useDirectly": true,
     "versions": {
+      "1.6.1": {
+        "add_date": "2025-11-25T05:32:03",
+        "resources": []
+      },
       "1.6.0": {
         "add_date": "2025-11-13T14:28:47",
         "resources": []
@@ -102,7 +110,7 @@
     "title": "rspack Core",
     "description": "Альтернативный сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_RSPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_RSPACK).",
     "type": "NPM_PACKAGE",
-    "default": "1.6.0",
+    "default": "1.6.1",
     "links": {
       "Home": "https://rspack.rs",
       "Sources": "https://github.com/web-infra-dev/rspack",
@@ -112,6 +120,10 @@
     "specifier": ">=1.3.11",
     "useDirectly": true,
     "versions": {
+      "1.6.1": {
+        "add_date": "2025-11-25T05:32:12",
+        "resources": []
+      },
       "1.6.0": {
         "add_date": "2025-11-13T14:29:00",
         "resources": []
@@ -6048,7 +6060,7 @@
     "title": "Vite",
     "description": "Современный сборщик frontend проектов\n\nПод капотом используется более низкоуровневый сборщик [rollup](https://rollupjs.org/).\n\nДля транспиляции TypeScript может использовать нативные способы: [esbuild](https://esbuild.github.io/), [SWC](https://swc.rs/)\n\nПоэтому, если требуется использовать `rollup` или `esbuild`/`SWC` на проекте - то `vite` - ваш выбор.\n\nВ tier-0 используется в модуле/макросе [`TS_VITE()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_VITE).",
     "type": "NPM_PACKAGE",
-    "default": "7.1.12",
+    "default": "7.2.2",
     "links": {
       "Home": "https://vitejs.dev/",
       "Sources": "https://github.com/vitejs/vite/tree/main",
@@ -6058,6 +6070,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "7.2.2": {
+        "add_date": "2025-11-25T05:39:35",
+        "resources": []
+      },
       "7.1.12": {
         "add_date": "2025-11-11T05:39:15",
         "resources": []
