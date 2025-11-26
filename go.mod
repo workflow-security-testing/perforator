@@ -200,6 +200,7 @@ require (
 	github.com/Vonng/pg_exporter v0.8.1
 	github.com/XSAM/otelsql v0.23.0
 	github.com/a-h/templ v0.2.663
+	github.com/abema/go-mp4 v1.4.1
 	github.com/agnivade/levenshtein v1.2.0
 	github.com/airbusgeo/godal v0.0.12
 	github.com/airbusgeo/osio v0.1.4
@@ -1141,7 +1142,6 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/Yiling-J/theine-go v0.6.1 // indirect
-	github.com/abema/go-mp4 v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/aclements/go-moremath v0.0.0-20241023150245-c8bbc672ef66 // indirect
 	github.com/actgardner/gogen-avro/v10 v10.2.1 // indirect

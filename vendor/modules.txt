@@ -3851,9 +3851,17 @@ github.com/Yiling-J/theine-go/internal/xruntime
 github.com/a-h/templ
 github.com/a-h/templ/safehtml
 github.com/a-h/templ/turbo
-# github.com/abema/go-mp4 v1.2.0
+# github.com/abema/go-mp4 v1.4.1
 ## explicit; go 1.14
 github.com/abema/go-mp4
+github.com/abema/go-mp4/cmd/mp4tool
+github.com/abema/go-mp4/cmd/mp4tool/internal/divide
+github.com/abema/go-mp4/cmd/mp4tool/internal/dump
+github.com/abema/go-mp4/cmd/mp4tool/internal/edit
+github.com/abema/go-mp4/cmd/mp4tool/internal/extract
+github.com/abema/go-mp4/cmd/mp4tool/internal/probe
+github.com/abema/go-mp4/cmd/mp4tool/internal/psshdump
+github.com/abema/go-mp4/cmd/mp4tool/internal/util
 github.com/abema/go-mp4/internal/bitio
 github.com/abema/go-mp4/internal/util
 # github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
@@ -12848,7 +12856,6 @@ github.com/opentracing/opentracing-go/mocktracer
 ## explicit
 # github.com/orcaman/writerseeker v0.0.0-20200621085525-1d3f536ff85e
 ## explicit
-github.com/orcaman/writerseeker
 # github.com/ory/dockertest/v3 v3.10.0
 ## explicit; go 1.17
 github.com/ory/dockertest/v3
@@ -14992,6 +14999,7 @@ github.com/subosito/gotenv
 ## explicit; go 1.18
 # github.com/sunfish-shogi/bufseekio v0.0.0-20210207115823-a4185644b365
 ## explicit
+github.com/sunfish-shogi/bufseekio
 # github.com/swaggo/echo-swagger v1.4.1
 ## explicit; go 1.17
 github.com/swaggo/echo-swagger
