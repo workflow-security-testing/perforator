@@ -425,6 +425,7 @@ require (
 	github.com/go-testfixtures/testfixtures/v3 v3.6.1
 	github.com/go-zookeeper/zk v1.0.4
 	github.com/gobwas/ws v1.4.0
+	github.com/goccy/go-graphviz v0.2.9
 	github.com/goccy/go-json v0.10.3
 	github.com/goccy/go-yaml v1.15.23
 	github.com/gocql/gocql v1.7.0
@@ -1354,6 +1355,7 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/license-bill-of-materials v0.0.0-20190913234955-13baff47494e // indirect
 	github.com/coreos/pkg v0.0.0-20220810130054-c7d1c02cb6cf // indirect
+	github.com/corona10/goimagehash v1.1.0 // indirect
 	github.com/corpix/uarand v0.2.0 // indirect
 	github.com/cosiner/argv v0.1.0 // indirect
 	github.com/couchbaselabs/go-slab v0.0.0-20241217020741-c259ef9754f3 // indirect
@@ -1480,6 +1482,7 @@ require (
 	github.com/fclairamb/ftpserverlib v0.24.0 // indirect
 	github.com/felixge/fgprof v0.9.4 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/flopp/go-findfont v0.1.0 // indirect
 	github.com/flosch/pongo2 v0.0.0-20200913210552-0d938eb266f3 // indirect
 	github.com/flowstack/go-jsonschema v0.1.1 // indirect
 	github.com/fluent/fluent-logger-golang v1.9.0 // indirect
