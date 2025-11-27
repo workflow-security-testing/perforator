@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/karlseguin/ccache/v3"
@@ -86,7 +87,8 @@ type Scheduler struct {
 	storage client.BinaryStorage
 	l       log.Logger
 
-	randomSource rand.Source
+	random   *rand.Rand
+	randomMu sync.Mutex
 
 	metrics *uploadSchedulerMetrics
 }
@@ -111,7 +113,7 @@ func NewUploadScheduler(
 		binariesQueue:          make(chan ClosedBinary, conf.MaxClosedBinariesQueue),
 		simultaneousUploadsSem: semaphore.NewWeighted(int64(conf.MaxSimultaneousUploads)),
 		storage:                storage,
-		randomSource:           rand.NewSource(time.Now().UnixNano()),
+		random:                 rand.New(rand.NewSource(time.Now().UnixNano())),
 		l:                      l.WithName("uploader"),
 	}
 
@@ -161,9 +163,10 @@ func (u *Scheduler) uploadBinaryImpl(ctx context.Context, buildID string, closed
 }
 
 func (u *Scheduler) getRandomJitter(cap time.Duration) time.Duration {
-	generator := rand.New(u.randomSource)
+	u.randomMu.Lock()
+	defer u.randomMu.Unlock()
 	maxNanos := int64(cap)
-	nanos := generator.Int63n(maxNanos + 1)
+	nanos := u.random.Int63n(maxNanos + 1)
 	return time.Duration(nanos)
 }
 
