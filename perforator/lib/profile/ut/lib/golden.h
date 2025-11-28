@@ -10,20 +10,18 @@
 
 namespace NPerforator::NProfile::NTest {
 
-NProto::NPProf::Profile ParsePprof(const TFsPath& path);
+TString DecompressPprof(const TFsPath& path);
 
-TVector<TFsPath> ListGoldenProfiles(TStringBuf pattern, TMaybe<size_t> expectedProfileCount = Nothing());
+TVector<TFsPath> ListGoldenProfiles(const TFsPath& path, TStringBuf pattern, TMaybe<size_t> expectedProfileCount);
 
 TString SerializeFlatProfile(const TFlatDiffableProfile& profile);
 
 TMap<TString, ui64> CountFlatProfileEvents(const TFlatDiffableProfile& profile);
 
-template <typename L, typename R>
-void CompareFlatProfiles(const L& lhs, const R& rhs) {
+template <bool Big = false, typename L, typename R>
+void CompareFlatProfiles(const L& lhs, const R& rhs, TFlatDiffableProfileOptions options = {}) {
     // Our profiles are somewhat malformed
-    TFlatDiffableProfileOptions options{
-        .LabelBlacklist = {"comm"},
-    };
+    options.LabelBlacklist.emplace("comm");
     TFlatDiffableProfile left{lhs, options};
     TFlatDiffableProfile right{rhs, options};
 
@@ -33,7 +31,14 @@ void CompareFlatProfiles(const L& lhs, const R& rhs) {
 
     TString pprofString = SerializeFlatProfile(left);
     TString protoString = SerializeFlatProfile(right);
-    EXPECT_EQ(pprofString, protoString);
+    if constexpr (Big) {
+        // EXPECT_EQ for strings will try to compute edit distance for pretty diffs,
+        // but we have very long strings.
+        // TODO(ayles): compare line by line?
+        EXPECT_TRUE(pprofString == protoString);
+    } else {
+        EXPECT_EQ(pprofString, protoString);
+    }
 }
 
 } // namespace NPerforator::NProfile::NTest

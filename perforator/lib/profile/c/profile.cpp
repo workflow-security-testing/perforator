@@ -34,12 +34,8 @@ TPerforatorError PerforatorProfileParse(const char* ptr, size_t size, TPerforato
 
 TPerforatorError PerforatorProfileParsePProf(const char* ptr, size_t size, TPerforatorProfile* result) {
     return InterceptExceptions([&] {
-        google::protobuf::Arena arena;
-        auto* pprof = google::protobuf::Arena::Create<NProto::NPProf::Profile>(&arena);
-        Y_ENSURE(pprof->ParseFromArray(ptr, size));
-
         auto profile = MakeHolder<NProto::NProfile::Profile>();
-        ConvertFromPProf(*pprof, profile.Get());
+        ConvertFromPProf(TStringBuf{ptr, size}, profile.Get());
         *result = profile.Release();
     });
 }
@@ -53,9 +49,9 @@ TPerforatorError PerforatorProfileSerialize(TPerforatorProfile profile, TPerfora
 
 TPerforatorError PerforatorProfileSerializePProf(TPerforatorProfile profile, TPerforatorString* result) {
     return InterceptExceptions([&] {
-        NProto::NPProf::Profile pprof;
-        ConvertToPProf(*UnwrapProfile(profile), &pprof);
-        *result = MakeString(pprof.SerializeAsStringOrThrow());
+        TString res;
+        ConvertToPProf(*UnwrapProfile(profile), &res);
+        *result = MakeString(std::move(res));
     });
 }
 

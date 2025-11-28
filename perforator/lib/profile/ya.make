@@ -19,9 +19,9 @@ PEERDIR(
     library/cpp/containers/absl_flat_hash
     library/cpp/containers/stack_vector
     library/cpp/introspection
-    library/cpp/threading/future
     library/cpp/json
-    library/cpp/yt/compact_containers
+    library/cpp/protobuf/inplace
+    library/cpp/threading/future
 )
 
 END()

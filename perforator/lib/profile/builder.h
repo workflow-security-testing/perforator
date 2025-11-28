@@ -8,6 +8,7 @@
 #include <library/cpp/introspection/introspection.h>
 
 #include <util/datetime/base.h>
+#include <util/digest/city.h>
 #include <util/digest/multi.h>
 #include <util/generic/strbuf.h>
 

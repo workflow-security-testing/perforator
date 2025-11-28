@@ -3,13 +3,16 @@
 #include "pprof.h"
 #include "profile.h"
 
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/wire_format_lite.h>
+
 #include <perforator/lib/permutation/permutation.h>
 
 #include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
 #include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
 #include <library/cpp/iterator/enumerate.h>
 #include <library/cpp/iterator/zip.h>
-#include <library/cpp/yt/compact_containers/compact_vector.h>
+#include <library/cpp/protobuf/inplace/inplace.h>
 
 #include <util/digest/city.h>
 #include <util/digest/multi.h>
@@ -28,9 +31,12 @@ namespace NPerforator::NProfile {
 
 namespace NDetail {
 
+static constexpr TStringBuf KernelSpecialMapping{"[kernel]"};
+static constexpr TStringBuf PythonSpecialMapping{"[python]"};
+
 // Simple helper to prevent lossy implicit conversions.
 // Profiles are represented as a bunch of integers of different bit width,
-// and it is very error-prone to work with integeres in C++ when implicit
+// and it is very error-prone to work with integers in C++ when implicit
 // conversions are everywhere. Moreover, Protobuf represents indices into
 // repeated fields as `int`, and there is a lot of subtle bugs when combining
 // protobuf structures with standard containers.
@@ -59,53 +65,6 @@ private:
     T Value_;
 };
 
-class TStringTableConverter {
-public:
-    explicit TStringTableConverter(const NProto::NPProf::Profile& oldProfile, NProto::NProfile::StringTable* table)
-        : Table_{table}
-    {
-        Populate(oldProfile);
-    }
-
-    void Populate(const NProto::NPProf::Profile& profile) {
-        Y_ENSURE(profile.string_table(0).empty());
-
-        TVector<size_t> permutation = MakeSortedPermutation(profile.string_table());
-        Mapping_.resize(permutation.size());
-        TString* strings = Table_->mutable_strings();
-
-        for (auto i : permutation) {
-            size_t offset = strings->size();
-            ui32 id = Table_->offset_size();
-
-            const TString& str = profile.string_table(i);
-            strings->append(str);
-            Table_->add_offset(offset);
-            Table_->add_length(str.size());
-            Mapping_[i] = id;
-        }
-
-        Validate(profile);
-    }
-
-    ui32 Remap(i64 id) const {
-        Y_ENSURE(static_cast<size_t>(id) < Mapping_.size());
-        return Mapping_[id];
-    }
-
-    void Validate(const NProto::NPProf::Profile& profile) const {
-        for (size_t i = 0; i < Mapping_.size(); ++i) {
-            size_t id = Remap(i);
-            TStringBuf buf{Table_->strings().data() + Table_->offset(id), Table_->length(id)};
-            Y_ENSURE(profile.string_table(i) == buf);
-        }
-    }
-
-private:
-    TVector<ui32> Mapping_;
-    NProto::NProfile::StringTable* Table_;
-};
-
 template <CStrongIndex Index>
 class TIndexedEntityRemapping {
 public:
@@ -120,7 +79,7 @@ public:
     explicit TIndexedEntityRemapping(size_t sizeHint)
         : Mapping_{Max<size_t>(sizeHint + 10, 1024)}
     {
-        Add(0ul, Max<ui32>(), Index::Zero());
+        Add((ui64)0ul, Max<ui32>(), Index::Zero());
     }
 
     bool IsEmpty() const {
@@ -178,67 +137,900 @@ public:
     };
 
 public:
-    TThreadInfoParser(const NProto::NPProf::Profile* profile, std::function<TStringId(i64)> strtab)
-        : Profile_{profile}
-        , MapString_{strtab}
-    {
-        Y_ABORT_UNLESS(profile && strtab);
-    }
-
-    TThreadInfoParser(const NProto::NPProf::Profile* profile, const TStringTableConverter* strtab)
-        : TThreadInfoParser{profile, [strtab](i64 id) {
-            return TStringId::FromInternalIndex(strtab->Remap(id));
-        }}
-    {}
-
-    bool Consume(const NProto::NPProf::Label& label) {
-        TStringBuf key = Profile_->string_table(label.key());
-
+    template<typename F>
+    static inline bool Consume(TProfileBuilder::TThreadBuilder& builder, const TStringBuf& key, i64 num, i64 str, F&& mapString) {
         if (key == TLabelKeys::ThreadId) {
-            Info_.ThreadId = label.num();
+            builder.SetThreadId(num);
             return true;
         }
 
         if (key == TLabelKeys::ProcessId) {
-            Info_.ProcessId = label.num();
+            builder.SetProcessId(num);
             return true;
         }
 
         if (key == TLabelKeys::ProcessName) {
-            Info_.ProcessNameIdx = MapString_(label.str());
+            builder.SetProcessName(mapString(str));
             return true;
         }
 
-        if (key == TLabelKeys::ThreadName) {
-            Info_.ThreadNameIdx = MapString_(label.str());
-            return true;
-        } else if (key == TLabelKeys::ThreadNameDeprecated) {
-            Info_.ThreadNameIdx = MapString_(label.str());
+        if (key == TLabelKeys::ThreadName || key == TLabelKeys::ThreadNameDeprecated) {
+            builder.SetThreadName(mapString(str));
             return true;
         }
 
         if (key == TLabelKeys::WorkloadName) {
-            Info_.ContainerIdx.push_back(MapString_(label.str()));
+            builder.AddContainerName(mapString(str));
             return true;
         }
 
         return false;
     }
+};
 
-    TThreadInfo Finish() && {
-        return std::move(Info_);
+// We could parse pprof data from a stream without buffering, but that would require a specific serialization order
+// to handle field dependencies. However, the order produced by the standard pprof tooling is not suitable for this.
+// An alternative is to build the profile using the same IDs, which would bypass the builder's deduplication logic.
+// For now, we are taking the simpler approach of parsing it from a contiguous block of memory.
+class TFromPProfBytesConverterContext {
+public:
+    explicit TFromPProfBytesConverterContext(TStringBuf from Y_LIFETIME_BOUND, NProto::NProfile::Profile* to)
+        : From_(from)
+        , Builder_(to)
+        , Profile_(to)
+        , KernelBinaryId_(TBinaryId::Invalid())
+        , PythonBinaryId_(TBinaryId::Invalid())
+    {}
+
+    void Convert() && {
+        ParseProfile(From_);
     }
 
 private:
-    const NProto::NPProf::Profile* Profile_ = nullptr;
-    std::function<TStringId(i64)> MapString_;
-    TThreadInfo Info_;
+    void ParseSampleType(NInPlaceProto::TRegionParser& parent) {
+        using NProto::NPProf::ValueType;
+        NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<ValueType>(parent.GetBytesAsBuf())};
+
+        i64 type = 0;
+        i64 unit = 0;
+
+        while (ui32 fieldNumber = parser.NextFieldNumber()) {
+            switch (fieldNumber) {
+                case ValueType::kTypeFieldNumber:
+                    type = parser.GetInt64();
+                    break;
+                case ValueType::kUnitFieldNumber:
+                    unit = parser.GetInt64();
+                    break;
+                default:
+                    parser.SkipField();
+            }
+        }
+
+        Y_ENSURE(!parser.IsCorrupted());
+
+        ValueTypeMapping_.push_back(Builder_.AddValueType(StringMapping_.at(type), StringMapping_.at(unit)));
+    }
+
+    struct TStacks {
+        bool InsideKernel = true;
+        TProfileBuilder::TSimpleStackBuilder Kernel;
+        TProfileBuilder::TSimpleStackBuilder User;
+        TMaybe<TProfileBuilder::TSimpleStackBuilder> Python;
+    };
+
+    void ParseSampleLocationId(NInPlaceProto::TRegionParser& parent, TStacks& stacks) {
+        auto handle = [&](i64 value) {
+            TStackFrameId frame = LocationMapping_->GetNewIndex(value);
+
+            auto binaryId = Profile_.StackFrames().Get(frame).GetBinary().GetIndex();
+
+            if (binaryId.GetInternalIndex() == 0) {
+                (stacks.InsideKernel ? stacks.Kernel : stacks.User).AddFrame(frame);
+            } else if (binaryId == PythonBinaryId_) {
+                if (!stacks.Python) {
+                    stacks.Python.ConstructInPlace(Builder_
+                        .AddSimpleStack()
+                        .SetKind(NProto::NProfile::StackKind::Other)
+                        .SetRuntimeName(Builder_.AddString("python"))
+                    );
+                }
+                stacks.Python->AddFrame(frame);
+            } else if (binaryId == KernelBinaryId_) {
+                Y_ENSURE(stacks.InsideKernel, "Unexpected mixed userspace & kernelspace stack");
+                stacks.Kernel.AddFrame(frame);
+            } else {
+                stacks.InsideKernel = false;
+                stacks.User.AddFrame(frame);
+            }
+        };
+
+        if (parent.GetWireType() == google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+            NInPlaceProto::TRegionDataProvider provider{NInPlaceProto::AsSerialized<void>(parent.GetBytesAsBuf())};
+            while (provider.NotEmpty()) {
+                handle((ui64)provider.ReadVarint64());
+            }
+            Y_ENSURE(!provider.IsCorrupted());
+        } else {
+            handle(parent.GetUInt64());
+        }
+    }
+
+    void ParseSampleValue(NInPlaceProto::TRegionParser& parent, TProfileBuilder::TSampleBuilder& builder, size_t& valueIndex) {
+        auto handle = [&](i64 value) {
+            builder.AddValue(ValueTypeMapping_.at(valueIndex++), value);
+        };
+
+        if (parent.GetWireType() == google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+            NInPlaceProto::TRegionDataProvider provider{NInPlaceProto::AsSerialized<void>(parent.GetBytesAsBuf())};
+            while (provider.NotEmpty()) {
+                handle((i64)provider.ReadVarint64());
+            }
+            Y_ENSURE(!provider.IsCorrupted());
+        } else {
+            handle(parent.GetInt64());
+        }
+    }
+
+    void ParseSampleLabel(NInPlaceProto::TRegionParser& parent, TProfileBuilder::TSampleKeyBuilder& keyBuilder, TProfileBuilder::TThreadBuilder& threadBuilder) {
+        using NProto::NPProf::Label;
+        NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<Label>(parent.GetBytesAsBuf())};
+
+        i64 key = 0;
+        i64 str = 0;
+        i64 num = 0;
+
+        while (ui32 fieldNumber = parser.NextFieldNumber()) {
+            switch (fieldNumber) {
+                case Label::kKeyFieldNumber:
+                    key = parser.GetInt64();
+                    break;
+                case Label::kStrFieldNumber:
+                    str = parser.GetInt64();
+                    break;
+                case Label::kNumFieldNumber:
+                    num = parser.GetInt64();
+                    break;
+                default:
+                    parser.SkipField();
+            }
+        }
+
+        Y_ENSURE(!parser.IsCorrupted());
+
+        auto keyId = StringMapping_.at(key);
+        auto keyStr = Profile_.Strings().Get(keyId).View();
+
+        if (TThreadInfoParser::Consume(threadBuilder, keyStr, num, str, [&](i64 str) { return StringMapping_.at(str); })) {
+            return;
+        }
+
+        TLabelId id = TLabelId::Invalid();
+        // TODO(ayles): Shouldn't this be reversed?
+        if (num != 0) {
+            id = Builder_.AddNumericLabel(keyId, num);
+        } else {
+            id = Builder_.AddStringLabel(keyId, StringMapping_.at(str));
+        }
+
+        keyBuilder.AddLabel(id);
+    }
+
+    void ParseSample(NInPlaceProto::TRegionParser& parent) {
+        using NProto::NPProf::Sample;
+        NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<Sample>(parent.GetBytesAsBuf())};
+
+        auto keyBuilder = Builder_.AddSampleKey();
+        auto threadBuilder = Builder_.AddThread();
+        auto sampleBuilder = Builder_.AddSample();
+
+        TStacks stacks{
+            .Kernel = Builder_.AddSimpleStack().SetKind(NProto::NProfile::StackKind::Kernelspace),
+            .User = Builder_.AddSimpleStack().SetKind(NProto::NProfile::StackKind::Userspace),
+        };
+
+        size_t valueIndex = 0;
+
+        while (ui32 fieldNumber = parser.NextFieldNumber()) {
+            switch (fieldNumber) {
+                case Sample::kLocationIdFieldNumber:
+                    ParseSampleLocationId(parser, stacks);
+                    break;
+                case Sample::kValueFieldNumber:
+                    ParseSampleValue(parser, sampleBuilder, valueIndex);
+                    break;
+                case Sample::kLabelFieldNumber:
+                    ParseSampleLabel(parser, keyBuilder, threadBuilder);
+                    break;
+                default:
+                    parser.SkipField();
+            }
+        }
+
+        Y_ENSURE(!parser.IsCorrupted());
+
+        if (stacks.Python) {
+            keyBuilder.AddStack(stacks.Python->Finish());
+        }
+        if (!stacks.Kernel.Empty()) {
+            keyBuilder.AddStack(stacks.Kernel.Finish());
+        }
+        if (!stacks.User.Empty()) {
+            keyBuilder.AddStack(stacks.User.Finish());
+        }
+
+        keyBuilder.SetThread(threadBuilder.Finish());
+
+        sampleBuilder.SetSampleKey(keyBuilder.Finish());
+        sampleBuilder.Finish();
+    }
+
+    void ParseStringTable(NInPlaceProto::TRegionParser& parent) {
+        auto str = parent.GetStringAsBuf();
+        TStringId id = Builder_.AddString(str);
+
+        StringMapping_.push_back(id);
+    }
+
+    void ParseMapping(NInPlaceProto::TRegionParser& parent) {
+        using NProto::NPProf::Mapping;
+        NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<Mapping>(parent.GetBytesAsBuf())};
+
+        auto builder = Builder_.AddBinary();
+        ui64 id = 0;
+        ui64 memoryStart = 0;
+        ui64 fileOffset = 0;
+        TStringId path = TStringId::Zero();
+        TStringId buildId = TStringId::Zero();
+
+        while (ui32 fieldNumber = parser.NextFieldNumber()) {
+            switch (fieldNumber) {
+                case Mapping::kIdFieldNumber:
+                    id = parser.GetUInt64();
+                    break;
+                case Mapping::kMemoryStartFieldNumber:
+                    memoryStart = parser.GetUInt64();
+                    break;
+                case Mapping::kFileOffsetFieldNumber:
+                    fileOffset = parser.GetUInt64();
+                    break;
+                case Mapping::kFilenameFieldNumber:
+                    path = StringMapping_.at(parser.GetInt64());
+                    break;
+                case Mapping::kBuildIdFieldNumber:
+                    buildId = StringMapping_.at(parser.GetInt64());
+                    break;
+                default:
+                    parser.SkipField();
+            }
+        }
+
+        builder.SetPath(path);
+        builder.SetBuildId(buildId);
+
+        Y_ENSURE(!parser.IsCorrupted());
+
+        Y_ENSURE(id != 0, "Mapping id should be nonzero");
+
+        auto binaryId = builder.Finish();
+        BinaryMapping_->Add(id, (ui32)0, binaryId);
+        BinaryOffsetMap_->EmplaceUnique(id, fileOffset - memoryStart);
+
+        auto pathString = Profile_.Strings().Get(path);
+        if (pathString == KernelSpecialMapping) {
+            Y_ENSURE(!KernelBinaryId_.IsValid(), "Found more than one kernel mapping");
+            KernelBinaryId_ = binaryId;
+        }
+        if (pathString == PythonSpecialMapping) {
+            Y_ENSURE(!PythonBinaryId_.IsValid(), "Found more than one python mapping");
+            PythonBinaryId_ = binaryId;
+        }
+    }
+
+    void ParseFunction(NInPlaceProto::TRegionParser& parent) {
+        using NProto::NPProf::Function;
+        NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<Function>(parent.GetBytesAsBuf())};
+
+        auto builder = Builder_.AddFunction();
+        ui64 id = 0;
+
+        while (ui32 fieldNumber = parser.NextFieldNumber()) {
+            switch (fieldNumber) {
+                case Function::kIdFieldNumber:
+                    id = parser.GetUInt64();
+                    break;
+                case Function::kNameFieldNumber:
+                    builder.SetName(StringMapping_.at(parser.GetInt64()));
+                    break;
+                case Function::kSystemNameFieldNumber:
+                    builder.SetSystemName(StringMapping_.at(parser.GetInt64()));
+                    break;
+                case Function::kFilenameFieldNumber:
+                    builder.SetFileName(StringMapping_.at(parser.GetInt64()));
+                    break;
+                case Function::kStartLineFieldNumber:
+                    builder.SetStartLine(parser.GetInt64());
+                    break;
+                default:
+                    parser.SkipField();
+            }
+        }
+
+        Y_ENSURE(!parser.IsCorrupted());
+
+        Y_ENSURE(id != 0, "Function id should be nonzero");
+
+        FunctionMapping_->Add(id, (ui32)0, builder.Finish());
+    }
+
+    void ParseLine(NInPlaceProto::TRegionParser& parent, TProfileBuilder::TInlineChainBuilder& inlineChainBuilder) {
+        using NProto::NPProf::Line;
+        NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<Line>(parent.GetBytesAsBuf())};
+
+        auto builder = inlineChainBuilder.AddLine();
+
+        while (ui32 fieldNumber = parser.NextFieldNumber()) {
+            switch (fieldNumber) {
+                case Line::kFunctionIdFieldNumber:
+                    builder.SetFunction(FunctionMapping_->GetNewIndex(parser.GetUInt64()));
+                    break;
+                case Line::kLineFieldNumber:
+                    builder.SetLine(parser.GetInt64());
+                    break;
+                case Line::kColumnFieldNumber:
+                    builder.SetColumn(parser.GetInt64());
+                    break;
+                default:
+                    parser.SkipField();
+            }
+        }
+
+        Y_ENSURE(!parser.IsCorrupted());
+
+        builder.Finish();
+    }
+
+    void ParseLocation(NInPlaceProto::TRegionParser& parent) {
+        using NProto::NPProf::Location;
+        NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<Location>(parent.GetBytesAsBuf())};
+
+        auto stackFrameBuilder = Builder_.AddStackFrame();
+        auto inlineChainBuilder = Builder_.AddInlineChain();
+        ui64 id = 0;
+        ui64 mappingId = 0;
+        ui64 address = 0;
+
+        while (ui32 fieldNumber = parser.NextFieldNumber()) {
+            switch (fieldNumber) {
+                case Location::kIdFieldNumber:
+                    id = parser.GetUInt64();
+                    break;
+                case Location::kMappingIdFieldNumber:
+                    mappingId = parser.GetUInt64();
+                    break;
+                case Location::kAddressFieldNumber:
+                    address = parser.GetUInt64();
+                    break;
+                case Location::kLineFieldNumber:
+                    ParseLine(parser, inlineChainBuilder);
+                    break;
+                default:
+                    parser.SkipField();
+            }
+        }
+
+        Y_ENSURE(!parser.IsCorrupted());
+
+        if (mappingId) {
+            auto binaryId = BinaryMapping_->GetNewIndex(mappingId);
+            stackFrameBuilder.SetBinary(binaryId);
+            stackFrameBuilder.SetBinaryOffset(address + BinaryOffsetMap_->At(mappingId));
+        } else {
+            stackFrameBuilder.SetBinaryOffset(address);
+        }
+
+        stackFrameBuilder.SetInlineChain(inlineChainBuilder.Finish());
+
+        Y_ENSURE(id != 0, "Location id should be nonzero");
+
+        LocationMapping_->Add(id, (ui32)0, stackFrameBuilder.Finish());
+    }
+
+    void ParseComment(NInPlaceProto::TRegionParser& parent) {
+        auto handle = [&](i64 value) {
+            Builder_.AddComment(StringMapping_.at(value));
+        };
+
+        if (parent.GetWireType() == google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+            NInPlaceProto::TRegionDataProvider provider{NInPlaceProto::AsSerialized<void>(parent.GetBytesAsBuf())};
+            while (provider.NotEmpty()) {
+                handle((i64)provider.ReadVarint64());
+            }
+            Y_ENSURE(!provider.IsCorrupted());
+        } else {
+            handle(parent.GetInt64());
+        }
+    }
+
+    struct TCachedValue {
+        const char* Start = nullptr;
+        const char* End = nullptr;
+        size_t Count = 0;
+    };
+
+    absl::flat_hash_map<ui32, TCachedValue> CacheFieldRangesAndCounts(TStringBuf buf) {
+        absl::flat_hash_map<ui32, TCachedValue> ranges;
+
+        NInPlaceProto::TRegionParser parser{buf.data(), buf.size()};
+
+        const char* pos = (const char*)parser.GetCurrentPos();
+        while (ui32 fieldNumber = parser.NextFieldNumber()) {
+            parser.SkipField();
+
+            const char* nextpos = (const char*)parser.GetCurrentPos();
+
+            auto it = ranges.find(fieldNumber);
+            if (it == ranges.end()) {
+                ranges.try_emplace(it, fieldNumber, TCachedValue{pos, nextpos, 1});
+            } else {
+                it->second.End = nextpos;
+                it->second.Count++;
+            }
+
+            pos = nextpos;
+        }
+
+        return ranges;
+    }
+
+    void ParseProfile(TStringBuf buf) {
+        using NProto::NPProf::Profile;
+
+        auto parseField = [&](auto&& parser) {
+            switch (parser.GetFieldNumber()) {
+                case Profile::kSampleTypeFieldNumber:
+                    ParseSampleType(parser);
+                    break;
+                case Profile::kSampleFieldNumber:
+                    ParseSample(parser);
+                    break;
+                case Profile::kMappingFieldNumber:
+                    ParseMapping(parser);
+                    break;
+                case Profile::kLocationFieldNumber:
+                    ParseLocation(parser);
+                    break;
+                case Profile::kFunctionFieldNumber:
+                    ParseFunction(parser);
+                    break;
+                case Profile::kStringTableFieldNumber:
+                    ParseStringTable(parser);
+                    break;
+                case Profile::kCommentFieldNumber:
+                    ParseComment(parser);
+                    break;
+                default:
+                    parser.SkipField();
+            }
+        };
+
+        auto ranges = CacheFieldRangesAndCounts(buf);
+
+        StringMapping_.reserve(ranges[Profile::kStringTableFieldNumber].Count);
+        ValueTypeMapping_.reserve(ranges[Profile::kSampleTypeFieldNumber].Count);
+
+        BinaryOffsetMap_.ConstructInPlace(ranges[Profile::kMappingFieldNumber].Count);
+        BinaryMapping_.ConstructInPlace(ranges[Profile::kMappingFieldNumber].Count);
+        FunctionMapping_.ConstructInPlace(ranges[Profile::kFunctionFieldNumber].Count);
+        LocationMapping_.ConstructInPlace(ranges[Profile::kLocationFieldNumber].Count);
+
+        // Fields should be processed in the specific order because of dependencies.
+        for (auto&& desiredFieldNumber : {
+            Profile::kStringTableFieldNumber,
+            Profile::kMappingFieldNumber,
+            Profile::kFunctionFieldNumber,
+            Profile::kLocationFieldNumber,
+            Profile::kCommentFieldNumber,
+            Profile::kSampleTypeFieldNumber,
+            Profile::kSampleFieldNumber,
+        }) {
+            auto range = ranges[desiredFieldNumber];
+            NInPlaceProto::TRegionParser parser{range.Start, range.End};
+            while (ui32 fieldNumber = parser.NextFieldNumber()) {
+                if ((int)fieldNumber != desiredFieldNumber) {
+                    parser.SkipField();
+                } else {
+                    parseField(parser);
+                }
+            }
+            Y_ENSURE(!parser.IsCorrupted());
+            ranges.erase(desiredFieldNumber);
+        }
+    }
+
+private:
+    TStringBuf From_;
+    TProfileBuilder Builder_;
+    TProfile Profile_;
+    TVector<TStringId> StringMapping_;
+    TVector<TValueTypeId> ValueTypeMapping_;
+    TMaybe<TCompactIntegerMap<ui64, ui64>> BinaryOffsetMap_;
+    TMaybe<NDetail::TIndexedEntityRemapping<TBinaryId>> BinaryMapping_;
+    TMaybe<NDetail::TIndexedEntityRemapping<TFunctionId>> FunctionMapping_;
+    TMaybe<NDetail::TIndexedEntityRemapping<TStackFrameId>> LocationMapping_;
+
+    TBinaryId KernelBinaryId_;
+    TBinaryId PythonBinaryId_;
 };
 
-class TConverterContext {
-    static constexpr TStringBuf KernelSpecialMapping{"[kernel]"};
-    static constexpr TStringBuf PythonSpecialMapping{"[python]"};
+using google::protobuf::internal::WireFormatLite;
 
+template<
+    int FieldNumber,
+    WireFormatLite::FieldType FieldType,
+    typename T,
+    size_t (*SizeFunc)(T),
+    void (*WriteNoTagFunc)(T, google::protobuf::io::CodedOutputStream*)
+>
+struct TValueTraitsImpl {
+    using type = T;
+
+    inline static size_t TagSize() {
+        return WireFormatLite::TagSize(FieldNumber, FieldType);
+    }
+
+    inline static size_t SizeNoTag(T value) {
+        return SizeFunc(value);
+    }
+
+    inline static void Write(T value, google::protobuf::io::CodedOutputStream* out) {
+        WireFormatLite::WriteTag(FieldNumber, WireFormatLite::WireTypeForFieldType(FieldType), out);
+        WriteNoTagFunc(value, out);
+    }
+
+    inline static void WriteNoTag(T value, google::protobuf::io::CodedOutputStream* out) {
+        WriteNoTagFunc(value, out);
+    }
+};
+
+template<int FieldNumber, WireFormatLite::FieldType FieldType>
+struct TValueTraits {};
+
+template<int FieldNumber>
+struct TValueTraits<FieldNumber, WireFormatLite::TYPE_UINT64>
+    : TValueTraitsImpl<
+        FieldNumber,
+        WireFormatLite::TYPE_UINT64,
+        ui64,
+        WireFormatLite::UInt64Size,
+        WireFormatLite::WriteUInt64NoTag
+    >
+{};
+
+template<int FieldNumber>
+struct TValueTraits<FieldNumber, WireFormatLite::TYPE_INT64>
+    : TValueTraitsImpl<
+        FieldNumber,
+        WireFormatLite::TYPE_INT64,
+        i64,
+        WireFormatLite::Int64Size,
+        WireFormatLite::WriteInt64NoTag
+    >
+{};
+
+template<int FieldNumber, WireFormatLite::FieldType FieldType>
+requires (FieldType == WireFormatLite::TYPE_BYTES || FieldType == WireFormatLite::TYPE_STRING)
+struct TValueTraits<FieldNumber, FieldType> {
+    using type = std::string_view;
+
+    inline static size_t TagSize() {
+        return WireFormatLite::TagSize(FieldNumber, FieldType);
+    }
+
+    inline static void Write(std::string_view value, google::protobuf::io::CodedOutputStream* out) {
+        WireFormatLite::WriteTag(FieldNumber, WireFormatLite::WireTypeForFieldType(FieldType), out);
+        out->WriteVarint64(value.size());
+        out->WriteRaw(value.data(), value.size());
+    }
+};
+
+template<int FieldNumber, WireFormatLite::FieldType FieldType>
+struct TValue {
+    using TTraits = TValueTraits<FieldNumber, FieldType>;
+    TTraits::type Value;
+
+    inline static size_t TagSize() noexcept {
+        return TTraits::TagSize();
+    }
+
+    inline size_t SizeNoTag() const noexcept {
+        return TTraits::SizeNoTag(Value);
+    }
+
+    inline void Write(google::protobuf::io::CodedOutputStream* out) const noexcept {
+        TTraits::Write(Value, out);
+    }
+};
+
+template<typename... Values>
+inline static size_t ValuesSize(const std::tuple<Values...>& values) {
+    // I know, I know, there is std::apply. So what?
+    return (Values::TagSize() + ...) + (std::get<Values>(values).SizeNoTag() + ...);
+}
+
+template<typename... Values>
+inline static void ValuesWrite(const std::tuple<Values...>& values, google::protobuf::io::CodedOutputStream* out) {
+    (std::get<Values>(values).Write(out), ...);
+}
+
+class TToPProfBytesConverterContext {
+private:
+    // Our new profile represntation is lossy.
+    // We do not know exact addresess of mappings.
+    static constexpr ui64 fakeMappingSize = 128_GB;
+
+public:
+    TToPProfBytesConverterContext(const NProto::NProfile::Profile& from, google::protobuf::io::CodedOutputStream* to)
+        : Profile_(&from)
+        , Out_(to)
+    {}
+
+    void WriteStrings() {
+        using NProto::NPProf::Profile;
+
+        i64 stringIndex = 0;
+
+        for (auto&& str : Profile_.Strings()) {
+            if (TThreadInfoParser::TLabelKeys::AllKeys.contains(str.View())) {
+                WellKnownStringIds_[str.View()] = stringIndex;
+            }
+            TValueTraits<Profile::kStringTableFieldNumber, WireFormatLite::TYPE_STRING>::Write(str.View(), Out_);
+            stringIndex++;
+        }
+
+        for (auto&& str : TThreadInfoParser::TLabelKeys::AllKeys) {
+            if (!WellKnownStringIds_.contains(str)) {
+                WellKnownStringIds_[str] = stringIndex++;
+                TValueTraits<Profile::kStringTableFieldNumber, WireFormatLite::TYPE_STRING>::Write(str, Out_);
+            }
+        }
+    }
+
+    void WriteBinaries() {
+        using NProto::NPProf::Profile;
+        using NProto::NPProf::Mapping;
+
+        for (auto&& [i, binary] : Enumerate(Profile_.Binaries())) {
+            if (i == 0) {
+                // First binary is empty ant should not be present in pprof.
+                continue;
+            }
+
+            std::tuple fields{
+                TValue<Mapping::kIdFieldNumber, WireFormatLite::TYPE_UINT64>{i},
+                TValue<Mapping::kBuildIdFieldNumber, WireFormatLite::TYPE_INT64>{*binary.GetBuildId().GetIndex()},
+                TValue<Mapping::kFilenameFieldNumber, WireFormatLite::TYPE_INT64>{*binary.GetPath().GetIndex()},
+                TValue<Mapping::kMemoryStartFieldNumber, WireFormatLite::TYPE_UINT64>{i * fakeMappingSize},
+                TValue<Mapping::kMemoryLimitFieldNumber, WireFormatLite::TYPE_UINT64>{(i + 1) * fakeMappingSize},
+            };
+
+            WireFormatLite::WriteTag(Profile::kMappingFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+            Out_->WriteVarint64(ValuesSize(fields));
+            ValuesWrite(fields, Out_);
+        }
+    }
+
+    void WriteFunctions() {
+        using NProto::NPProf::Profile;
+        using NProto::NPProf::Function;
+
+        for (auto&& [i, func] : Enumerate(Profile_.Functions())) {
+            // Skip first function which must be empty.
+            if (i == 0) {
+                continue;
+            }
+
+            std::tuple fields{
+                TValue<Function::kIdFieldNumber, WireFormatLite::TYPE_UINT64>{i},
+                TValue<Function::kNameFieldNumber, WireFormatLite::TYPE_INT64>{*func.GetName().GetIndex()},
+                TValue<Function::kSystemNameFieldNumber, WireFormatLite::TYPE_INT64>{*func.GetSystemName().GetIndex()},
+                TValue<Function::kFilenameFieldNumber, WireFormatLite::TYPE_INT64>{*func.GetFileName().GetIndex()},
+                TValue<Function::kStartLineFieldNumber, WireFormatLite::TYPE_INT64>{func.GetStartLine()},
+            };
+
+            WireFormatLite::WriteTag(Profile::kFunctionFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+            Out_->WriteVarint64(ValuesSize(fields));
+            ValuesWrite(fields, Out_);
+        }
+    }
+
+    void WriteStackFrames() {
+        using NProto::NPProf::Profile;
+        using NProto::NPProf::Location;
+        using NProto::NPProf::Line;
+
+        for (auto&& [i, frame] : Enumerate(Profile_.StackFrames())) {
+            auto lineFields = [](auto&& line) {
+                return std::tuple{
+                    TValue<Line::kFunctionIdFieldNumber, WireFormatLite::TYPE_UINT64>{(ui64)*line.GetFunction().GetIndex()},
+                    TValue<Line::kLineFieldNumber, WireFormatLite::TYPE_INT64>{line.GetLine()},
+                    TValue<Line::kColumnFieldNumber, WireFormatLite::TYPE_INT64>{line.GetColumn()},
+                };
+            };
+
+            size_t linesSize = 0;
+            for (auto&& line : frame.GetInlineChain().GetLines()) {
+                linesSize += WireFormatLite::TagSize(Location::kLineFieldNumber, WireFormatLite::TYPE_MESSAGE);
+                linesSize += WireFormatLite::LengthDelimitedSize(ValuesSize(lineFields(line)));
+            }
+
+            ui64 mappingId = *frame.GetBinary().GetIndex();
+            std::tuple fields{
+                TValue<Location::kIdFieldNumber, WireFormatLite::TYPE_UINT64>{i + 1},
+                TValue<Location::kMappingIdFieldNumber, WireFormatLite::TYPE_UINT64>{mappingId},
+                TValue<Location::kAddressFieldNumber, WireFormatLite::TYPE_UINT64>{mappingId ? frame.GetBinaryOffset() + mappingId * fakeMappingSize : frame.GetBinaryOffset()},
+            };
+
+            WireFormatLite::WriteTag(Profile::kLocationFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+            Out_->WriteVarint64(ValuesSize(fields) + linesSize);
+            ValuesWrite(fields, Out_);
+
+            for (auto&& line : frame.GetInlineChain().GetLines()) {
+                auto fields = lineFields(line);
+                WireFormatLite::WriteTag(Location::kLineFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+                Out_->WriteVarint64(ValuesSize(fields));
+                ValuesWrite(fields, Out_);
+            }
+        }
+    }
+
+    void WriteComments() {
+        using NProto::NPProf::Profile;
+
+        size_t size = 0;
+        for (auto&& comment : Profile_.Comments()) {
+            size += TValueTraits<Profile::kCommentFieldNumber, WireFormatLite::TYPE_INT64>::SizeNoTag(*comment.GetString().GetIndex());
+        }
+
+        WireFormatLite::WriteTag(Profile::kCommentFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+        Out_->WriteVarint64(size);
+
+        for (auto&& comment : Profile_.Comments()) {
+            TValueTraits<Profile::kCommentFieldNumber, WireFormatLite::TYPE_INT64>::WriteNoTag(*comment.GetString().GetIndex(), Out_);
+        }
+    }
+
+    void WriteSampleTypes() {
+        using NProto::NPProf::Profile;
+        using NProto::NPProf::ValueType;
+
+        for (auto&& valueType : Profile_.ValueTypes()) {
+            std::tuple fields{
+                TValue<ValueType::kTypeFieldNumber, WireFormatLite::TYPE_INT64>{*valueType.GetType().GetIndex()},
+                TValue<ValueType::kUnitFieldNumber, WireFormatLite::TYPE_INT64>{*valueType.GetUnit().GetIndex()},
+            };
+
+            WireFormatLite::WriteTag(Profile::kSampleTypeFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+            Out_->WriteVarint64(ValuesSize(fields));
+            ValuesWrite(fields, Out_);
+        }
+    }
+
+    void WriteSamples() {
+        using NProto::NPProf::Profile;
+        using NProto::NPProf::Sample;
+        using NProto::NPProf::Label;
+
+        for (auto&& sample : Profile_.Samples()) {
+            // For now we write field even it is zero and singular.
+            // This increases the size of the serialized profile slightly, but saves us some comparisons and additions in return.
+            auto strLabelFields = [](i64 key, i64 str) {
+                return std::tuple{
+                    TValue<Label::kKeyFieldNumber, WireFormatLite::TYPE_INT64>{key},
+                    TValue<Label::kStrFieldNumber, WireFormatLite::TYPE_INT64>{str},
+                };
+            };
+
+            auto numLabelFields = [](i64 key, i64 num) {
+                return std::tuple{
+                    TValue<Label::kKeyFieldNumber, WireFormatLite::TYPE_INT64>{key},
+                    TValue<Label::kNumFieldNumber, WireFormatLite::TYPE_INT64>{num},
+                };
+            };
+
+            auto visitLabels = [&](auto&& visitor) {
+                for (auto&& label : sample.GetKey().GetLabels()) {
+                    if (label.IsString()) {
+                        visitor(strLabelFields(*label.GetKey().GetIndex(), *label.GetString().GetIndex()));
+                    } else {
+                        visitor(numLabelFields(*label.GetKey().GetIndex(), label.GetNumber()));
+                    }
+                }
+
+                auto thread = sample.GetKey().GetThread();
+
+                using TKeys = TThreadInfoParser::TLabelKeys;
+
+                if (auto pid = thread.GetProcessId()) {
+                    visitor(numLabelFields(WellKnownStringIds_.at(TKeys::ProcessId), pid));
+                }
+                if (auto tid = thread.GetThreadId()) {
+                    visitor(numLabelFields(WellKnownStringIds_.at(TKeys::ThreadId), tid));
+                }
+                if (auto name = thread.GetProcessName()) {
+                    visitor(strLabelFields(WellKnownStringIds_.at(TKeys::ProcessName), *name.GetIndex()));
+                }
+                if (auto name = thread.GetThreadName()) {
+                    visitor(strLabelFields(WellKnownStringIds_.at(TKeys::ThreadName), *name.GetIndex()));
+                }
+                for (i32 i = 0; i < thread.GetContainerCount(); ++i) {
+                    visitor(strLabelFields(WellKnownStringIds_.at(TKeys::WorkloadName), *thread.GetContainer(i).GetIndex()));
+                }
+            };
+
+            size_t locationIdsSize = 0;
+            for (auto&& stack : sample.GetKey().GetStacks()) {
+                for (auto&& frame : stack.GetFrames()) {
+                    locationIdsSize += TValueTraits<Sample::kLocationIdFieldNumber, WireFormatLite::TYPE_UINT64>::SizeNoTag(*frame.GetIndex() + 1);
+                }
+            }
+
+            size_t valuesSize = 0;
+            for (auto&& value : sample.GetValues()) {
+                valuesSize += TValueTraits<Sample::kValueFieldNumber, WireFormatLite::TYPE_INT64>::SizeNoTag(value);
+            }
+
+            size_t size = WireFormatLite::TagSize(Sample::kLocationIdFieldNumber, WireFormatLite::TYPE_UINT64) + WireFormatLite::LengthDelimitedSize(locationIdsSize) +
+                WireFormatLite::TagSize(Sample::kValueFieldNumber, WireFormatLite::TYPE_INT64) + WireFormatLite::LengthDelimitedSize(valuesSize);
+
+            visitLabels([&](auto&& fields) {
+                size += WireFormatLite::TagSize(Sample::kLabelFieldNumber, WireFormatLite::TYPE_MESSAGE) + WireFormatLite::LengthDelimitedSize(ValuesSize(fields));
+            });
+
+            WireFormatLite::WriteTag(Profile::kSampleFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+            Out_->WriteVarint64(size);
+
+            WireFormatLite::WriteTag(Sample::kLocationIdFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+            Out_->WriteVarint64(locationIdsSize);
+
+            for (auto&& stack : sample.GetKey().GetStacks()) {
+                for (auto&& frame : stack.GetFrames()) {
+                    TValueTraits<Sample::kLocationIdFieldNumber, WireFormatLite::TYPE_UINT64>::WriteNoTag(*frame.GetIndex() + 1, Out_);
+                }
+            }
+
+            WireFormatLite::WriteTag(Sample::kValueFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+            Out_->WriteVarint64(valuesSize);
+
+            for (auto&& value : sample.GetValues()) {
+                TValueTraits<Sample::kValueFieldNumber, WireFormatLite::TYPE_INT64>::WriteNoTag(value, Out_);
+            }
+
+            visitLabels([&](auto&& fields) {
+                WireFormatLite::WriteTag(Sample::kLabelFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
+                Out_->WriteVarint64(ValuesSize(fields));
+                ValuesWrite(fields, Out_);
+            });
+        }
+    }
+
+    void Convert() {
+        WriteStrings();
+        WriteBinaries();
+        WriteFunctions();
+        WriteStackFrames();
+        WriteComments();
+        WriteSampleTypes();
+        WriteSamples();
+    }
+
+private:
+    TProfile Profile_;
+    google::protobuf::io::CodedOutputStream* Out_;
+    THashMap<TString, i64> WellKnownStringIds_;
+};
+
+class TFromPProfConverterContext {
     enum class ESpecialMappingKind {
         None,
         Missing,
@@ -247,7 +1039,7 @@ class TConverterContext {
     };
 
 public:
-    explicit TConverterContext(const NProto::NPProf::Profile& from, NProto::NProfile::Profile* to)
+    explicit TFromPProfConverterContext(const NProto::NPProf::Profile& from, NProto::NProfile::Profile* to)
         : OldProfile_{from}
         , Builder_{to}
         , BinaryMapping_{static_cast<size_t>(OldProfile_.mapping_size())}
@@ -352,9 +1144,9 @@ private:
                 i64 binaryOffset = location.address() + (i64)mapping.file_offset() - (i64)mapping.memory_start();
 
                 frame.SetBinary(binaryId);
-                if (kind != ESpecialMappingKind::Python) {
-                    frame.SetBinaryOffset(binaryOffset);
-                }
+                frame.SetBinaryOffset(binaryOffset);
+            } else {
+                frame.SetBinaryOffset(location.address());
             }
 
             auto chain = Builder_.AddInlineChain();
@@ -474,12 +1266,16 @@ private:
     }
 
     void ConvertSampleLabels(TProfileBuilder::TSampleKeyBuilder& keyBuilder, const NProto::NPProf::Sample& sample) {
-        NDetail::TThreadInfoParser tip{&OldProfile_, [this](i64 id){
-            return ConvertString(id);
-        }};
+        auto threadBuilder = Builder_.AddThread();
 
         for (auto&& label : sample.label()) {
-            if (tip.Consume(label)) {
+            if (TThreadInfoParser::Consume(
+                threadBuilder,
+                OldProfile_.string_table(label.key()),
+                label.num(),
+                label.str(),
+                [&](i64 str) { return ConvertString(str); }
+            )) {
                 continue;
             }
 
@@ -492,8 +1288,7 @@ private:
             keyBuilder.AddLabel(id);
         }
 
-        TThreadId thread = Builder_.AddThread(std::move(tip).Finish());
-        keyBuilder.SetThread(thread);
+        keyBuilder.SetThread(threadBuilder.Finish());
     }
 
     void ConvertComments() {
@@ -525,9 +1320,9 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class TOldProfileConverter {
+class TToPProfConverterContext {
 public:
-    explicit TOldProfileConverter(
+    explicit TToPProfConverterContext(
         const NProto::NProfile::Profile& newProfile,
         NProto::NPProf::Profile* oldProfile
     )
@@ -657,9 +1452,8 @@ private:
             ui32 binaryId = *frame.GetBinary().GetIndex();
             i64 binaryOffset = frame.GetBinaryOffset();;
             if (binaryId == 0) {
-                Y_ENSURE(binaryOffset == 0, "Malformed profile");
                 location->set_mapping_id(0);
-                location->set_address(0);
+                location->set_address(binaryOffset);
             } else {
                 const NProto::NPProf::Mapping& mapping = OldProfile_.mapping(binaryId - 1);
 
@@ -803,12 +1597,24 @@ private:
 
 void ConvertFromPProf(const NProto::NPProf::Profile& from, NProto::NProfile::Profile* to) {
     Y_ABORT_UNLESS(to, "Expected non-null output pointer");
-    NDetail::TConverterContext{from, to}.Convert();
+    NDetail::TFromPProfConverterContext{from, to}.Convert();
+}
+
+void ConvertFromPProf(TStringBuf from, NProto::NProfile::Profile* to) {
+    Y_ABORT_UNLESS(to, "Expected non-null output pointer");
+    NDetail::TFromPProfBytesConverterContext{from, to}.Convert();
 }
 
 void ConvertToPProf(const NProto::NProfile::Profile& from, NProto::NPProf::Profile* to) {
     Y_ABORT_UNLESS(to, "Expected non-null output pointer");
-    NDetail::TOldProfileConverter{from, to}.Convert();
+    NDetail::TToPProfConverterContext{from, to}.Convert();
 }
 
-} // namespace NPerforator::NProfile
+void ConvertToPProf(const NProto::NProfile::Profile& from, TString* to) {
+    Y_ABORT_UNLESS(to, "Expected non-null output pointer");
+    google::protobuf::io::StringOutputStream strOut{to};
+    google::protobuf::io::CodedOutputStream out{&strOut};
+    NDetail::TToPProfBytesConverterContext{from, &out}.Convert();
+}
+
+} // namespace NPerforator

@@ -19,6 +19,17 @@ struct TFlatDiffableProfileOptions {
     bool PrintAddresses = true;
     bool PrintBuildIds = true;
     THashSet<TString> LabelBlacklist;
+    // Profile labels here can contain empty string values.
+    // Our behavior is intentionally different from pprof's:
+    // PProf encodes a single label as one message containing either its string (str) or numeric (num)
+    // part. If a label's value is set to zero (explicitly or defaulted), pprof only recognizes it if it's numeric
+    // with a num_unit; otherwise, the label is ignored.
+    // In contrast, our profile format encodes string and numeric labels as two separate lists,
+    // allowing us to differentiate between them. We therefore exclude these labels from comparison here.
+    // FIXME(ayles): Excluding string labels is also necessary for now, as our profiler
+    // ignores well-known labels if they are zero, but pprof does not. We should consider
+    // removing the special encoding for well-known labels altogether.
+    bool PrintStringLabelsWithEmptyValues = true;
 };
 
 class TFlatDiffableProfile {

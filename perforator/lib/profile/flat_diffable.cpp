@@ -24,10 +24,15 @@ public:
         return *this;
     }
 
-    template <typename T>
+    template <typename T> requires (std::same_as<T, TStringBuf> || std::integral<T>)
     TFlatSampleKeyBuilder& AddLabel(TStringBuf key, const T& value) {
         if (Options_.LabelBlacklist.contains(key)) {
             return *this;
+        }
+        if constexpr (std::same_as<T, TStringBuf>) {
+            if (!Options_.PrintStringLabelsWithEmptyValues && value == "") {
+                return *this;
+            }
         }
 
         auto& labels = Value_["labels"][key];
@@ -61,7 +66,7 @@ public:
         if (path) {
             frame["binary"]["path"] = path;
         }
-        if (buildid && Options_.PrintAddresses) {
+        if (offset && Options_.PrintAddresses) {
             frame["address"] = offset;
         }
 

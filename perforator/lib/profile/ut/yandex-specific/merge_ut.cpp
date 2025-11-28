@@ -10,11 +10,11 @@
 
 using namespace NPerforator::NProfile::NTest;
 
-TEST(MergeProfilesTest, Golden) {
+TEST(MergeProfilesTest, GoldenBig) {
     TVector<TString> profilesBytes;
     NPerforator::NProto::NPProf::Profile expected;
 
-    for (TFsPath path : NPerforator::NProfile::NTest::ListGoldenProfiles(SRC_("testprofiles/merge"), ".*.pb.gz", 11)) {
+    for (TFsPath path : NPerforator::NProfile::NTest::ListGoldenProfiles(BuildRoot() / TFsPath(__SOURCE_FILE__).Parent() / "testprofiles" / "merge_yabs", ".*.pb.gz", 4)) {
         TFileInput input{path};
 
         auto profileBytes = DecompressPprof(path);
@@ -44,6 +44,5 @@ TEST(MergeProfilesTest, Golden) {
     }
     auto merged = std::move(*session).Finish();
 
-    CompareFlatProfiles(expected, merged);
+    CompareFlatProfiles</*Big=*/true>(expected, merged, NPerforator::NProfile::TFlatDiffableProfileOptions{.PrintStringLabelsWithEmptyValues = false});
 }
-

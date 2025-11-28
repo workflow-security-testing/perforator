@@ -13,18 +13,15 @@
 
 namespace NPerforator::NProfile::NTest {
 
-NPerforator::NProto::NPProf::Profile ParsePprof(const TFsPath& path) {
+TString DecompressPprof(const TFsPath& path) {
     TFileInput serialized{path};
     TZLibDecompress uncompressed{&serialized};
-    NPerforator::NProto::NPProf::Profile proto;
-    Y_ENSURE(proto.ParseFromArcadiaStream(&uncompressed));
-    return proto;
+    return uncompressed.ReadAll();
 }
 
-TVector<TFsPath> ListGoldenProfiles(TStringBuf pattern, TMaybe<size_t> expectedProfileCount) {
+TVector<TFsPath> ListGoldenProfiles(const TFsPath& dir, TStringBuf pattern, TMaybe<size_t> expectedProfileCount) {
     re2::RE2 regex{pattern};
 
-    TFsPath dir = SRC_("testprofiles");
     TVector<TFsPath> children;
     dir.List(children);
 
