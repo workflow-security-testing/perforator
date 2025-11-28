@@ -311,9 +311,9 @@ func trySleepContext(ctx context.Context, dur time.Duration) {
 }
 
 func (r *Registry) listRefreshTargets() []*trackedProcess {
-	targets := make([]*trackedProcess, 0, len(r.procs))
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+	targets := make([]*trackedProcess, 0, len(r.procs))
 	for _, v := range r.procs {
 		if v.state.Load() != int32(processStateInitialized) {
 			continue
