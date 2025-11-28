@@ -10,6 +10,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
+	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
@@ -86,19 +87,28 @@ var groupByAggregation = map[GroupByMode]string{
 
 const orderByCycles = "cpu_cycles DESC"
 
+const DefaultPageSize = 100
+
 // aggregates cluster top based on
-func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, generation uint32, funcFilter string, aggregationType GroupByMode) (*perforator.ClusterTopResponse, error) {
+func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, generation uint32, funcFilter string, aggregationType GroupByMode, pagination util.Pagination) ([]*perforator.ClusterTopEntry, error) {
 	var sql string
 	var err error
 
 	groupBy := groupByAggregation[aggregationType]
+
+	limit := pagination.Limit
+	if limit == 0 {
+		limit = DefaultPageSize
+	}
+	offset := pagination.Offset
 
 	builder := squirrel.
 		Select(fmt.Sprintf("left(%s, 150) AS name, sum(self_cycles) AS cpu_cycles, sum(cumulative_cycles) as sum_cumulative_cycles", groupBy)).
 		From("cluster_top").
 		Where("generation = ?", generation).
 		OrderBy(orderByCycles).
-		Limit(100).
+		Limit(limit).
+		Offset(offset).
 		GroupBy(groupBy)
 
 	if aggregationType == GroupByService && funcFilter != "" {
@@ -117,9 +127,7 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 		return nil, err
 	}
 
-	return &perforator.ClusterTopResponse{
-		Instances: instances,
-	}, nil
+	return instances, nil
 }
 
 const kMaxFunctionNameLength = 512

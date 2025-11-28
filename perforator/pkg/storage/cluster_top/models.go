@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
+	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
 
@@ -26,6 +27,6 @@ type Config struct {
 
 type Storage interface {
 	ListGenerations(ctx context.Context) ([]*perforator.ClusterTopGeneration, error)
-	AggregateClusterTop(ctx context.Context, generation uint32, query string, aggregationType aggregated.GroupByMode) (*perforator.ClusterTopResponse, error)
+	AggregateClusterTop(ctx context.Context, generation uint32, query string, aggregationType aggregated.GroupByMode, pagination util.Pagination) ([]*perforator.ClusterTopEntry, error)
 	SaveClusterTopEntry(ctx context.Context, servicePerfTop *aggregated.ServicePerfTop) error
 }

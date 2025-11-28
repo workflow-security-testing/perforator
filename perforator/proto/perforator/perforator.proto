@@ -223,6 +223,7 @@ message ClusterTopEntry {
 
 message ClusterTopResponse {
   repeated ClusterTopEntry Instances = 1;
+  bool HasMore = 2;
 }
 
 message ClusterTopCount {

@@ -12,6 +12,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services"
 	clickhouse "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
 	"github.com/yandex/perforator/perforator/pkg/storage/cluster_top/aggregated"
+	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
@@ -37,23 +38,46 @@ func NewService(l xlog.Logger, s clickhouse.Storage) *APIService {
 
 // GetClusterTopAggregatedByFunction implements perforator.GetClusterTopAggregatedByFunction
 func (s *APIService) GetClusterTopAggregatedByFunction(ctx context.Context, req *perforator.ClusterTopRequest) (*perforator.ClusterTopResponse, error) {
-	if req.GetGeneration() == 0 {
+	return s.getClusterTop(ctx, req, aggregated.GroupByFunction, "")
+}
+
+func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterTopRequest, groupBy aggregated.GroupByMode, filter string) (*perforator.ClusterTopResponse, error) {
+	generation := req.GetGeneration()
+	if generation == 0 {
 		return nil, generationArgumentError
 	}
 
-	return s.clusterTopGenerationStorage.AggregateClusterTop(ctx, req.GetGeneration(), "", aggregated.GroupByFunction)
+	limit := req.GetPagination().GetLimit()
+
+	if limit == 0 {
+		limit = aggregated.DefaultPageSize
+	}
+
+	offset := req.GetPagination().GetOffset()
+	res, err := s.clusterTopGenerationStorage.AggregateClusterTop(ctx, generation, filter, groupBy, util.Pagination{
+		Offset: offset,
+		Limit:  limit + 1,
+	})
+
+	hasMore := len(res) > int(limit)
+
+	if hasMore {
+		res = res[0 : len(res)-1]
+	}
+
+	return &perforator.ClusterTopResponse{
+		Instances: res,
+		HasMore:   hasMore,
+	}, err
 }
 
 // GetClusterTopAggregatedByService implements perforator.GetClusterTopAggregatedByService
 func (s *APIService) GetClusterTopAggregatedByService(ctx context.Context, req *perforator.ClusterTopRequest) (*perforator.ClusterTopResponse, error) {
-	if req.GetGeneration() == 0 {
-		return nil, generationArgumentError
-	}
 	if req.FunctionPattern == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "For service aggregation must provide non-empty function search pattern")
 	}
 
-	return s.clusterTopGenerationStorage.AggregateClusterTop(ctx, req.GetGeneration(), req.GetFunctionPattern(), aggregated.GroupByService)
+	return s.getClusterTop(ctx, req, aggregated.GroupByService, req.GetFunctionPattern())
 }
 
 // ListClusterTopGenerations implements perforator.ListClusterTopGenerations
