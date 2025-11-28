@@ -31,6 +31,9 @@ class BaseOptions:
     yatool_prebuilder_path: str | None
     """optional path to `@yatool/prebuilder` script"""
 
+    use_legacy_pnpm_virtual_store: bool
+    """Use legacy pnpm virtual store"""
+
     command: str
     """builder `command` argument, used only in log messages"""
 

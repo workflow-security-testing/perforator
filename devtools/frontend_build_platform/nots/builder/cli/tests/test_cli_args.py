@@ -8,7 +8,8 @@ def split_to_argv(command: str) -> list[str]:
     return textwrap.dedent(command).strip().replace('\n', ' ').split(' ')
 
 
-def __convert_args_to_dict(command_args: str) -> dict[str, str]:
+def __convert_args_to_dict(command_args: str, nots_builder_verbose_env: str = '') -> dict[str, str]:
+    os.environ['NOTS_BUILDER_VERBOSE'] = nots_builder_verbose_env
     parser = get_args_parser()
     args = parse_args(parser, split_to_argv(command_args))
 
@@ -43,6 +44,7 @@ def test_create_node_modules_args():
         pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=False,
         nm_bundle=False,
@@ -83,6 +85,7 @@ def test_create_node_modules_bundle_args():
         pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=False,
         nm_bundle=True,
@@ -121,6 +124,7 @@ def test_build_package_args():
         pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=False,
         nm_bundle=False,
@@ -164,6 +168,7 @@ def test_build_package_nm_args():
         pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=False,
         nm_bundle=True,
@@ -210,6 +215,7 @@ def test_build_tsc_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         env=[],
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -259,6 +265,7 @@ def test_build_tsc_nm_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         env=[],
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=True,
         nm_bundle=True,
@@ -310,6 +317,7 @@ def test_build_next_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         env=[],
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -364,6 +372,7 @@ def test_build_vite_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         env=[],
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -418,6 +427,7 @@ def test_build_webpack_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         env=[],
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -474,6 +484,7 @@ def test_build_webpack_with_env_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         env=["VAR1=value", "VAR2=value"],
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -532,6 +543,7 @@ def test_build_webpack_with_after_build():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         env=[],
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -586,6 +598,7 @@ def test_build_rspack_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         env=[],
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -622,10 +635,8 @@ def test_build_verbose_args():
         --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/output.tar
     """
 
-    os.environ['NOTS_BUILDER_VERBOSE'] = 'yes'
-
     # act + assert
-    assert __convert_args_to_dict(command_args) == dict(
+    assert __convert_args_to_dict(command_args, nots_builder_verbose_env='yes') == dict(
         # Base
         arcadia_build_root='/Users/khoden/.ya/build/build_root/5gxr/000067',
         arcadia_root='/Users/khoden/arcadia',
@@ -634,6 +645,7 @@ def test_build_verbose_args():
         pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
         pm_type='pnpm',
         yatool_prebuilder_path=None,
+        use_legacy_pnpm_virtual_store=False,
         # Flags
         local_cli=False,
         nm_bundle=False,

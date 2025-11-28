@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-11-19T18:19:22Z",
+    "created": "2025-11-28T11:45:03.090Z",
     "pr": {
-      "id": 10741366,
-      "author": "vturov",
-      "summary": "FBP-2508: feature: prepare node paths for external virtual store"
+      "id": 10863587,
+      "author": "zaverden",
+      "summary": "feat(build): use GVS for pnpm install"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10334096155"
+      "uri": "sbr:10427919148"
     },
     "darwin-arm64": {
-      "uri": "sbr:10334093841"
+      "uri": "sbr:10427916029"
     },
     "linux": {
-      "uri": "sbr:10334100843"
+      "uri": "sbr:10427924827"
     },
     "linux-aarch64": {
-      "uri": "sbr:10334098654"
+      "uri": "sbr:10427922089"
     }
   }
 }

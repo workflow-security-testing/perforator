@@ -35,6 +35,14 @@ def register_base_args(parser: ArgumentParser) -> None:
         '--yatool-prebuilder-path', required=False, help="Path to `@yatool/prebuilder` script, if it needed"
     )
 
+    parser.add_argument(
+        "--use-legacy-pnpm-virtual-store",
+        action=YesNoAction,
+        required=False,
+        default=False,
+        help="Use legacy pnpm virtual store",
+    )
+
     # Flags
     parser.add_argument(
         '--local-cli', action=YesNoAction, default=False, help="Is run locally (from `nots`) or on the distbuild"
