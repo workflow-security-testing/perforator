@@ -12,6 +12,8 @@ TS_CONFIG(tsconfig.json)
 
 TS_STYLELINT(.stylelintrc)
 
+USE_LEGACY_PNPM_VIRTUAL_STORE()
+
 END()
 
 RECURSE_FOR_TESTS(

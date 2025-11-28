@@ -8,4 +8,6 @@ TS_ESLINT_CONFIG(.eslintrc.cjs)
 
 TS_STYLELINT(.stylelintrc)
 
+USE_LEGACY_PNPM_VIRTUAL_STORE()
+
 END()
