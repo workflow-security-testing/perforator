@@ -86,6 +86,8 @@ type Profiler struct {
 	progready      sync.Once
 	perfmap        *perfmap.Registry
 
+	processListeners []process.Listener
+
 	dsoStorage *dso.Storage
 	procs      *process.ProcessRegistry
 
@@ -167,6 +169,13 @@ func WithRawSampleCallback(sampleCallback machine.RawSampleCallback) Option {
 func WithEventListener(listener EventListener) Option {
 	return func(p *Profiler) error {
 		p.eventListener = listener
+		return nil
+	}
+}
+
+func WithProcessListener(listener process.Listener) Option {
+	return func(p *Profiler) error {
+		p.processListeners = append(p.processListeners, listener)
 		return nil
 	}
 }
@@ -397,10 +406,8 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		p.perfmap = perfmap.NewRegistry(p.log, r, p.enablePerfMapsJVM)
 	}
 
-	processListeners := []process.Listener{}
-
 	if p.enablePerfMaps {
-		processListeners = append(processListeners, p.perfmap)
+		p.processListeners = append(p.processListeners, p.perfmap)
 	}
 
 	bpfManager, err := binary.NewBPFBinaryManager(p.log.WithName("ProcessRegistry"), r.WithPrefix("ProcessRegistry"), p.bpf)
@@ -425,7 +432,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 			Storage: p.storage,
 		},
 		p.processScanner,
-		processListeners,
+		p.processListeners,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize process registry: %w", err)
