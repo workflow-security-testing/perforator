@@ -38,10 +38,15 @@ func NewService(l xlog.Logger, s clickhouse.Storage) *APIService {
 
 // GetClusterTopAggregatedByFunction implements perforator.GetClusterTopAggregatedByFunction
 func (s *APIService) GetClusterTopAggregatedByFunction(ctx context.Context, req *perforator.ClusterTopRequest) (*perforator.ClusterTopResponse, error) {
-	return s.getClusterTop(ctx, req, aggregated.GroupByFunction, "")
+	filter := &aggregated.Filter{
+		FunctionFilter:          req.GetFunctionPattern(),
+		FunctionFilterMatchMode: aggregated.SubstringMatch,
+	}
+
+	return s.getClusterTop(ctx, req, aggregated.GroupByFunction, filter)
 }
 
-func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterTopRequest, groupBy aggregated.GroupByMode, filter string) (*perforator.ClusterTopResponse, error) {
+func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterTopRequest, groupBy aggregated.GroupByMode, filter *aggregated.Filter) (*perforator.ClusterTopResponse, error) {
 	generation := req.GetGeneration()
 	if generation == 0 {
 		return nil, generationArgumentError
@@ -77,7 +82,12 @@ func (s *APIService) GetClusterTopAggregatedByService(ctx context.Context, req *
 		return nil, status.Errorf(codes.InvalidArgument, "For service aggregation must provide non-empty function search pattern")
 	}
 
-	return s.getClusterTop(ctx, req, aggregated.GroupByService, req.GetFunctionPattern())
+	filter := &aggregated.Filter{
+		FunctionFilter:          req.GetFunctionPattern(),
+		FunctionFilterMatchMode: aggregated.ExactMatch,
+	}
+
+	return s.getClusterTop(ctx, req, aggregated.GroupByService, filter)
 }
 
 // ListClusterTopGenerations implements perforator.ListClusterTopGenerations

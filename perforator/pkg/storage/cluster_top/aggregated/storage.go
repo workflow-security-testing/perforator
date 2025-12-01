@@ -46,8 +46,6 @@ func NewStorage(l xlog.Logger, conn *clickhouse.Connection) *ClickhouseAggregati
 	}
 }
 
-type GroupByMode string
-
 type aggregationValue struct {
 	Name                string  `ch:"name"`
 	CpuCycles           big.Int `ch:"cpu_cycles"`
@@ -89,8 +87,21 @@ const orderByCycles = "cpu_cycles DESC"
 
 const DefaultPageSize = 100
 
+func getComparisonOperator(mode MatchMode) string {
+	switch mode {
+	case ExactMatch:
+		return "=="
+	case RegexMatch:
+		return "REGEXP"
+	case SubstringMatch:
+		return "LIKE"
+	default:
+		return ""
+	}
+}
+
 // aggregates cluster top based on
-func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, generation uint32, funcFilter string, aggregationType GroupByMode, pagination util.Pagination) ([]*perforator.ClusterTopEntry, error) {
+func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination) ([]*perforator.ClusterTopEntry, error) {
 	var sql string
 	var err error
 
@@ -111,9 +122,14 @@ func (s *ClickhouseAggregationStorage) AggregateClusterTop(ctx context.Context, 
 		Offset(offset).
 		GroupBy(groupBy)
 
-	if aggregationType == GroupByService && funcFilter != "" {
+	if filter != nil && filter.FunctionFilter != "" && filter.FunctionFilterMatchMode != "" {
+		comparisonOperator := getComparisonOperator(filter.FunctionFilterMatchMode)
+		searchValue := filter.FunctionFilter
+		if filter.FunctionFilterMatchMode == SubstringMatch {
+			searchValue = fmt.Sprintf("%%%s%%", filter.FunctionFilter)
+		}
 		builder = builder.
-			Where("function == ?", funcFilter)
+			Where(fmt.Sprintf("function %s ?", comparisonOperator), searchValue)
 	}
 
 	sql, args, err := builder.ToSql()
