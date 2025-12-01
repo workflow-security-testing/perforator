@@ -75,15 +75,16 @@ type recordOptions struct {
 	upload    bool
 	uploadURL string
 
-	renderFormat                  string
-	formatOpts                    symbolizerClient.FormatOptions
-	profileSinkOptions            sinkOptions
-	enableSymbolization           bool
-	enableInterpreterStackMerging bool
-	disablePerfMap                bool
-	disablePerfMapJVM             bool
-	enableJVM                     bool
-	enablePHP                     bool
+	renderFormat                                string
+	formatOpts                                  symbolizerClient.FormatOptions
+	profileSinkOptions                          sinkOptions
+	enableSymbolization                         bool
+	enableInterpreterStackMerging               bool
+	experimentalEnablePythonStackPrettification bool
+	disablePerfMap                              bool
+	disablePerfMapJVM                           bool
+	enableJVM                                   bool
+	enablePHP                                   bool
 }
 
 func (o *recordOptions) Bind(cmd *cobra.Command) {
@@ -113,6 +114,7 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.disablePerfMapJVM, "disable-perf-maps-jvm", false, "Disable perf map for JVM")
 	cmd.Flags().BoolVar(&o.enableJVM, "experimental-enable-jvm", false, "[Experimental feature] Enable JVM profiling")
 	cmd.Flags().BoolVar(&o.enablePHP, "experimental-enable-php", false, "[Experimental feature] Enable PHP profiling")
+	cmd.Flags().BoolVar(&o.experimentalEnablePythonStackPrettification, "experimental-prettify-python-stacks", false, "[Experimental feature] Enable Python stack prettification")
 
 	cmd.MarkFlagsMutuallyExclusive("freq", "count")
 
@@ -155,7 +157,7 @@ func record(opts *recordOptions, args []string) error {
 	ctx := app.Context()
 
 	// let's validate the format before we run profiling
-	format, err := makeRenderFormat(opts.renderFormat, opts.formatOpts, opts.enableSymbolization, opts.enableInterpreterStackMerging)
+	format, err := makeRenderFormat(opts.renderFormat, opts.formatOpts, opts.enableSymbolization, opts.enableInterpreterStackMerging, opts.experimentalEnablePythonStackPrettification)
 	if err != nil {
 		return fmt.Errorf("failed to build render format: %w", err)
 	}
@@ -171,7 +173,11 @@ func record(opts *recordOptions, args []string) error {
 	}
 
 	if opts.enableInterpreterStackMerging {
-		postProcessResults := python.PostprocessSymbolizedProfileWithPython(profile)
+		postprocessOptions := []python.Option{}
+		if opts.experimentalEnablePythonStackPrettification {
+			postprocessOptions = append(postprocessOptions, python.PrettifyPythonStacksOption())
+		}
+		postProcessResults := python.Postprocess(profile, postprocessOptions...)
 		if len(postProcessResults.Errors) > 0 {
 			logger.Fmt().Debugf("Errors on merge python and native stacks: %v", errors.Join(postProcessResults.Errors...))
 		}

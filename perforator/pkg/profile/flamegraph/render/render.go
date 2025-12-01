@@ -687,7 +687,7 @@ func getLocationFrames(loc *pprof.Location, options LocationFrameOptions) []loca
 			}
 		}
 
-		if isInvalidFunctionName(funcname) {
+		if IsInvalidFunctionName(funcname) {
 			funcname = unsymbolizedFunction
 		}
 
@@ -849,7 +849,7 @@ func or(x string) string {
 	return "??"
 }
 
-func isInvalidFunctionName(funcname string) bool {
+func IsInvalidFunctionName(funcname string) bool {
 	return funcname == "" || funcname == "??" || funcname == "<invalid>" || funcname == "<undefined>"
 }
 

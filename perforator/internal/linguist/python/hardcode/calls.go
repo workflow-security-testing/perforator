@@ -26,27 +26,8 @@ var (
 	}
 
 	// These functions serve as an entrypoint to python evaluation loop
-	CPythonAPIEvaluationFunctions = map[string]bool{
-		// "PyEval_CallFunction":           true,
-		// "PyEval_CallMethod":             true,
-		// "PyEval_CallObject":             true,
-		// "PyEval_CallObjectWithKeywords": true,
-		// "PyEval_EvalCode":               true,
+	CPythonEntryPointFunctions = map[string]bool{
 		"_PyEval_EvalFrameDefault": true,
 		"PyEval_EvalFrameEx":       true,
-		// "PyObject_CallNoArgs":           true,
-		// "PyObject_VectorcallDict":       true,
-		// "PyObject_Vectorcall":           true,
-		// "PyObject_Call":                 true,
-		// "PyObject_CallOneArg":           true,
-		// "PyObject_CallObject":           true,
-		// "PyObject_CallFunction":         true,
-		// "PyObject_CallMethod":           true,
-		// "PyObject_VectorcallMethod":     true,
-		// "PyObject_CallMethodObjArgs":    true,
-		// "PyObject_CallFunctionObjArgs":  true,
-		// "PyVectorcall_Call":             true,
-		// "PyVectorcall_Function":         true,
-		// "PyVectorcall_NARGS":            true,
 	}
 )

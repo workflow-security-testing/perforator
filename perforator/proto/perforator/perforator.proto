@@ -585,6 +585,8 @@ message ProtoProfileOptions {
 
 message PostprocessOptions {
     optional bool MergePythonAndNativeStacks = 1;
+    // This is only considered if MergePythonAndNativeStacks is not false
+    optional bool PrettifyPythonStacksExperimental = 2;
 }
 
 message RenderFormat {

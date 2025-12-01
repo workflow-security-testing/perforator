@@ -34,12 +34,13 @@ var (
 	profileID           string
 	experimentalOptions proto.MergeExperimentalOptions
 
-	format                        string
-	pgoFormat                     string
-	formatOpts                    client.FormatOptions
-	profileSinkOptions            sinkOptions
-	enableSymbolization           bool
-	enableInterpreterStackMerging bool
+	format                                      string
+	pgoFormat                                   string
+	formatOpts                                  client.FormatOptions
+	profileSinkOptions                          sinkOptions
+	enableSymbolization                         bool
+	enableInterpreterStackMerging               bool
+	experimentalEnablePythonStackPrettification bool
 
 	selector         string
 	service          string
@@ -51,19 +52,24 @@ var (
 	profilerVersions = []string{}
 )
 
-func fillBaseRenderFormat(enableSymbolization, enableStackMerge bool) *proto.RenderFormat {
+func fillBaseRenderFormat(enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification bool) *proto.RenderFormat {
 	return &proto.RenderFormat{
 		Symbolize: &proto.SymbolizeOptions{
 			Symbolize: ptr.Bool(enableSymbolization),
 		},
 		Postprocessing: &proto.PostprocessOptions{
-			MergePythonAndNativeStacks: ptr.Bool(enableStackMerge),
+			MergePythonAndNativeStacks:       ptr.Bool(enableStackMerge),
+			PrettifyPythonStacksExperimental: ptr.Bool(experimentalEnablePythonStackPrettification),
 		},
 	}
 }
 
-func makeRenderFormat(format string, formatOptions client.FormatOptions, enableSymbolization, enableStackMerge bool) (*proto.RenderFormat, error) {
-	rf := fillBaseRenderFormat(enableSymbolization, enableStackMerge)
+func makeRenderFormat(format string, formatOptions client.FormatOptions, enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification bool) (*proto.RenderFormat, error) {
+	if !enableStackMerge && experimentalEnablePythonStackPrettification {
+		return nil, errors.New("python stack prettification is not supported without stack merging")
+	}
+
+	rf := fillBaseRenderFormat(enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification)
 
 	switch format {
 	case "flamegraph", "flame", "fg":
@@ -225,7 +231,7 @@ func fetchProfile() error {
 		experimentalOptions.SampleProfileStacks = true
 	}
 
-	format, err := makeRenderFormat(format, formatOpts, enableSymbolization, enableInterpreterStackMerging)
+	format, err := makeRenderFormat(format, formatOpts, enableSymbolization, enableInterpreterStackMerging, experimentalEnablePythonStackPrettification)
 	if err != nil {
 		return err
 	}
@@ -310,7 +316,7 @@ func fetchDiffProfile(args []string) error {
 	if strings.Contains(format, string(render.PlainTextFormat)) {
 		return fmt.Errorf("unsupported format for diff profile: %s", format)
 	}
-	format, err := makeRenderFormat(format, formatOpts, enableSymbolization, enableInterpreterStackMerging)
+	format, err := makeRenderFormat(format, formatOpts, enableSymbolization, enableInterpreterStackMerging, experimentalEnablePythonStackPrettification)
 	if err != nil {
 		return err
 	}
@@ -589,6 +595,12 @@ func addCommonRenderOptions(cmd *cobra.Command) {
 		"merge-native-interpreter-stacks",
 		true,
 		"Enable native and interpreter stack merging",
+	)
+	cmd.Flags().BoolVar(
+		&experimentalEnablePythonStackPrettification,
+		"experimental-prettify-python-stacks",
+		false,
+		"[Experimental feature] Enable Python stack prettification",
 	)
 }
 

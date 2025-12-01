@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	pprof "github.com/google/pprof/profile"
 
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/hardcode"
 	"github.com/yandex/perforator/perforator/internal/linguist/python/models"
+	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
 )
 
 const (
@@ -73,7 +75,7 @@ func isInternalCPythonEvaluationFunction(loc *pprof.Location) bool {
 	for _, line := range loc.Line {
 		if line.Function != nil &&
 			(line.Function.Name == invalid || line.Function.SystemName == invalid ||
-				hardcode.CPythonInternalEvaluationFunctions[line.Function.Name] || hardcode.CPythonInternalEvaluationFunctions[line.Function.SystemName]) {
+				hardcode.CPythonEntryPointFunctions[line.Function.Name] || hardcode.CPythonEntryPointFunctions[line.Function.SystemName]) {
 			return true
 		}
 	}
@@ -84,7 +86,7 @@ func isInternalCPythonEvaluationFunction(loc *pprof.Location) bool {
 func isCPythonEvaluationEntryPoint(loc *pprof.Location) bool {
 	for _, line := range loc.Line {
 		if line.Function != nil &&
-			(hardcode.CPythonAPIEvaluationFunctions[line.Function.Name] || hardcode.CPythonAPIEvaluationFunctions[line.Function.SystemName]) {
+			(hardcode.CPythonEntryPointFunctions[line.Function.Name] || hardcode.CPythonEntryPointFunctions[line.Function.SystemName]) {
 			return true
 		}
 	}
@@ -233,7 +235,6 @@ func (m *NativeAndPythonStackMerger) extractPythonAndCSubstacks() error {
 type MergeStackStats struct {
 	PythonSubStacks []StackSubsegment
 	CSubStacks      []StackSubsegment
-	CollectedPython bool
 	PerformedMerge  bool
 }
 
@@ -368,12 +369,12 @@ func (m *NativeAndPythonStackMerger) MergeStacks(s *pprof.Sample) (MergeStackSta
 	}
 	defer m.cleanup()
 
-	stats := MergeStackStats{}
-	stats.CollectedPython = m.setStartPythonStackIndex()
-	if !stats.CollectedPython {
-		return stats, nil
+	if !m.setStartPythonStackIndex() {
+		return MergeStackStats{}, nil
 	}
 	var err error
+
+	stats := MergeStackStats{}
 
 	switch m.determineMergeAlgorithm() {
 	case OneToOnePythonFrameToPyEval:
@@ -411,22 +412,71 @@ type PostProcessResults struct {
 	Errors []error
 }
 
-func PostprocessSymbolizedProfileWithPython(p *pprof.Profile) (res PostProcessResults) {
+type options struct {
+	prettifyPythonStacks bool
+}
+
+func defaultOptions() options {
+	return options{
+		prettifyPythonStacks: false,
+	}
+}
+
+type Option func(*options)
+
+func PrettifyPythonStacksOption() Option {
+	return func(o *options) {
+		o.prettifyPythonStacks = true
+	}
+}
+
+func containsInterpretedPythonStack(sample *pprof.Sample) bool {
+	for _, loc := range sample.Location {
+		if isPythonLocation(loc) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func containsInterpreterPythonStack(sample *pprof.Sample) bool {
+	for _, loc := range sample.Location {
+		if isCPythonEvaluationEntryPoint(loc) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// This functions assumes that the profile is already symbolized
+func Postprocess(p *pprof.Profile, opts ...Option) (res PostProcessResults) {
+	o := defaultOptions()
+	for _, opt := range opts {
+		opt(&o)
+	}
+
 	merger := NewNativeAndPythonStackMerger()
 	for _, sample := range p.Sample {
+		containsPythonStack := containsInterpretedPythonStack(sample)
+		containsInterpreterPythonStack := containsInterpreterPythonStack(sample)
+
+		if containsPythonStack {
+			res.CollectedPythonStacksCount++
+		} else if containsInterpreterPythonStack {
+			res.CollectFailedPythonStacksCount++
+		} else {
+			res.NotPythonStacksCount++
+		}
+
+		if !containsPythonStack {
+			continue
+		}
+
 		stats, err := merger.MergeStacks(sample)
 		if err != nil {
 			res.Errors = append(res.Errors, err)
-		}
-
-		if stats.CollectedPython {
-			res.CollectedPythonStacksCount++
-		} else if len(stats.CSubStacks) > 0 {
-			res.CollectFailedPythonStacksCount++
-			continue
-		} else {
-			res.NotPythonStacksCount++
-			continue
 		}
 
 		if stats.PerformedMerge {
@@ -434,7 +484,123 @@ func PostprocessSymbolizedProfileWithPython(p *pprof.Profile) (res PostProcessRe
 		} else {
 			res.UnmergedStacksCount++
 		}
+
+		if o.prettifyPythonStacks {
+			prettifier := NewPrettifier(sample)
+			prettifier.Prettify()
+		}
 	}
 
 	return
+}
+
+// Prettifier performs inplace prettification of the Python sample.
+type Prettifier struct {
+	sample *pprof.Sample
+}
+
+func NewPrettifier(sample *pprof.Sample) *Prettifier {
+	return &Prettifier{
+		sample: sample,
+	}
+}
+
+func isUnsymbolizedLocation(loc *pprof.Location) bool {
+	for _, line := range loc.Line {
+		if line.Function != nil && !(render.IsInvalidFunctionName(line.Function.Name) && render.IsInvalidFunctionName(line.Function.SystemName)) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isCPythonOrPythonLocation(loc *pprof.Location) bool {
+	return isCPythonLocation(loc) || isPythonLocation(loc)
+}
+
+func (p *Prettifier) removeUnsymbolizedCPythonFrames() {
+	// We remove segments of unsymbolized locations if they are surrounded by CPython or Python locations.
+	// First pass: mark segments for removal by setting them to nil
+	unsymSegmentStart := -1
+	for i := range p.sample.Location {
+		isUnsym := isUnsymbolizedLocation(p.sample.Location[i])
+		isCPyOrPy := isCPythonOrPythonLocation(p.sample.Location[i])
+		prevIsCPyOrPy := i > 0 && isCPythonOrPythonLocation(p.sample.Location[i-1])
+
+		switch {
+		case isUnsym && unsymSegmentStart == -1 && prevIsCPyOrPy:
+			// Segment started
+			unsymSegmentStart = i
+		case !isUnsym && unsymSegmentStart != -1:
+			// Segment ended
+			if isCPyOrPy {
+				// Surrounded on both sides — mark for removal
+				for j := unsymSegmentStart; j < i; j++ {
+					p.sample.Location[j] = nil
+				}
+			}
+			unsymSegmentStart = -1
+		}
+	}
+	// Trailing segment is not removed (no CPython/Python on the right)
+
+	// Second pass: filter out nil entries
+	p.sample.Location = slices.DeleteFunc(p.sample.Location, func(loc *pprof.Location) bool {
+		return loc == nil
+	})
+}
+
+func isCPythonFunction(name string) bool {
+	return strings.HasPrefix(name, "Py") || strings.HasPrefix(name, "_Py")
+}
+
+func isCPythonLocation(loc *pprof.Location) bool {
+	for _, line := range loc.Line {
+		if line.Function == nil {
+			continue
+		}
+
+		if isCPythonFunction(line.Function.Name) || isCPythonFunction(line.Function.SystemName) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Remove all CPython locations except latest ones in the stack.
+// The latest CPython locations are those which are called from interpreted Python code
+// They may contain useful information for user
+// For example it might be PyNumber_InPlaceAdd instead of usual evaluation loop functions
+func (p *Prettifier) removeCPythonInterpreterLocations() {
+	resultIndex := 0
+	seenPythonLocation := false
+
+	// keep in mind the reverse layout of the stack
+	for _, loc := range p.sample.Location {
+		if isPythonLocation(loc) {
+			seenPythonLocation = true
+		}
+
+		if isCPythonLocation(loc) && seenPythonLocation {
+			continue
+		}
+
+		p.sample.Location[resultIndex] = loc
+		resultIndex++
+	}
+
+	p.sample.Location = p.sample.Location[:resultIndex]
+}
+
+func (p *Prettifier) Prettify() {
+	// There are a lot of stripped CPython binaries. This can cause <unsymbolized function> frames between CPython interpreter frames.
+	// They can be inlined or not. These <unsymbolized function> frames should be treated as CPython intrepreter frames and be removed.
+	// Step 1: remove <unsymbolized function> frames between CPython interpreter locations.
+	p.removeUnsymbolizedCPythonFrames()
+
+	// CPython interpreter locations usually are not informative, so remove them.
+	// Step 2: remove CPython interpreter locations
+	p.removeCPythonInterpreterLocations()
 }

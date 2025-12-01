@@ -2064,7 +2064,12 @@ func (s *PerforatorServer) renderProfile(
 	}
 
 	if format.Postprocessing == nil || format.Postprocessing.MergePythonAndNativeStacks == nil || *format.Postprocessing.MergePythonAndNativeStacks {
-		postprocessResults := python.PostprocessSymbolizedProfileWithPython(profile)
+		opts := []python.Option{}
+		if format.Postprocessing != nil && format.Postprocessing.PrettifyPythonStacksExperimental != nil && *format.Postprocessing.PrettifyPythonStacksExperimental {
+			opts = append(opts, python.PrettifyPythonStacksOption())
+		}
+
+		postprocessResults := python.Postprocess(profile, opts...)
 		if len(postprocessResults.Errors) > 0 {
 			s.l.Warn(ctx, "Found errors on joining python and native stacks", log.Error(errors.Join(postprocessResults.Errors...)))
 		}

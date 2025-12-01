@@ -50,6 +50,18 @@ func createSimpleLocationPython(funcName string) *pprof.Location {
 	return loc
 }
 
+func createUnsymbolizedLocation() *pprof.Location {
+	return &pprof.Location{
+		Line: []pprof.Line{
+			{
+				Function: &pprof.Function{
+					Name: "<invalid>",
+				},
+			},
+		},
+	}
+}
+
 func TestMergeStacks_Simple(t *testing.T) {
 	merger := NewNativeAndPythonStackMerger()
 
@@ -59,7 +71,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 		// if resultSample is nil, then we expect that the sample is not changed
 		resultSample   *pprof.Sample
 		performedMerge bool
-		containsPython bool
 	}{
 		{
 			name: "busyloop_release",
@@ -92,7 +103,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: true,
-			containsPython: true,
 		},
 		{
 			name: "busyloop2_release",
@@ -124,7 +134,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: true,
-			containsPython: true,
 		},
 		{
 			name: "busyloop1_debug",
@@ -172,7 +181,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: true,
-			containsPython: true,
 		},
 		{
 			name: "busyloop2_debug",
@@ -224,7 +232,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: true,
-			containsPython: true,
 		},
 		{
 			name: "only_native",
@@ -237,7 +244,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: false,
-			containsPython: false,
 		},
 		{
 			name: "incorrect",
@@ -254,7 +260,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: false,
-			containsPython: true,
 		},
 		{
 			name: "trim_last_cpython_substack",
@@ -297,7 +302,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: true,
-			containsPython: true,
 		},
 		{
 			name: "python_stack_before_kernel_stack_on_failed_merge",
@@ -330,7 +334,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: false,
-			containsPython: true,
 		},
 		{
 			name: "one_to_one_python_frame_to_pyeval_cpython_3_10",
@@ -393,7 +396,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: true,
-			containsPython: true,
 		},
 		{
 			name: "one_to_one_python_frame_to_pyeval_cpython_3_2",
@@ -456,7 +458,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: true,
-			containsPython: true,
 		},
 		{
 			name: "one_to_one_python_frame_to_pyeval_cpython_3_2_one_more_py_eval",
@@ -525,7 +526,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 				},
 			},
 			performedMerge: true,
-			containsPython: true,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -543,7 +543,6 @@ func TestMergeStacks_Simple(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, test.performedMerge, stats.PerformedMerge, "Did not perform merge")
-			require.Equal(t, test.containsPython, stats.CollectedPython, "Did not collect python")
 
 			diffSample := originalSample
 			if test.resultSample != nil {
@@ -553,6 +552,339 @@ func TestMergeStacks_Simple(t *testing.T) {
 			require.Equal(t, len(diffSample.Location), len(test.sample.Location))
 			for i := 0; i < len(diffSample.Location); i++ {
 				require.Equal(t, diffSample.Location[i], test.sample.Location[i])
+			}
+		})
+	}
+}
+
+func TestPrettifier_RemoveUnsymbolizedCPythonFrames(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		sample       *pprof.Sample
+		resultSample *pprof.Sample
+	}{
+		{
+			name: "surrounded_by_cpython_should_be_removed",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("PyRun_AnyFileExFlags"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createSimpleLocationUserspace("PyRun_AnyFileExFlags"),
+				},
+			},
+		},
+		{
+			name: "not_surrounded_on_right_should_be_kept",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("native_func"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("native_func"),
+				},
+			},
+		},
+		{
+			name: "not_surrounded_on_left_should_be_kept",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("native_func"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("Py_Main"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("native_func"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("Py_Main"),
+				},
+			},
+		},
+		{
+			name: "multiple_unsymbolized_frames_should_be_removed",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createUnsymbolizedLocation(),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("PyRun_AnyFileExFlags"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createSimpleLocationUserspace("PyRun_AnyFileExFlags"),
+				},
+			},
+		},
+		{
+			name: "surrounded_by_cpython_and_python_should_be_removed",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationPython("python_func"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createSimpleLocationPython("python_func"),
+				},
+			},
+		},
+		{
+			name: "at_end_of_stack_should_be_kept",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createUnsymbolizedLocation(),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createUnsymbolizedLocation(),
+				},
+			},
+		},
+		{
+			name: "at_start_of_stack_should_be_kept",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("Py_Main"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("Py_Main"),
+				},
+			},
+		},
+		{
+			name: "complex_stack_with_interleaved_unsymbolized_segments",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createUnsymbolizedLocation(),                              // Unsymbolized (keep - not preceded by CPython or Python)
+					createUnsymbolizedLocation(),                              // Unsymbolized (keep - not preceded by CPython or Python)
+					createSimpleLocationUserspace("_PyEval_EvalFrameDefault"), // CPython
+					createUnsymbolizedLocation(),                              // Unsymbolized (remove - surrounded by CPython or Python)
+					createUnsymbolizedLocation(),                              // Unsymbolized (remove - surrounded by CPython or Python)
+					createSimpleLocationUserspace("PyObject_Call"),            // CPython
+					createSimpleLocationPython("python_func_a"),               // Python
+					createUnsymbolizedLocation(),                              // Unsymbolized (remove)
+					createSimpleLocationPython("python_func_b"),               // Python
+					createUnsymbolizedLocation(),                              // Unsymbolized (keep - followed by native)
+					createSimpleLocationUserspace("_start"),                   // Native
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createUnsymbolizedLocation(),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("_PyEval_EvalFrameDefault"),
+					createSimpleLocationUserspace("PyObject_Call"),
+					createSimpleLocationPython("python_func_a"),
+					createSimpleLocationPython("python_func_b"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("_start"),
+				},
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			slices.Reverse(test.sample.Location)
+			slices.Reverse(test.resultSample.Location)
+
+			prettifier := NewPrettifier(test.sample)
+			prettifier.removeUnsymbolizedCPythonFrames()
+
+			require.Equal(t, len(test.resultSample.Location), len(test.sample.Location), "Sample length should be updated")
+
+			for i := 0; i < len(test.resultSample.Location); i++ {
+				require.Equal(t, test.resultSample.Location[i].Line[0].Function.Name, test.sample.Location[i].Line[0].Function.Name, "Mismatch at index %d", i)
+			}
+		})
+	}
+}
+
+func TestPrettifier_Prettify(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		sample       *pprof.Sample
+		resultSample *pprof.Sample
+	}{
+		{
+			name: "full_prettification_flow",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("_PyEval_EvalFrameDefault"), // CPython - to remove
+					createUnsymbolizedLocation(),                              // Unsymbolized (remove)
+					createSimpleLocationUserspace("PyObject_Call"),            // CPython - to remove
+					createSimpleLocationPython("python_func_a"),               // Python
+					createUnsymbolizedLocation(),                              // Unsymbolized (remove)
+					createSimpleLocationPython("python_func_b"),               // Python
+					createUnsymbolizedLocation(),                              // Unsymbolized (keep - followed by native)
+					createSimpleLocationUserspace("_start"),                   // Native
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationPython("python_func_a"),
+					createSimpleLocationPython("python_func_b"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("_start"),
+				},
+			},
+		},
+		{
+			name: "ml_stack_prettification",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_RunMain"),
+					createSimpleLocationUserspace("_PyRun_AnyFileObject"),
+					createSimpleLocationUserspace("_PyRun_SimpleFileObject"),
+					createUnsymbolizedLocation(),
+					createUnsymbolizedLocation(),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("PyEval_EvalCode"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationPython("<module>"),
+					createSimpleLocationUserspace("_PyFunction_Vectorcall"),
+					createSimpleLocationPython("main"),
+					createSimpleLocationUserspace("_PyObject_MakeTpCall"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("_PyObject_Call_Prepend"),
+					createSimpleLocationUserspace("_PyObject_FastCallDictTstate"),
+					createSimpleLocationPython("_wrapped_call_impl"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationPython("_call_impl"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationPython("forward"),
+					createSimpleLocationUserspace("_PyFunction_Vectorcall"),
+					createSimpleLocationPython("mse_loss"),
+					createSimpleLocationUserspace("_PyFunction_Vectorcall"),
+					createSimpleLocationPython("broadcast_tensors"),
+					createSimpleLocationUserspace("_PyObject_MakeTpCall"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("torch::autograd::THPVariable_broadcast_tensors(_object*, _object*, _object*)"),
+					createSimpleLocationUserspace("at::_ops::broadcast_tensors::call(c10::ArrayRef<at::Tensor>)"),
+					createSimpleLocationUserspace("c10::impl::OperatorEntry::lookup(c10::DispatchKeySet) const"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationPython("<module>"),
+					createSimpleLocationPython("main"),
+					createSimpleLocationPython("_wrapped_call_impl"),
+					createSimpleLocationPython("_call_impl"),
+					createSimpleLocationPython("forward"),
+					createSimpleLocationPython("mse_loss"),
+					createSimpleLocationPython("broadcast_tensors"),
+					createSimpleLocationUserspace("_PyObject_MakeTpCall"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("torch::autograd::THPVariable_broadcast_tensors(_object*, _object*, _object*)"),
+					createSimpleLocationUserspace("at::_ops::broadcast_tensors::call(c10::ArrayRef<at::Tensor>)"),
+					createSimpleLocationUserspace("c10::impl::OperatorEntry::lookup(c10::DispatchKeySet) const"),
+				},
+			},
+		},
+		{
+			name: "busyloop_prettification_keep_last_cpython_location",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_RunMain"),
+					createSimpleLocationUserspace("_PyRun_AnyFileObject"),
+					createSimpleLocationUserspace("_PyRun_SimpleFileObject"),
+					createUnsymbolizedLocation(),
+					createUnsymbolizedLocation(),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("PyEval_EvalCode"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationPython("<module>"),
+					createSimpleLocationUserspace("_PyFunction_Vectorcall"),
+					createSimpleLocationPython("main"),
+					createSimpleLocationUserspace("_PyFunction_Vectorcall"),
+					createSimpleLocationPython("simple"),
+					createSimpleLocationUserspace("_PyFunction_Vectorcall"),
+					createSimpleLocationPython("foo"),
+					createSimpleLocationUserspace("PyNumber_InPlaceAdd"),
+					createUnsymbolizedLocation(),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationPython("<module>"),
+					createSimpleLocationPython("main"),
+					createSimpleLocationPython("simple"),
+					createSimpleLocationPython("foo"),
+					createSimpleLocationUserspace("PyNumber_InPlaceAdd"),
+					createUnsymbolizedLocation(),
+				},
+			},
+		},
+		{
+			name: "python_cpp_python_prettification",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationUserspace("Py_Main"),
+					createSimpleLocationUserspace("_PyRun_AnyFileObject"),
+					createSimpleLocationUserspace("_PyRun_SimpleFileObject"),
+					createUnsymbolizedLocation(),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("PyEval_EvalCode"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationPython("<module>"),
+					createSimpleLocationUserspace("_PyFunction_Vectorcall"),
+					createSimpleLocationPython("main"),
+					createSimpleLocationUserspace("_PyFunction_Vectorcall"),
+					createSimpleLocationPython("simple"),
+					createSimpleLocationUserspace("_PyObject_MakeTpCall"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("cpp_function"),
+					createSimpleLocationPython("trampoline python frame"),
+					createSimpleLocationPython("python_func_called_from_cpp"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationPython("<module>"),
+					createSimpleLocationPython("main"),
+					createSimpleLocationPython("simple"),
+					createUnsymbolizedLocation(),
+					createSimpleLocationUserspace("cpp_function"),
+					createSimpleLocationPython("trampoline python frame"),
+					createSimpleLocationPython("python_func_called_from_cpp"),
+				},
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			slices.Reverse(test.sample.Location)
+			slices.Reverse(test.resultSample.Location)
+
+			prettifier := NewPrettifier(test.sample)
+			prettifier.Prettify()
+
+			require.Equal(t, len(test.resultSample.Location), len(test.sample.Location), "Sample length should be updated")
+
+			for i := 0; i < len(test.resultSample.Location); i++ {
+				require.Equal(t, test.resultSample.Location[i].Line[0].Function.Name, test.sample.Location[i].Line[0].Function.Name, "Mismatch at index %d", i)
 			}
 		})
 	}
