@@ -2,17 +2,17 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.26.1)
+VERSION(v0.31.6)
 
 SRCS(
+    backoff.go
+    delay.go
     doc.go
+    error.go
+    loop.go
+    poll.go
+    timer.go
     wait.go
 )
 
-GO_TEST_SRCS(wait_test.go)
-
 END()
-
-RECURSE(
-    gotest
-)

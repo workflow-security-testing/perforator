@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.26.1)
+VERSION(v0.31.6)
 
 SRCS(
     allocator.go
@@ -22,6 +22,7 @@ SRCS(
     register.go
     scheme.go
     scheme_builder.go
+    splice.go
     swagger_doc_generator.go
     types.go
     types_proto.go
@@ -41,6 +42,7 @@ GO_XTEST_SRCS(
     embedded_test.go
     extension_test.go
     scheme_test.go
+    splice_test.go
 )
 
 END()
