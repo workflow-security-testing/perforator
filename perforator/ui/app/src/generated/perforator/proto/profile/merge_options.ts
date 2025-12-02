@@ -57,11 +57,12 @@ export interface MergeOptions {
     | boolean
     | undefined;
   /**
-   * If true, aggregate samples from binaries with the same build ID,
+   * If true (default), aggregate samples from binaries with the same build ID,
    * regardless of their file paths. The merged profile will not differentiate
-   * based on binary path if build IDs are identical. If false (default),
+   * based on binary path if build IDs are identical. If false,
    * binaries with different paths are treated as distinct, even with the same
    * build ID.
+   * NOTE: Binaries without build IDs will still be differentiated by paths.
    */
   ignoreBinaryPaths?:
     | boolean
@@ -107,7 +108,7 @@ export interface MergeOptions {
     | boolean
     | undefined;
   /**
-   * If true (default), sanitize thread and process names, e.g., by removing
+   * If true, sanitize thread and process names, e.g., by removing
    * trailing digits. This helps aggregate samples from thread/process pools
    * where names like "ThreadPoolWorker-123" would otherwise create many
    * unique entries.
@@ -127,7 +128,11 @@ export interface MergeOptions {
    * Allows filtering of samples before merging, based on specific criteria.
    * This can reduce the final profile size and help focus on relevant data.
    */
-  sampleFilter?: SampleFilter | undefined;
+  sampleFilter?:
+    | SampleFilter
+    | undefined;
+  /** Allows filtering of value types before merging. */
+  valueTypeFilter?: ValueTypeFilter | undefined;
 }
 
 export interface LabelFilter {
@@ -168,4 +173,9 @@ export interface SampleFilter_RequiredAllOfNumericLabelsEntry {
 export interface SampleFilter_RequiredAllOfStringLabelsEntry {
   key: string;
   value: string;
+}
+
+export interface ValueTypeFilter {
+  /** Only specified value types will be merged to the final profile. */
+  allowlist: string[];
 }

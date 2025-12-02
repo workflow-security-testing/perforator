@@ -7,6 +7,7 @@ import { Loader } from '@gravity-ui/uikit';
 
 import { ErrorPanel } from 'src/components/ErrorPanel/ErrorPanel';
 import type { ProfileTaskQuery } from 'src/models/Task';
+import { useUserSettings } from 'src/providers/UserSettingsProvider';
 import {
     defaultProfileTaskQuery,
     startProfileTask,
@@ -26,14 +27,14 @@ export interface BuildProfileProps {}
 export const BuildProfile: React.FC<BuildProfileProps> = () => {
     const isMounted = React.useRef(false);
     const [error, setError] = React.useState<string | undefined>(undefined);
-
+    const { userSettings: { showPrettyPythonFrames } } = useUserSettings();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
     const navigateToTask = React.useCallback(async () => {
         const query = setupQuery(searchParams);
         try {
-            const taskId = await startProfileTask(query);
+            const taskId = await startProfileTask(query, { showPrettyPythonFrames: showPrettyPythonFrames });
             navigate(`/task/${taskId}`, { replace: true });
         } catch (e) {
             if (e instanceof AxiosError) {
@@ -42,7 +43,7 @@ export const BuildProfile: React.FC<BuildProfileProps> = () => {
                 setError((e as any)?.message ?? 'Unknown error');
             }
         }
-    }, [navigate, searchParams]);
+    }, [navigate, searchParams, showPrettyPythonFrames]);
 
     React.useEffect(() => {
         if (!isMounted.current) {

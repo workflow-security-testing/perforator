@@ -6,6 +6,7 @@
 
 /* eslint-disable */
 import { type Duration } from "../../../google/protobuf/duration";
+import { type Paginated } from "../lib/pagination/pagination";
 import { type TimeInterval } from "../lib/time_interval/time_interval";
 import { type MergeOptions } from "../profile/merge_options";
 
@@ -38,11 +39,6 @@ export enum AddressRenderPolicy {
    */
   RenderAddressesAlways = "RenderAddressesAlways",
   UNRECOGNIZED = "UNRECOGNIZED",
-}
-
-export interface Paginated {
-  Offset: string;
-  Limit: string;
 }
 
 export interface SortOrder {
@@ -126,6 +122,8 @@ export interface ProfileMeta {
   BuildIDs: string[];
   /** Extra profile annotations. */
   Attributes: { [key: string]: string };
+  /** Custom Profiling Operation ID */
+  CPOID: string;
 }
 
 export interface ProfileMeta_AttributesEntry {
@@ -143,6 +141,49 @@ export interface GetProfileResponse {
   Profile: Buffer;
   /** Profile metainformation. */
   ProfileMeta: ProfileMeta | undefined;
+}
+
+export interface ClusterTopRequest {
+  ServicePattern?: string | undefined;
+  FunctionPattern?:
+    | string
+    | undefined;
+  /** sequential generation number */
+  Generation: number;
+  /** cpu_cycles or cumulative_cycles */
+  OrderBy: string;
+  Pagination: Paginated | undefined;
+}
+
+export interface ClusterTopEntry {
+  Name: string;
+  Count: ClusterTopCount | undefined;
+}
+
+export interface ClusterTopResponse {
+  Instances: ClusterTopEntry[];
+  HasMore: boolean;
+}
+
+export interface ClusterTopCount {
+  /** Cpu-hours */
+  Self: number;
+  /** Cpu-hours */
+  Cumulative: number;
+}
+
+export interface ListClusterTopGenerationRequest {
+}
+
+export interface ClusterTopGeneration {
+  /** sequential generation number */
+  ID: number;
+  From: string | undefined;
+  To: string | undefined;
+}
+
+export interface ListClusterTopGenerationResponse {
+  Generations: ClusterTopGeneration[];
 }
 
 export interface ProfileQuery {
@@ -501,7 +542,11 @@ export interface ProtoProfileOptions {
 }
 
 export interface PostprocessOptions {
-  MergePythonAndNativeStacks?: boolean | undefined;
+  MergePythonAndNativeStacks?:
+    | boolean
+    | undefined;
+  /** This is only considered if MergePythonAndNativeStacks is not false */
+  PrettifyPythonStacksExperimental?: boolean | undefined;
 }
 
 export interface RenderFormat {
@@ -567,4 +612,10 @@ export interface Perforator {
   /** Build aggregated profile. */
   MergeProfiles(request: MergeProfilesRequest): Promise<MergeProfilesResponse>;
   UploadProfile(request: UploadProfileRequest): Promise<UploadProfileResponse>;
+}
+
+export interface ClusterTop {
+  GetClusterTopAggregatedByFunction(request: ClusterTopRequest): Promise<ClusterTopResponse>;
+  GetClusterTopAggregatedByService(request: ClusterTopRequest): Promise<ClusterTopResponse>;
+  ListClusterTopGenerations(request: ListClusterTopGenerationRequest): Promise<ListClusterTopGenerationResponse>;
 }

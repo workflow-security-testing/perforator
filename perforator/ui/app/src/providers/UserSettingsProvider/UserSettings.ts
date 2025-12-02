@@ -14,6 +14,7 @@ export interface UserSettings {
     theme: Theme;
     shortenFrameTexts: ShortenMode;
     reverseFlameByDefault: boolean;
+    showPrettyPythonFrames: boolean;
 }
 
 const getUserSettingsFromLocalStorage = (): any => {
@@ -38,6 +39,7 @@ export const initialUserSettings = (): UserSettings => {
         monospace: 'default',
         reverseFlameByDefault: true,
         numTemplating: 'hugenum',
+        showPrettyPythonFrames: false,
         ...userSettings,
         theme,
     };

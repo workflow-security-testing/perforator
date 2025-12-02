@@ -7,7 +7,6 @@
 /* eslint-disable */
 import { type Duration } from "../../../google/protobuf/duration";
 import { type TimeInterval } from "../lib/time_interval/time_interval";
-import { type ProfileContainer } from "../profile/container";
 
 export enum OperationState {
   Unknown = "Unknown",
@@ -79,12 +78,16 @@ export interface BinaryDetector {
 }
 
 export interface BinaryLocation {
-  /** Path to the binary */
+  /** Path to the binary in agent's file hierarchy */
   Path?:
     | string
     | undefined;
   /** Detector which will be used to find the binary */
-  Detector?: BinaryDetector | undefined;
+  Detector?:
+    | BinaryDetector
+    | undefined;
+  /** Path to the binary in the container's or process's (depending on the target) file hierarchy */
+  ChrootPath?: string | undefined;
 }
 
 /**
@@ -116,11 +119,20 @@ export interface Event {
   Settings: EventSettings | undefined;
 }
 
-export interface CollectStackTimestampsFeature {
+export interface CollectStackAbsoluteTimestampsFeature {
+}
+
+export interface ExperimentalCollectSystemWidePerfEventSamplesFeature {
 }
 
 export interface Feature {
-  CollectStackTimestamps?: CollectStackTimestampsFeature | undefined;
+  CollectStackAbsoluteTimestampsFeature?:
+    | CollectStackAbsoluteTimestampsFeature
+    | undefined;
+  /** This feature is experimental and may be removed in the future */
+  ExperimentalCollectSystemWidePerfEventSamplesFeature?:
+    | ExperimentalCollectSystemWidePerfEventSamplesFeature
+    | undefined;
 }
 
 export interface OperationSpec {
@@ -128,10 +140,8 @@ export interface OperationSpec {
   Target:
     | Target
     | undefined;
-  /** Event to record */
-  Event:
-    | Event
-    | undefined;
+  /** Events to record */
+  Events: Event[];
   /** Features for recording: e.g collect stack timestamps */
   Features: Feature[];
   /** Time interval to record */
@@ -160,8 +170,16 @@ export interface OperationStats {
 }
 
 export interface OperationMeta {
+  CreatedAt:
+    | string
+    | undefined;
   /** TODO: add user ? */
-  CreatedAt: string | undefined;
+  Annotations: { [key: string]: string };
+}
+
+export interface OperationMeta_AnnotationsEntry {
+  key: string;
+  value: string;
 }
 
 export interface OperationTargetState {
@@ -197,25 +215,7 @@ export interface UpdateOperationStatusRequest {
 export interface UpdateOperationStatusResponse {
 }
 
-export interface PushOperationProfileRequest {
-  Profile: ProfileContainer | undefined;
-  StartTime: string | undefined;
-  FinishTime: string | undefined;
-  Labels: { [key: string]: string };
-  BuildIDs: string[];
-  OperationID: string;
-}
-
-export interface PushOperationProfileRequest_LabelsEntry {
-  key: string;
-  value: string;
-}
-
-export interface PushOperationProfileResponse {
-}
-
 export interface CustomProfilingOperationService {
   PollOperations(request: PollOperationsRequest): Promise<PollOperationsResponse>;
   UpdateOperationStatus(request: UpdateOperationStatusRequest): Promise<UpdateOperationStatusResponse>;
-  PushOperationProfile(request: PushOperationProfileRequest): Promise<PushOperationProfileResponse>;
 }

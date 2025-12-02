@@ -5,8 +5,8 @@
 // source: perforator/proto/perforator/microscope_service.proto
 
 /* eslint-disable */
+import { type Paginated } from "../lib/pagination/pagination";
 import { type TimeInterval } from "../lib/time_interval/time_interval";
-import { type Paginated } from "./perforator";
 
 export interface SetMicroscopeRequest {
   /** Time interval must be specified in selector */

@@ -63,6 +63,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = () => {
                         />
                     </Settings.Item>
                 </Settings.Section>
+                <Settings.Section title={'Experimental'}>
+                    <Settings.Item description={'Remove native CPython frames'} title={'Prettify python frames'}>
+                        <Switch
+                            checked={userSettings.showPrettyPythonFrames}
+                            onUpdate={checked => setUserSettings({ ...userSettings, showPrettyPythonFrames: checked })}
+                        />
+                    </Settings.Item>
+                </Settings.Section>
             </Settings.Page>
         </Settings>
     );

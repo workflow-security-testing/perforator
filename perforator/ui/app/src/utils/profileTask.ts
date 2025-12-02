@@ -1,7 +1,7 @@
 import { createSearchParams } from 'react-router-dom';
 
 import { uiFactory } from 'src/factory';
-import type { FlamegraphOptions, RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
+import type { FlamegraphOptions, PostprocessOptions, RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
 import type { ProfileTaskQuery } from 'src/models/Task';
 
 import { apiClient } from './api';
@@ -36,6 +36,7 @@ function getRenderFlamegraph(query: ProfileTaskQuery, flamegraphOptions: Flamegr
 
 export const startProfileTask = async (
     query: ProfileTaskQuery,
+    settings: {showPrettyPythonFrames?: boolean},
 ): Promise<string> => {
     const diffSelector = query.diffSelector;
 
@@ -55,6 +56,7 @@ export const startProfileTask = async (
 
     const maxProfiles = query.maxProfiles;
     const flamegraphRender = getRenderFlamegraph(query, flamegraphOptions);
+    const postprocessingOptions: PostprocessOptions = settings.showPrettyPythonFrames ? { MergePythonAndNativeStacks: true, PrettifyPythonStacksExperimental: true } : {};
 
     const request =
         diffSelector
@@ -73,6 +75,7 @@ export const startProfileTask = async (
                         SymbolizeOptions: symbolizeOptions,
                         RenderFormat: {
                             ...flamegraphRender,
+                            Postprocessing: postprocessingOptions,
                         },
 
                     },
@@ -85,6 +88,7 @@ export const startProfileTask = async (
                         Format: {
                             ...flamegraphRender,
                             Symbolize: symbolizeOptions,
+                            Postprocessing: postprocessingOptions,
                         },
                         MaxSamples: maxProfiles,
                         Query: {

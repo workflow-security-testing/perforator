@@ -5,6 +5,7 @@
 // source: perforator/proto/perforator/task_service.proto
 
 /* eslint-disable */
+import { type Paginated } from "../lib/pagination/pagination";
 import {
   type DiffProfilesRequest,
   type DiffProfilesResponse,
@@ -12,7 +13,6 @@ import {
   type GeneratePGOProfileResponse,
   type MergeProfilesRequest,
   type MergeProfilesResponse,
-  type Paginated,
 } from "./perforator";
 import { type RecordRemoteProfileRequest, type RecordRemoteProfileResponse } from "./record_remote";
 
@@ -72,6 +72,7 @@ export interface TaskMeta {
   CreationTime: string;
   Author: string;
   IdempotencyKey: string;
+  Pool: string;
 }
 
 export interface TaskSpec {
