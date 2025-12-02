@@ -6588,6 +6588,12 @@ github.com/ebitengine/purego
 github.com/ebitengine/purego/internal/cgo
 github.com/ebitengine/purego/internal/fakecgo
 github.com/ebitengine/purego/internal/strings
+# github.com/ebml-go/ebml v0.0.0-20160925193348-ca8851a10894
+## explicit
+github.com/ebml-go/ebml
+# github.com/ebml-go/webm v0.0.0-20221117133942-84fa5245cf70
+## explicit; go 1.13
+github.com/ebml-go/webm
 # github.com/eclipse/paho.golang v0.22.0
 ## explicit; go 1.21
 github.com/eclipse/paho.golang/autopaho
@@ -13071,6 +13077,9 @@ github.com/perimeterx/marshmallow
 # github.com/petar-dambovaliev/aho-corasick v0.0.0-20240411101913-e07a1f0e8eb4
 ## explicit; go 1.15
 github.com/petar-dambovaliev/aho-corasick
+# github.com/petar/GoLLRB v0.0.0-20130427215148-53be0d36a84c
+## explicit
+github.com/petar/GoLLRB/llrb
 # github.com/peterbourgon/diskv v2.0.1+incompatible
 ## explicit
 github.com/peterbourgon/diskv
