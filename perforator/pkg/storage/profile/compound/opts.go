@@ -1,16 +1,15 @@
 package compound
 
 import (
-	"github.com/aws/aws-sdk-go/service/s3"
-
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
+	"github.com/yandex/perforator/perforator/pkg/s3"
 	clickhouse_meta "github.com/yandex/perforator/perforator/pkg/storage/profile/meta/clickhouse"
 )
 
 type options struct {
 	clickhouseConn          *clickhouse.Connection
 	clickhouseConf          *clickhouse_meta.Config
-	s3client                *s3.S3
+	s3client                *s3.Client
 	s3bucket                string
 	blobDownloadConcurrency uint32
 }
@@ -28,7 +27,7 @@ func WithClickhouseMetaStorage(conn *clickhouse.Connection, conf *clickhouse_met
 	}
 }
 
-func WithS3(client *s3.S3, bucket string) Option {
+func WithS3(client *s3.Client, bucket string) Option {
 	return func(o *options) {
 		o.s3bucket = bucket
 		o.s3client = client

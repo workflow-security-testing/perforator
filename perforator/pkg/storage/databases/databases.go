@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	hasql "golang.yandex/hasql/sqlx"
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
 	"github.com/yandex/perforator/perforator/pkg/postgres"
-	s3client "github.com/yandex/perforator/perforator/pkg/s3"
+	"github.com/yandex/perforator/perforator/pkg/s3"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -19,7 +18,7 @@ type Databases struct {
 
 	ClickhouseConn *clickhouse.Connection
 
-	S3Client *s3.S3
+	S3Client *s3.Client
 }
 
 // bgCtx should be valid for as long as databases are used
@@ -28,7 +27,7 @@ func NewDatabases(ctx context.Context, bgCtx context.Context, l xlog.Logger, c *
 	var err error
 
 	if c.S3Config != nil {
-		res.S3Client, err = s3client.NewClient(ctx, bgCtx, l, c.S3Config, reg)
+		res.S3Client, err = s3.NewClient(ctx, bgCtx, l, c.S3Config, reg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init s3: %w", err)
 		}

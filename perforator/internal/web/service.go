@@ -157,7 +157,7 @@ func NewWebService(
 }
 
 // getFileFromS3AndWrite fetches a file from S3 and writes it to the ResponseWriter
-func getFileFromS3AndWrite(w http.ResponseWriter, client *s3.S3, bucket, key string) error {
+func getFileFromS3AndWrite(w http.ResponseWriter, client *s3client.Client, bucket, key string) error {
 	input := &s3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    &key,

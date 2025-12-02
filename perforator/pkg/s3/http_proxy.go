@@ -45,6 +45,9 @@ type dynamicProxy struct {
 	currentProxy   *url.URL
 	canceled       bool
 
+	refreshCancel context.CancelFunc
+	refreshWg     sync.WaitGroup
+
 	periodicUpdates      metrics.Counter
 	periodicUpdateErrors metrics.Counter
 	errorUpdates         metrics.Counter
@@ -190,6 +193,18 @@ func newDynamicProxy(ctx context.Context, refreshCtx context.Context, logger xlo
 	if err != nil {
 		return nil, fmt.Errorf("failed to get initial proxy configuration: %w", err)
 	}
-	go dp.updateLoop(refreshCtx, conf.UpdateInterval, int(conf.MaxErrorUpdates))
+
+	refreshCtx, cancel := context.WithCancel(refreshCtx)
+	dp.refreshCancel = cancel
+	dp.refreshWg.Add(1)
+	go func() {
+		defer dp.refreshWg.Done()
+		dp.updateLoop(refreshCtx, conf.UpdateInterval, int(conf.MaxErrorUpdates))
+	}()
 	return dp, nil
+}
+
+func (dp *dynamicProxy) stop() {
+	dp.refreshCancel()
+	dp.refreshWg.Wait()
 }

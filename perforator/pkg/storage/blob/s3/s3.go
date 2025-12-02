@@ -17,6 +17,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/library/go/ptr"
+	s3client "github.com/yandex/perforator/perforator/pkg/s3"
 	"github.com/yandex/perforator/perforator/pkg/storage/blob/models"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -41,7 +42,7 @@ type S3Storage struct {
 	bucket string
 	l      xlog.Logger
 
-	client     *s3.S3
+	client     *s3client.Client
 	uploader   *s3manager.Uploader
 	downloader *s3manager.Downloader
 	deleter    *s3manager.BatchDelete
@@ -51,7 +52,7 @@ type S3Storage struct {
 
 type WriteAtBuffer = aws.WriteAtBuffer
 
-func NewS3Storage(l xlog.Logger, reg metrics.Registry, client *s3.S3, bucket string) (*S3Storage, error) {
+func NewS3Storage(l xlog.Logger, reg metrics.Registry, client *s3client.Client, bucket string) (*S3Storage, error) {
 	return &S3Storage{
 		bucket: bucket,
 		l:      l.WithName("s3storage"),

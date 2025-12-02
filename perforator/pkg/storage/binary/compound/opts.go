@@ -1,8 +1,9 @@
 package binarycompound
 
 import (
-	"github.com/aws/aws-sdk-go/service/s3"
 	hasql "golang.yandex/hasql/sqlx"
+
+	"github.com/yandex/perforator/perforator/pkg/s3"
 )
 
 type Option = func(*options)
@@ -10,7 +11,7 @@ type Option = func(*options)
 type options struct {
 	postgresCluster *hasql.Cluster
 
-	s3client     *s3.S3
+	s3client     *s3.Client
 	s3bucket     string
 	s3GSYMbucket string
 }
@@ -25,7 +26,7 @@ func WithPostgresMetaStorage(cluster *hasql.Cluster) Option {
 	}
 }
 
-func WithS3(client *s3.S3, bucket string, gsymBucket string) Option {
+func WithS3(client *s3.Client, bucket string, gsymBucket string) Option {
 	return func(o *options) {
 		o.s3client = client
 		o.s3bucket = bucket

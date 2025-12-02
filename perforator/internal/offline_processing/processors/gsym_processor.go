@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/klauspost/compress/zstd"
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/offline_processing/gsym"
 	"github.com/yandex/perforator/perforator/internal/offline_processing/models"
+	"github.com/yandex/perforator/perforator/pkg/s3"
 	blob_storage "github.com/yandex/perforator/perforator/pkg/storage/blob/s3"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -31,7 +31,7 @@ type GsymProcessor struct {
 	s3 *blob_storage.S3Storage
 }
 
-func NewGsymProcessor(l xlog.Logger, reg metrics.Registry, s3Client *s3.S3, s3Bucket string) (*GsymProcessor, error) {
+func NewGsymProcessor(l xlog.Logger, reg metrics.Registry, s3Client *s3.Client, s3Bucket string) (*GsymProcessor, error) {
 	if s3Client == nil {
 		return nil, fmt.Errorf("s3client is nil")
 	}

@@ -65,6 +65,8 @@ type Config struct {
 
 	TLS certifi.ClientTLSConfig `yaml:"tls"`
 
+	MaxRetries uint32 `yaml:"max_retries"`
+
 	InsecureSkipVerify   bool   `yaml:"insecure,omitempty"`
 	CACertPathDeprecated string `yaml:"ca_cert_path,omitempty"`
 
@@ -136,8 +138,19 @@ func addRetryObserver(s3Client *s3.S3, registry metrics.Registry) {
 	})
 }
 
+type Client struct {
+	*s3.S3
+	dynamicProxy *dynamicProxy
+}
+
+func (c *Client) Close() {
+	if c.dynamicProxy != nil {
+		c.dynamicProxy.stop()
+	}
+}
+
 // NewClient creates a new S3 client. `refreshCtx` should be valid while client is in use.
-func NewClient(ctx context.Context, refreshCtx context.Context, logger xlog.Logger, c *Config, reg metrics.Registry) (*s3.S3, error) {
+func NewClient(ctx context.Context, refreshCtx context.Context, logger xlog.Logger, c *Config, reg metrics.Registry) (*Client, error) {
 	c.fillDefault()
 
 	secretKey, err := loadKey(c.SecretKeyPath, c.SecretKeyEnv)
@@ -154,7 +167,7 @@ func NewClient(ctx context.Context, refreshCtx context.Context, logger xlog.Logg
 		WithCredentials(credentials.NewStaticCredentials(accessKey, secretKey, "")).
 		WithEndpoint(c.Endpoint).
 		WithRegion(c.Region).
-		WithMaxRetries(defaultMaxRetries)
+		WithMaxRetries(int(c.MaxRetries))
 
 	if c.ForcePathStyle != nil {
 		config = config.WithS3ForcePathStyle(*c.ForcePathStyle)
@@ -214,5 +227,8 @@ func NewClient(ctx context.Context, refreshCtx context.Context, logger xlog.Logg
 		})
 	}
 
-	return s3Client, nil
+	return &Client{
+		S3:           s3Client,
+		dynamicProxy: proxy,
+	}, nil
 }
