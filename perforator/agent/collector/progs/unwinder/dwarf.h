@@ -298,10 +298,6 @@ ALWAYS_INLINE bool dwarf_cfi_eval_fp(
     struct dwarf_cfi_context* next,
     struct rbp_unwind_rule* rule
 ) {
-    if (prev->fp == 0) {
-        return false;
-    }
-
     if (rule->offset == DWARF_UNWIND_CFA_RULE_UNDEFINED) {
         DWARF_TRACE("Undefined FP rule, using prev FP\n");
         next->fp = prev->fp;
