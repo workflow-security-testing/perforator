@@ -8,12 +8,15 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/log/zap"
 )
+
+var errDone = errors.New("assertion failed")
 
 func createLogger() (log.Logger, error) {
 	lconf := zap.KVConfig(log.DebugLevel)
@@ -227,22 +230,29 @@ func TestTracker_Concurrent(t *testing.T) {
 
 	g, _ := errgroup.WithContext(context.Background())
 
-	events := []CgroupEventListener{}
+	var events []CgroupEventListener
+	var eventsMu sync.Mutex
 
 	for j := 0; j < 2; j++ {
 		g.Go(func() error {
 			for i := 0; i < 3*cgroupsCount; i++ {
 				idx := i % cgroupsCount
 				newEvent := newTestEvent(idx%2 == 0)
+
+				eventsMu.Lock()
 				events = append(events, newEvent)
-				err = tracker.AddCgroup(
+				eventsMu.Unlock()
+
+				err := tracker.AddCgroup(
 					&TrackedCgroup{
 						Name:  fmt.Sprintf("%d", idx),
 						Event: newEvent,
 					},
 					false,
 				)
-				require.NoError(t, err)
+				if !assert.NoError(t, err) {
+					return errDone
+				}
 			}
 			return nil
 		})
@@ -251,8 +261,10 @@ func TestTracker_Concurrent(t *testing.T) {
 	for j := 0; j < 2; j++ {
 		g.Go(func() error {
 			for i := 0; i < 3*cgroupsCount; i++ {
-				err = tracker.Delete(fmt.Sprintf("%d", i%cgroupsCount))
-				require.NoError(t, err)
+				err := tracker.Delete(fmt.Sprintf("%d", i%cgroupsCount))
+				if !assert.NoError(t, err) {
+					return errDone
+				}
 			}
 			return nil
 		})
@@ -267,8 +279,10 @@ func TestTracker_Concurrent(t *testing.T) {
 
 	g.Go(func() error {
 		for i := 0; i < 100; i++ {
-			err = tracker.checkUpdatedCgroups()
-			require.NoError(t, err)
+			err := tracker.checkUpdatedCgroups()
+			if !assert.NoError(t, err) {
+				return errDone
+			}
 		}
 		return nil
 	})
