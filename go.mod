@@ -349,6 +349,7 @@ require (
 	github.com/envoyproxy/go-control-plane/ratelimit v0.1.0
 	github.com/evanphx/json-patch v5.9.0+incompatible
 	github.com/evanphx/json-patch/v5 v5.9.11
+	github.com/evanw/esbuild v0.27.0
 	github.com/expr-lang/expr v1.17.5
 	github.com/facebookgo/stack v0.0.0-20160209184415-751773369052
 	github.com/failsafe-go/failsafe-go v0.6.9
