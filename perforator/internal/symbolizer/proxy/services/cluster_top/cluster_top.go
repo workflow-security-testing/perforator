@@ -5,6 +5,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -59,16 +60,47 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 	}
 
 	offset := req.GetPagination().GetOffset()
-	res, err := s.clusterTopGenerationStorage.AggregateClusterTop(ctx, generation, filter, groupBy, util.Pagination{
-		Offset: offset,
-		Limit:  limit + 1,
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	var entries []*aggregated.AggregationValue
+	var err error
+
+	g.Go(func() error {
+		entries, err = s.clusterTopGenerationStorage.AggregateClusterTop(ctx, generation, filter, groupBy, util.Pagination{
+			Offset: offset,
+			Limit:  limit + 1,
+		})
+		return err
 	})
 
-	hasMore := len(res) > int(limit)
+	var total *aggregated.TotalCycles
+
+	g.Go(func() error {
+
+		totalFunctionFilter := ""
+		if filter != nil && filter.FunctionFilterMatchMode == aggregated.ExactMatch && filter.FunctionFilter != "" && groupBy == aggregated.GroupByService {
+			totalFunctionFilter = filter.FunctionFilter
+		}
+
+		total, err = s.clusterTopGenerationStorage.CountTotalCycles(ctx, generation, totalFunctionFilter)
+
+		return err
+	})
+
+	err = g.Wait()
+
+	if err != nil {
+		return nil, err
+	}
+
+	hasMore := len(entries) > int(limit)
 
 	if hasMore {
-		res = res[0 : len(res)-1]
+		entries = entries[0 : len(entries)-1]
 	}
+
+	res := aggregated.MapEntries(total, entries)
 
 	return &perforator.ClusterTopResponse{
 		Instances: res,

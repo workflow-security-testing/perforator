@@ -231,6 +231,8 @@ message ClusterTopCount {
   double Self = 1;
   // Cpu-hours
   double Cumulative = 2;
+  double SelfPct = 3;
+  double CumulativePct = 4;
 }
 
 message ListClusterTopGenerationRequest {}

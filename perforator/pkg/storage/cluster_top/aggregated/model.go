@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
-	"github.com/yandex/perforator/perforator/proto/perforator"
 )
 
 type GroupByMode string
@@ -33,7 +32,8 @@ type Filter struct {
 
 type AggregationStorage interface {
 	SaveClusterTopEntry(ctx context.Context, servicePerfTop *ServicePerfTop) error
-	AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination) ([]*perforator.ClusterTopEntry, error)
+	AggregateClusterTop(ctx context.Context, generation uint32, filter *Filter, aggregationType GroupByMode, pagination util.Pagination) ([]*AggregationValue, error)
+	CountTotalCycles(ctx context.Context, generation uint32, funcFilter string) (*TotalCycles, error)
 }
 
 type Function struct {
