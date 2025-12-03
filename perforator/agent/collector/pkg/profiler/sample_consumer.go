@@ -421,7 +421,7 @@ func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, lo
 		}
 	}
 	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
-	if err == nil && mapping != nil {
+	if err == nil {
 		offset := mapping.Offset
 		if mapping.BuildInfo != nil {
 			// This logic is broken for binaries with multiple executable sections (e.g. BOLT-ed binaries),

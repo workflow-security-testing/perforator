@@ -158,31 +158,36 @@ func (d *Storage) Compactify(ctx context.Context, pid linux.CurrentNamespacePID)
 }
 
 // Find DSO using address.
-// Thread safe
-func (d *Storage) ResolveMapping(ctx context.Context, pid linux.CurrentNamespacePID, address procfs.Address) (*Mapping, error) {
+// Thread safe.
+// Returns a copy of the Mapping to avoid data races.
+func (d *Storage) ResolveMapping(ctx context.Context, pid linux.CurrentNamespacePID, address procfs.Address) (Mapping, error) {
 	maps := d.findProcess(pid)
 	if maps == nil {
-		return nil, ErrNoSuchProcess
+		return Mapping{}, ErrNoSuchProcess
 	}
 
 	maps.lock.RLock()
 	defer maps.lock.RUnlock()
 
-	return maps.resolveAddressLocked(ctx, address)
+	m, err := maps.resolveAddressLocked(ctx, address)
+	if err != nil {
+		return Mapping{}, err
+	}
+	return *m, nil
 }
 
 // Find DSO+offset using address.
 // Thread safe
 func (d *Storage) ResolveAddress(ctx context.Context, pid linux.CurrentNamespacePID, address procfs.Address) (*Location, error) {
-	m, err := d.ResolveMapping(ctx, pid, address)
+	mapping, err := d.ResolveMapping(ctx, pid, address)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Location{
-		Path:   m.Path,
-		Inode:  m.Inode,
-		Offset: uint64(m.Offset) + (address - m.Begin),
+		Path:   mapping.Path,
+		Inode:  mapping.Inode,
+		Offset: uint64(mapping.Offset) + (address - mapping.Begin),
 	}, nil
 }
 
