@@ -28,12 +28,14 @@ import (
 )
 
 type SampleConsumerFeatures struct {
-	EnableSampleTimeCollection bool
+	EnableSampleTimeCollection     bool
+	EnableInnermostPidnsCollection bool
 }
 
 func DefaultSampleConsumerFeatures() SampleConsumerFeatures {
 	return SampleConsumerFeatures{
-		EnableSampleTimeCollection: false,
+		EnableSampleTimeCollection:     false,
+		EnableInnermostPidnsCollection: false,
 	}
 }
 
@@ -554,11 +556,15 @@ func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []pro
 	builder := c.initBuilderMinimal(name, sampleTypes).
 		AddIntLabel("pid", int64(c.sample.Pid), "pid").
 		AddIntLabel("tid", int64(c.sample.Tid), "tid").
-		AddIntLabel("innermost_pidns_tid", int64(c.sample.InnermostPidnsTid), "innermost_pidns_tid").
 		AddStringLabel("comm", copy.ZeroTerminatedString(c.sample.ThreadComm[:])).
 		AddStringLabel("process_comm", copy.ZeroTerminatedString(c.sample.ProcessComm[:])).
 		AddStringLabel("thread_comm", copy.ZeroTerminatedString(c.sample.ThreadComm[:])).
 		AddStringLabel("cgroup", c.p.cgroups.CgroupFullName(c.sample.ParentCgroup))
+
+	if c.features.EnableInnermostPidnsCollection {
+		builder.AddIntLabel("innermost_pidns_tid", int64(c.sample.InnermostPidnsTid), "id")
+		builder.AddIntLabel("innermost_pidns_pid", int64(c.sample.InnermostPidnsPid), "id")
+	}
 
 	c.collectWorkloadInto(builder)
 	c.collectEnvironmentInto(builder)
