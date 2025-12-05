@@ -51,11 +51,16 @@ func BuildTLSFilter(selector *querylang.Selector) (SampleFilter, error) {
 			if !ok {
 				return nil, fmt.Errorf("failed to build TLS filters: failed to build tls key from %s", matcher.Field)
 			}
-			val, err := profilequerylang.ExtractEqualityMatch(matcher)
+			values, err := profilequerylang.ExtractEqualityMatch(matcher)
 			if err != nil {
 				return nil, fmt.Errorf("failed to build TLS filters: %w", err)
 			}
-			res[tlsKey] = val
+			if len(values) != 1 {
+				return nil, fmt.Errorf("only one condition is allowed")
+			}
+			for val := range values {
+				res[tlsKey] = val
+			}
 		}
 	}
 	return tlsFilter(res), nil

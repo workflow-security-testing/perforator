@@ -50,11 +50,16 @@ func BuildEnvFilter(selector *querylang.Selector) (SampleFilter, error) {
 		if !ok {
 			continue
 		}
-		val, err := profilequerylang.ExtractEqualityMatch(matcher)
+		values, err := profilequerylang.ExtractEqualityMatch(matcher)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build env filters with env %v: %w", matcher.Field, err)
 		}
-		res[envKey] = val
+		if len(values) != 1 {
+			return nil, fmt.Errorf("only one condition is allowed")
+		}
+		for val := range values {
+			res[envKey] = val
+		}
 	}
 	return envFilter(res), nil
 }

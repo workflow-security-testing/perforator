@@ -215,9 +215,16 @@ func buildEnvWhereClause(matcher *querylang.Matcher) (string, error) {
 		return "", fmt.Errorf("failed to build env key from matcher field: %v", matcher.Field)
 	}
 
-	val, err := profilequerylang.ExtractEqualityMatch(matcher)
+	values, err := profilequerylang.ExtractEqualityMatch(matcher)
 	if err != nil {
 		return "", fmt.Errorf("failed to build where clause for env %v: %w", matcher.Field, err)
+	}
+	if len(values) != 1 {
+		return "", fmt.Errorf("only one condition is allowed")
+	}
+	var val string
+	for v := range values {
+		val = v
 	}
 
 	concatenatedEnv := env.BuildConcatenatedEnv(envKey, val)

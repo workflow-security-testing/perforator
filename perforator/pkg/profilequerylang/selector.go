@@ -67,24 +67,27 @@ func MatcherToString(matcher *querylang.Matcher) (string, error) {
 	}
 }
 
-func ExtractEqualityMatch(matcher *querylang.Matcher) (string, error) {
-	if len(matcher.Conditions) != 1 {
-		return "", fmt.Errorf("only one condition is allowed")
+func ExtractEqualityMatch(matcher *querylang.Matcher) (map[string]struct{}, error) {
+	values := make(map[string]struct{})
+
+	for _, condition := range matcher.Conditions {
+		if condition.Operator != operator.Eq {
+			return nil, fmt.Errorf("only operator '=' is supported")
+		}
+		if condition.Inverse {
+			return nil, fmt.Errorf("'!=' sign is not supported")
+		}
+		switch v := condition.Value.(type) {
+		case querylang.String:
+			values[v.Value] = struct{}{}
+		case *querylang.String:
+			values[v.Value] = struct{}{}
+		default:
+			return nil, fmt.Errorf("failed to extract string value from %s", v.Repr())
+		}
 	}
-	if matcher.Conditions[0].Operator != operator.Eq {
-		return "", fmt.Errorf("only operator '=' is supported")
-	}
-	if matcher.Conditions[0].Inverse {
-		return "", fmt.Errorf("'!=' sign is not supported")
-	}
-	switch v := matcher.Conditions[0].Value.(type) {
-	case querylang.String:
-		return v.Value, nil
-	case *querylang.String:
-		return v.Value, nil
-	default:
-		return "", fmt.Errorf("failed to extract string value from %s", v.Repr())
-	}
+
+	return values, nil
 }
 
 func SelectorToString(selector *querylang.Selector) (string, error) {

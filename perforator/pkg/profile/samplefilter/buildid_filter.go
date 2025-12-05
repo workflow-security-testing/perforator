@@ -10,41 +10,53 @@ import (
 	profilepb "github.com/yandex/perforator/perforator/proto/profile"
 )
 
-type buildIDFilter string
+type buildIDFilter struct {
+	buildIDs map[string]struct{}
+}
 
 const (
-	nopBuildIDFilter    buildIDFilter = ""
-	buildIDMatcherField string        = "build_ids"
+	buildIDMatcherField string = "build_ids"
 )
 
-func (bf buildIDFilter) Matches(sample *pprof.Sample) bool {
-	if bf == nopBuildIDFilter {
+func (bf *buildIDFilter) Matches(sample *pprof.Sample) bool {
+	if len(bf.buildIDs) == 0 {
 		return true
 	}
 	for _, location := range sample.Location {
-		if location.Mapping != nil && location.Mapping.BuildID == string(bf) {
+		if location.Mapping == nil {
+			continue
+		}
+		if _, ok := bf.buildIDs[location.Mapping.BuildID]; ok {
 			return true
 		}
 	}
 	return false
 }
 
-func (bf buildIDFilter) AppendToProto(filter *profilepb.SampleFilter) {
-	if bf != "" {
-		filter.RequiredOneOfBuildIds = append(filter.RequiredOneOfBuildIds, string(bf))
+func (bf *buildIDFilter) AppendToProto(filter *profilepb.SampleFilter) {
+	for buildID := range bf.buildIDs {
+		filter.RequiredOneOfBuildIds = append(filter.RequiredOneOfBuildIds, buildID)
 	}
 }
 
 func BuildBuildIDFilter(selector *querylang.Selector) (SampleFilter, error) {
+	filter := &buildIDFilter{
+		buildIDs: make(map[string]struct{}),
+	}
+
 	for _, matcher := range selector.Matchers {
 		if matcher.Field != buildIDMatcherField {
 			continue
 		}
-		val, err := profilequerylang.ExtractEqualityMatch(matcher)
+		values, err := profilequerylang.ExtractEqualityMatch(matcher)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract desired build id: %w", err)
 		}
-		return buildIDFilter(val), nil
+		if len(filter.buildIDs) != 0 {
+			return nil, fmt.Errorf("multiple build_ids filters are not supported")
+		}
+		filter.buildIDs = values
 	}
-	return nopBuildIDFilter, nil
+
+	return filter, nil
 }
