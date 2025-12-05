@@ -17,6 +17,7 @@ const (
 	KernelSpecialMapping SpecialMapping = "[kernel]"
 	PythonSpecialMapping SpecialMapping = "[python]"
 	PHPSpecialMapping    SpecialMapping = "[php]"
+	JVMSpecialMapping    SpecialMapping = "[jvm]"
 )
 
 var (
@@ -24,6 +25,7 @@ var (
 		string(PythonSpecialMapping): true,
 		string(KernelSpecialMapping): true,
 		string(PHPSpecialMapping):    true,
+		string(JVMSpecialMapping):    true,
 	}
 )
 
