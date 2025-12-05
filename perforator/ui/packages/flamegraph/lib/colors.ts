@@ -67,6 +67,19 @@ export function darken(color: string, factor = DARKEN_FACTOR): string {
 
     return serializeHex(convertOklabToRgb(resultingColor)) as string;
 }
+
+function createCachedDarken(factor = DARKEN_FACTOR): (color: string) => string {
+    const cache = new Map<string, string>();
+    return function cachedDarken(color: string): string {
+        if (cache.has(color)) {
+            return cache.get(color);
+        }
+        const result = darken(color, factor);
+        cache.set(color, result);
+        return result;
+    };
+}
+
 export function prerenderColors(data: ProfileData, opts?: { theme?: 'light' | 'dark' }): ProfileData {
 
     function readString(id?: number) {
@@ -74,6 +87,7 @@ export function prerenderColors(data: ProfileData, opts?: { theme?: 'light' | 'd
         return data.stringTable[id];
     }
 
+    const cachedDarken = createCachedDarken();
 
     for (let h = 0; h < data.rows.length; h++) {
         for (let i = 0; i < data.rows[h].length; i++) {
@@ -82,7 +96,7 @@ export function prerenderColors(data: ProfileData, opts?: { theme?: 'light' | 'd
             //     const color = readString(data.rows[h][i].color as number);
             //     data.rows[h][i].color = opts?.theme === 'dark' ? darken(color) : color;
             // } else {
-            data.rows[h][i].color = opts?.theme === 'dark' ? darken(color) : color;
+            data.rows[h][i].color = opts?.theme === 'dark' ? cachedDarken(color) : color;
             // }
         }
     }
