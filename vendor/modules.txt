@@ -4335,7 +4335,6 @@ github.com/asticode/go-astikit
 ## explicit; go 1.13
 github.com/asticode/go-astits
 github.com/asticode/go-astits/cmd/astits-es-split
-github.com/asticode/go-astits/cmd/astits-probe
 github.com/asticode/go-astits/internal/cmd/crc32_table
 # github.com/at-wat/ebml-go v0.17.0
 ## explicit; go 1.11
