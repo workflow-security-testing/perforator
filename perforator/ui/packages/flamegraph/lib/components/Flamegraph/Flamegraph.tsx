@@ -70,7 +70,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     onFinishRendering,
     onSuccess,
     getState: getQuery,
-    setState: setQuery,
+    setState: outerSetQuery,
     className,
     onFrameClick,
     getHoverText,
@@ -98,6 +98,12 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     const reverse = (getQuery('flamegraphReverse') ?? String(userSettings.reverseFlameByDefault)) === 'true';
     const isDiffSwitchingSupported = profileData.meta.version > 1;
     const [shouldTrim, setShouldTrim] = React.useState(false);
+    const shouldOmitHighlight = React.useRef(true);
+
+    const setQuery = React.useCallback<SetStateFromQuery<QueryKeys>>((q) => {
+        outerSetQuery(q);
+        shouldOmitHighlight.current = true;
+    }, [outerSetQuery]);
 
     React.useLayoutEffect(() => {
         if (profileData) {
@@ -119,6 +125,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
             setQuery({ 'flameBase': 'base' });
         }
     };
+
 
     const handleReverse = React.useCallback(() => {
         setQuery({ 'flamegraphReverse': String(!reverse) });
@@ -166,11 +173,22 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 reverse,
                 keepOnlyFound,
                 onFinishRendering,
+                // by default, we show highlight, e.g. after clicks
+                // and don't show it only on first render
+                disableHighlightRender: shouldOmitHighlight.current,
             };
 
             try {
                 const destructor = newFlame(flamegraphContainer.current, { ...profileData, rows: shouldTrim ? profileData.rows.slice(0, MAX_FIREFOX_DEPTH) : profileData.rows }, flamegraphOffsets.current, renderOptions);
-                return destructor;
+
+                if (shouldOmitHighlight.current) {
+                    shouldOmitHighlight.current = false;
+                }
+
+                return () => {
+                    destructor();
+                    shouldOmitHighlight.current = true;
+                };
             } catch (e) {
                 console.error(e);
                 // see https://github.com/mozilla-firefox/firefox/blob/89b2affdc5d2a1588763e5cb4ac046093c4136a9/dom/canvas/CanvasRenderingContext2D.cpp#L1748

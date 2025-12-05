@@ -60,6 +60,7 @@ export type RenderFlamegraphOptions = {
     searchPattern: RegExp | string | null;
     reverse: boolean;
     keepOnlyFound: boolean;
+    disableHighlightRender: boolean;
 }
 
 function makeByH(coords: Coordinate[]): Record<H, Set<I>> {
@@ -461,7 +462,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     flamegraphContainer,
     profileData,
     fg,
-    { getState, setState, theme, isDiff, onFinishRendering, shortenFrameTexts, searchPattern, reverse, keepOnlyFound },
+    { getState, setState, theme, isDiff, onFinishRendering, shortenFrameTexts, searchPattern, reverse, keepOnlyFound, disableHighlightRender },
 ) => {
     const shouldSwapDiff = getState('flameBase') === 'diff';
 
@@ -769,25 +770,19 @@ export const renderFlamegraph: RenderFlamegraphType = (
         if (typeof i !== 'number') { return; }
 
         const omitted = parseStacks(getState('omittedIndexes', '') || '');
-        let initialCoord: Coordinate | undefined;
         if (e.altKey && !fg.isBeforeCurrentNode(h)) {
             if (!omitted.includes([h, i])) {
                 omitted.push([h, i]);
             }
             setState({ omittedIndexes: stringifyStacks(omitted) });
-            initialCoord = fg.currentNodeCoords;
         } else {
             setState({
                 frameDepth: h.toString(),
                 framePos: i.toString(),
             });
-            initialCoord = [h, i];
         }
 
-        const foundCoords = maybeSearch(searchPattern);
-        fg.prerenderOffsets(canvasWidth!, initialCoord, omitted, foundCoords, shouldSwapDiff);
-        render({ pattern: searchPattern });
-        canvas?.onmousemove?.(e);
+        canvas?.onmouseout?.(e);
     };
 
     function calcHighlightColor(node: FormatNode) {
@@ -812,8 +807,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
             return;
         }
         const { i, h } = coords;
-        const row = rows[h];
-        const node = row[i];
+        const node = rows[h][i];
         const currentNodeCoords = fg.currentNodeCoords;
         const currentNode = rows[currentNodeCoords[0]][currentNodeCoords[1]];
 
@@ -822,14 +816,10 @@ export const renderFlamegraph: RenderFlamegraphType = (
             return;
         }
 
-        const width = fg.countWidth(node);
 
-        const left = node.x! + canvas.offsetLeft;
-        const top = (fg.calcTopOffset(h) + canvas.offsetTop);
-        const title = getNodeTitleHl(node);
+        renderHighlightRect(h, i);
+
         const isMainRoot = currentNode && currentNode.textId === root.textId && currentNode.eventCount === root.eventCount;
-        const color = calcHighlightColor(node);
-        renderHighlight(title, color, left, top, width);
 
         status.textContent = 'Function: ' + (isMainRoot ? getStatusTitle(node, null, root) : getStatusTitle(node, currentNode!, root));
         return;
@@ -837,6 +827,16 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
     };
 
+
+    function renderHighlightRect(h: number, i: number) {
+        const node = rows[h][i];
+        const width = fg.countWidth(node);
+        const left = node.x! + canvas.offsetLeft;
+        const top = (fg.calcTopOffset(h) + canvas.offsetTop);
+        const title = getNodeTitleHl(node);
+        const color = calcHighlightColor(node);
+        renderHighlight(title, color, left, top, width);
+    }
 
     function clearHighlight() {
         const currentNodeCoords = fg.currentNodeCoords;
@@ -858,6 +858,10 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
     fg.prerenderOffsets(canvasWidth!, [h, pos], omittedStacks, foundCoords, shouldSwapDiff);
     render({ pattern: searchPattern });
+    if (!disableHighlightRender) {
+        renderHighlightRect(h, pos);
+    }
+
 
     const onResize = () => requestAnimationFrame(() => {
 
