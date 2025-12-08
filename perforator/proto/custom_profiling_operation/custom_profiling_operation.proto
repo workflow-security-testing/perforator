@@ -176,8 +176,8 @@ message OperationStats {
 
 message OperationMeta {
     google.protobuf.Timestamp CreatedAt = 1;
-    // TODO: add user ?
     map<string, string> Annotations = 2;
+    string Author = 3;
 }
 
 message OperationTargetState {

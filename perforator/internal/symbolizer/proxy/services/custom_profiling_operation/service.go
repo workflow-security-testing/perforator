@@ -12,6 +12,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	cpo_internal "github.com/yandex/perforator/perforator/internal/custom_profiling_operation"
+	"github.com/yandex/perforator/perforator/internal/symbolizer/auth"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/proxy/services"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
@@ -83,10 +84,19 @@ func (s *APIService) Schedule(ctx context.Context, req *perforator_proto.Schedul
 		return nil, status.Errorf(codes.Internal, "failed to generate operation ID: %v", err)
 	}
 
+	author := ""
+	if user := auth.UserFromContext(ctx); user != nil {
+		author = user.Login
+	}
+	if author == "" {
+		return nil, status.Errorf(codes.Unauthenticated, "user is unspecified")
+	}
+
 	operation, err := s.operationStorage.InsertOperation(ctx, &custom_profiling_operation.OperationCreateParams{
 		ID:          operationID,
 		Spec:        req.OperationSpec,
 		Annotations: req.Annotations,
+		Author:      author,
 	})
 	if err != nil {
 		s.metrics.failedSchedules.Inc()

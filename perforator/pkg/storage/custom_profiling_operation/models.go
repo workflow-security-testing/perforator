@@ -37,6 +37,7 @@ type OperationCreateParams struct {
 	ID          OperationID
 	Spec        *cpo_proto.OperationSpec
 	Annotations map[string]string
+	Author      string
 }
 
 type OperationFilter struct {

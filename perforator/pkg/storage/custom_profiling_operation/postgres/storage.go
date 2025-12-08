@@ -59,6 +59,7 @@ func (s *Storage) InsertOperation(ctx context.Context, params *custom_profiling_
 		Meta: &cpo_proto.OperationMeta{
 			CreatedAt:   createdAt,
 			Annotations: params.Annotations,
+			Author:      params.Author,
 		},
 		Spec: params.Spec,
 	}
