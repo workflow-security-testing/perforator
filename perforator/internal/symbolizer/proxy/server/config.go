@@ -62,7 +62,8 @@ type SymbolizationConfig struct {
 }
 
 type ACLConfig struct {
-	RecordRemoteUsers []string `yaml:"record_remote_users"`
+	RecordRemoteUsers    []string `yaml:"record_remote_users"`
+	CustomProfilingUsers []string `yaml:"custom_profiling_users"`
 }
 
 type ProfileMergerConfig struct {

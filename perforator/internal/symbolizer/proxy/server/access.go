@@ -105,9 +105,9 @@ func (c *taskAccessChecker) check(ctx context.Context, req any, info *grpc.Unary
 }
 
 func newAccessUnaryInterceptor(conf ACLConfig) grpc.UnaryServerInterceptor {
-	var accessChecker acl = &nopAccessChecker{}
+	var checkers []acl
 	if len(conf.RecordRemoteUsers) > 0 {
-		accessChecker = newMethodAccessChecker(
+		checkers = append(checkers, newMethodAccessChecker(
 			newTaskAccessChecker(
 				newWhitelistAccessChecker(conf.RecordRemoteUsers),
 				reflect.TypeOf(&perforator.TaskSpec_RecordRemoteProfile{}),
@@ -115,13 +115,24 @@ func newAccessUnaryInterceptor(conf ACLConfig) grpc.UnaryServerInterceptor {
 			map[string]struct{}{
 				"/NPerforator.NProto.TaskService/StartTask": {},
 			},
-		)
+		))
+	}
+
+	if len(conf.CustomProfilingUsers) > 0 {
+		checkers = append(checkers, newMethodAccessChecker(
+			newWhitelistAccessChecker(conf.CustomProfilingUsers),
+			map[string]struct{}{
+				"/NPerforator.NProto.NCustomProfilingOperation.CustomProfilingOperationAPI/Schedule": {},
+				"/NPerforator.NProto.NCustomProfilingOperation.CustomProfilingOperationAPI/Stop":     {},
+			},
+		))
 	}
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		err := accessChecker.check(ctx, req, info)
-		if err != nil {
-			return nil, err
+		for _, checker := range checkers {
+			if err := checker.check(ctx, req, info); err != nil {
+				return nil, err
+			}
 		}
 
 		return handler(ctx, req)
