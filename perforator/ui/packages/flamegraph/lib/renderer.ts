@@ -635,6 +635,10 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
         const currentNodeCoords = fg.currentNodeCoords;
         const currentNode = rows[currentNodeCoords[0]][currentNodeCoords[1]];
+        let pattern = opts?.pattern;
+        if (typeof pattern === 'string') {
+            pattern = new RegExp(escapeRegex(pattern));
+        }
 
         for (let h = 0; h < rows.length; h++) {
             const y = fg.calcTopOffset(h);
@@ -648,8 +652,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
                 const width = fg.countWidth(node);
                 const nodeTitle = getNodeTitle(node);
 
-                const pattern = opts?.pattern;
-                const isMarked = typeof pattern === 'string' ? (new RegExp(escapeRegex(pattern))).test(nodeTitle) : pattern?.test(nodeTitle);
+                const isMarked = pattern?.test(nodeTitle);
                 if (isMarked) {
                     mark(node);
                 }
