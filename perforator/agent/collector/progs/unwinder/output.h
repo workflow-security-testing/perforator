@@ -44,6 +44,20 @@ struct interpreter_stack {
     u8 len;
 };
 
+struct perf_event_attr_subset {
+    u32 type;
+    u64 config;
+};
+
+union sample_config {
+    // For sample_type == SAMPLE_TYPE_TRACEPOINT_SIGNAL_DELIVER
+    int sig;
+    // For sample_type == SAMPLE_TYPE_PERF_EVENT
+    struct perf_event_attr_subset attr;
+    // For sample_type == SAMPLE_TYPE_UPROBE
+    u64 ip;
+};
+
 struct record_sample {
     // Header of the perf event.
     enum record_tag tag;
@@ -52,9 +66,7 @@ struct record_sample {
     enum sample_type sample_type;
 
     // Auxillary info specific to the concrete sample_type.
-    // ID of the perf_event if sample_type == SAMPLE_TYPE_PERF_EVENT.
-    // Signal number if sample_type == SAMPLE_TYPE_TRACEPOINT_SIGNAL_DELIVER.
-    u64 sample_config;
+    union sample_config sample_config;
 
     // Is sample task a kernel thread.
     bool kthread;

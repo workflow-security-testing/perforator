@@ -174,7 +174,7 @@ func (e *EventManager) instrument(r metrics.Registry) {
 
 func (e *EventManager) countEvents(count int64, typ Type) {
 	e.eventCount.Add(count)
-	e.eventCountByType.With(map[string]string{"type": string(typ)}).Add(count)
+	e.eventCountByType.With(map[string]string{"type": typ.String()}).Add(count)
 }
 
 func (e *EventManager) Open(

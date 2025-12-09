@@ -270,11 +270,11 @@ func parsePerfEvent(event string, opts *recordOptions) (*config.PerfEventConfig,
 			return nil, nil
 		}
 
-		event = "CPUCycles"
+		event = perfevent.CPUCycles.Name()
 	}
 
 	cfg := config.PerfEventConfig{
-		Type: perfevent.Type(event),
+		Type: event,
 	}
 
 	if opts.interval != 0 {
@@ -293,7 +293,7 @@ type events struct {
 
 func parseEvents(opts *recordOptions) (events events, err error) {
 	if len(opts.events) == 0 && !opts.signals {
-		opts.events = []string{"CPUCycles"}
+		opts.events = []string{perfevent.CPUCycles.Name()}
 	}
 
 	for _, event := range opts.events {

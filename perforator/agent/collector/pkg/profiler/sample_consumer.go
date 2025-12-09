@@ -522,7 +522,7 @@ func (c *oneShotSampleConsumer) collectSignalInto(builder *profile.SampleBuilder
 		return fmt.Errorf("cannot collect signal info from sample of type %s", c.sample.SampleType.String())
 	}
 
-	signo := int(c.sample.SampleConfig)
+	signo := c.sample.SampleConfig.GetSig()
 	signame := unix.SignalName(syscall.Signal(signo))
 	builder.AddStringLabel("signal:name", signame)
 
@@ -581,8 +581,8 @@ func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 
 	switch c.sample.SampleType {
 	case unwinder.SampleTypePerfEvent:
-		// FIXME(ayles) We should also check event type, because id is not unique.
-		if c.sample.SampleConfig != perfevent.AMD_RetiredTakenBranchInstructions_PerfEventConfig {
+		attr := c.sample.SampleConfig.GetAttr()
+		if attr.Type != perfevent.AMDFam19hBRS.Type || attr.Config != perfevent.AMDFam19hBRS.Config {
 			c.recordCPUSample(ctx)
 		}
 		c.recordLBRSample(ctx)
@@ -713,7 +713,7 @@ func (c *oneShotSampleConsumer) logSample(err error) {
 	c.p.log.Debug("Consumed sample",
 		log.Error(err),
 		log.Stringer("sampletype", c.sample.SampleType),
-		log.UInt64("sampleconfig", c.sample.SampleConfig),
+		log.Binary("sampleconfig", c.sample.SampleConfig.UnionBuf[:]),
 		log.UInt64("events", c.sample.Value),
 		log.UInt64("timedelta", c.sample.Timedelta),
 		log.UInt16("cpu", c.sample.Cpu),
