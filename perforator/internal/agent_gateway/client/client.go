@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"time"
 
@@ -86,7 +87,11 @@ func NewGatewayClient(conf *Config, l xlog.Logger) (*GatewayClient, error) {
 
 	var target string
 	if conf.Host != "" {
-		target = conf.Host
+		if conf.Port != 0 {
+			target = net.JoinHostPort(conf.Host, fmt.Sprint(conf.Port))
+		} else {
+			target = conf.Host
+		}
 	} else {
 		endpointSetTarget, resolverOpts, err := endpointsetresolver.GetGrpcTargetAndResolverOpts(conf.EndpointSet, l)
 		if err != nil {
