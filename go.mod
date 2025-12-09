@@ -343,6 +343,7 @@ require (
 	github.com/elastic/go-elasticsearch/v7 v7.17.1
 	github.com/elimity-com/scim v0.0.0-20220121082953-15165b1a61c8
 	github.com/emersion/go-imap v1.2.1
+	github.com/emicklei/go-restful/v3 v3.11.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha
 	github.com/envoyproxy/go-control-plane v0.13.4
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4
@@ -1027,6 +1028,7 @@ require (
 	k8s.io/client-go v0.32.2
 	k8s.io/cri-api v0.27.1
 	k8s.io/klog/v2 v2.130.1
+	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7
 	k8s.io/kubelet v0.26.1
 	k8s.io/kubernetes v1.26.1
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
@@ -1459,7 +1461,6 @@ require (
 	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 // indirect
 	github.com/emicklei/go-restful v2.16.0+incompatible // indirect
 	github.com/emicklei/go-restful-swagger12 v0.0.0-20201014110547-68ccff494617 // indirect
-	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/emicklei/proto v1.11.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
@@ -2365,11 +2366,11 @@ require (
 	k8s.io/csi-translation-lib v0.26.1 // indirect
 	k8s.io/dynamic-resource-allocation v0.26.1 // indirect
 	k8s.io/gengo v0.0.0-20220913193501-391367153a38 // indirect
+	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog v1.0.0 // indirect
 	k8s.io/kms v0.31.6 // indirect
 	k8s.io/kube-aggregator v0.27.0-alpha.0 // indirect
 	k8s.io/kube-controller-manager v0.26.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7 // indirect
 	k8s.io/kube-proxy v0.26.1 // indirect
 	k8s.io/kube-scheduler v0.26.1 // indirect
 	k8s.io/kubectl v0.26.4 // indirect
