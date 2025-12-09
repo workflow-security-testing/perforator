@@ -48,3 +48,16 @@ class ViteBuilder(BaseTsBuilder):
 
     def _config_filename(self):
         return self.bundler_config_path
+
+    def _run_javascript_after_build(self):
+        # this function runs as part of build()
+        # vite supports multiple configs = multiple builds in one command
+        # after_build script should run once
+        # solution:
+        # 1. _run_javascript_after_build is "nullified"
+        # 2. super()._run_javascript_after_build() is exposed as public method
+        # 3. run_javascript_after_build() is called manually from build_vite_func
+        pass
+
+    def run_javascript_after_build(self):
+        super()._run_javascript_after_build()

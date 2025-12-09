@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-12-07T13:47:51.112Z",
+    "created": "2025-12-09T05:37:38.073Z",
     "pr": {
-      "id": 10975177,
-      "author": "khoden",
-      "summary": "DEVTOOLSSUPPORT-75040: Как передавать несколько конфигов в TS_VITE?"
+      "id": 10997193,
+      "author": "zaverden",
+      "summary": "fix(builder): single after_build script for multi vite configs"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10515811401"
+      "uri": "sbr:10528689528"
     },
     "darwin-arm64": {
-      "uri": "sbr:10515809766"
+      "uri": "sbr:10528688625"
     },
     "linux": {
-      "uri": "sbr:10515814734"
+      "uri": "sbr:10528691363"
     },
     "linux-aarch64": {
-      "uri": "sbr:10515813080"
+      "uri": "sbr:10528690321"
     }
   }
 }

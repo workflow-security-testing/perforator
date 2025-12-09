@@ -35,5 +35,20 @@ def build_vite_func(args: ViteBuilderOptions):
         )
         builder.build()
 
+    # Step 2.5 - run after build script
+    out_dirs = args.output_dirs.copy()
+
+    if args.with_after_build:
+        bundler_config_path = args.bundler_configs[0]
+        output_dir = args.output_dirs[0]
+        ts_config_path = args.tsconfigs[0]
+
+        builder = ViteBuilder(
+            options=args, bundler_config_path=bundler_config_path, output_dir=output_dir, ts_config_path=ts_config_path
+        )
+        builder.run_javascript_after_build()
+        if args.after_build_outdir:
+            out_dirs.append(args.after_build_outdir)
+
     # Step 3 - create 'output.tar'
-    ViteBuilder.bundle_dirs(args.output_dirs, args.bindir, args.output_file)
+    ViteBuilder.bundle_dirs(out_dirs, args.bindir, args.output_file)
