@@ -60,6 +60,7 @@ def __with_bundlers_options(parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument(
         '--bundler-config-path',
         required=True,
+        nargs='+',
         help="Path to the bundler config (vite.config.ts, webpack.config.js, rspack.config.js, etc...)",
     )
 
@@ -208,7 +209,7 @@ def parse_args(parser, custom_args: list[str] = None) -> AllOptions:
     setattr(args, 'node_modules_bundle', node_modules_bundle)
 
     if hasattr(args, 'bundler_config_path'):
-        bundler_config = args.bundler_config_path.removeprefix(args.curdir).strip('/')
-        setattr(args, 'bundler_config', bundler_config)
+        bundler_configs = [p.removeprefix(args.curdir).strip('/') for p in args.bundler_config_path]
+        setattr(args, 'bundler_configs', bundler_configs)
 
     return args

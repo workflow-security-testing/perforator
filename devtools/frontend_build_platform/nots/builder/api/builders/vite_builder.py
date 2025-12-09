@@ -18,13 +18,22 @@ class ViteBuilder(BaseTsBuilder):
     def __init__(
         self,
         options: ViteBuilderOptions,
+        bundler_config_path: str,
+        output_dir: str,
         ts_config_path: str,
     ):
         super(ViteBuilder, self).__init__(
             options=options,
-            output_dirs=options.output_dirs,
+            output_dirs=[output_dir],
             ts_config_path=ts_config_path,
         )
+        self.bundler_config_path = bundler_config_path
+
+    def bundle(self):
+        """
+        Should not bundle itself to support multiple vite.config.ts files
+        """
+        pass
 
     @timeit
     def _get_script_path(self):
@@ -38,4 +47,4 @@ class ViteBuilder(BaseTsBuilder):
         return "TS_VITE_OUTPUT"
 
     def _config_filename(self):
-        return self.options.bundler_config
+        return self.bundler_config_path

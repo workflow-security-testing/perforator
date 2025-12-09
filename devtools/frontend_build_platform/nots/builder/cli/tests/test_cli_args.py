@@ -324,11 +324,11 @@ def test_build_next_args():
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13',
-        bundler_config_path='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/nextjs13/next.config.js',
+        bundler_config_path=['/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/nextjs13/next.config.js'],
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/nextjs13',
         node_modules_bundle=False,
         # Command-specific
-        bundler_config='next.config.js',
+        bundler_configs=['next.config.js'],
         command='build-next',
         output_file='/Users/khoden/.ya/build/build_root/j1sk/000245/devtools/dummy_arcadia/typescript/nextjs13/output.tar',
         output_dirs=['.next'],
@@ -379,11 +379,11 @@ def test_build_vite_args():
         verbose=False,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project',
-        bundler_config_path='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/vite_project/vite.config.ts',
+        bundler_config_path=['/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/vite_project/vite.config.ts'],
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/vite_project',
         node_modules_bundle=False,
         # Command-specific
-        bundler_config='vite.config.ts',
+        bundler_configs=['vite.config.ts'],
         command='build-vite',
         output_file='/Users/khoden/.ya/build/build_root/41qi/0000e5/devtools/dummy_arcadia/typescript/vite_project/output.tar',
         output_dirs=['dist'],
@@ -434,11 +434,13 @@ def test_build_webpack_args():
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
-        bundler_config_path='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js',
+        bundler_config_path=[
+            '/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js'
+        ],
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling',
         node_modules_bundle=False,
         # Command-specific
-        bundler_config='webpack.config.js',
+        bundler_configs=['webpack.config.js'],
         command='build-webpack',
         output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar',
         output_dirs=['dev-bundle', 'prod-bundle'],
@@ -491,11 +493,13 @@ def test_build_webpack_with_env_args():
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
-        bundler_config_path='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js',
+        bundler_config_path=[
+            '/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js'
+        ],
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling',
         node_modules_bundle=False,
         # Command-specific
-        bundler_config='webpack.config.js',
+        bundler_configs=['webpack.config.js'],
         command='build-webpack',
         output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar',
         output_dirs=['dev-bundle', 'prod-bundle'],
@@ -550,11 +554,13 @@ def test_build_webpack_with_after_build():
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
-        bundler_config_path='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js',
+        bundler_config_path=[
+            '/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/webpack.config.js'
+        ],
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling',
         node_modules_bundle=False,
         # Command-specific
-        bundler_config='webpack.config.js',
+        bundler_configs=['webpack.config.js'],
         command='build-webpack',
         output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/output.tar',
         output_dirs=['dev-bundle', 'prod-bundle'],
@@ -605,11 +611,13 @@ def test_build_rspack_args():
         verbose=True,
         # Calculated
         bindir='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling',
-        bundler_config_path='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/rspack.config.js',
+        bundler_config_path=[
+            '/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling/rspack.config.js'
+        ],
         curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/with_simple_bundling',
         node_modules_bundle=False,
         # Command-specific
-        bundler_config='rspack.config.js',
+        bundler_configs=['rspack.config.js'],
         command='build-rspack',
         output_file='/Users/khoden/.ya/build/build_root/emev/00008e/devtools/dummy_arcadia/typescript/with_simple_bundling/output.tar',
         output_dirs=['dev-bundle', 'prod-bundle'],

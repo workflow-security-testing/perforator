@@ -48,6 +48,7 @@ def build_tsc_func(args: TscBuilderOptions):
     for ts_config in ts_configs:
         TscBuilder(options=args, ts_config=ts_config).build()
 
+    # Step 2.5 - run after build script
     if args.with_after_build:
         TscBuilder(options=args, ts_config=ts_configs[0]).run_javascript_after_build()
         if args.after_build_outdir:

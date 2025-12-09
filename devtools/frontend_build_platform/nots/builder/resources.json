@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-11-28T17:07:09Z",
+    "created": "2025-12-07T13:47:51.112Z",
     "pr": {
-      "id": 10863587,
-      "author": "zaverden",
-      "summary": "feat(build): use GVS for pnpm install"
+      "id": 10975177,
+      "author": "khoden",
+      "summary": "DEVTOOLSSUPPORT-75040: Как передавать несколько конфигов в TS_VITE?"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10432269130"
+      "uri": "sbr:10515811401"
     },
     "darwin-arm64": {
-      "uri": "sbr:10432267050"
+      "uri": "sbr:10515809766"
     },
     "linux": {
-      "uri": "sbr:10432273834"
+      "uri": "sbr:10515814734"
     },
     "linux-aarch64": {
-      "uri": "sbr:10432271347"
+      "uri": "sbr:10515813080"
     }
   }
 }

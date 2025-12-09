@@ -107,7 +107,7 @@ class CommonBundlersOptions(CommonTsBuildersOptions):
     bundler_config_path: str
     """path to the bundler config (vite.config.ts, webpack.config.js, etc...)"""
 
-    bundler_config: str
+    bundler_configs: list[str]
     """path relative to curdir (vite.config.ts, webpack.config.js, etc...)"""
 
 

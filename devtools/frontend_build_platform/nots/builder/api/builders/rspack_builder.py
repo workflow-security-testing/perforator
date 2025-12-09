@@ -37,4 +37,4 @@ class RspackBuilder(BaseTsBuilder):
         return "TS_RSPACK_OUTPUT"
 
     def _config_filename(self):
-        return self.options.bundler_config
+        return self.options.bundler_configs[0]
