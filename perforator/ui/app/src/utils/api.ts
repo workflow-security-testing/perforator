@@ -6,6 +6,9 @@ import type {
 import axios from 'axios';
 
 import type {
+    ClusterTopRequest,
+    ClusterTopResponse,
+    ListClusterTopGenerationResponse,
     ListProfilesResponse,
     ListServicesResponse,
     ListSuggestionsResponse,
@@ -39,6 +42,18 @@ class PerforatorApiClient {
         return this.get('/api/v0/suggestions', params);
     }
 
+    getGenerations(params: RequestData, options: AllowedOptions): Promise<AxiosResponse<ListClusterTopGenerationResponse>> {
+        return this.get('/api/v0/top/generations', params, options);
+    }
+
+    getFunctionTop(params: Pick<ClusterTopRequest, 'Generation' | 'Pagination' | 'FunctionPattern'>): Promise<AxiosResponse<ClusterTopResponse>> {
+        return this.get('/api/v0/top/functions', params);
+    }
+
+    getServiceTop(params: Pick<ClusterTopRequest, 'Generation' | 'FunctionPattern'>): Promise<AxiosResponse<ClusterTopResponse>> {
+        return this.get('/api/v0/top/service', params);
+    }
+
     getProfiles(params: RequestData): Promise<AxiosResponse<ListProfilesResponse>> {
         return this.get('/api/v0/profiles', params);
     }
@@ -61,7 +76,7 @@ class PerforatorApiClient {
 
     protected get<T extends any>(url: string, data: RequestData = {}, options: AllowedOptions = {}): Promise<AxiosResponse<T>> {
         return this.makeRequest(
-            () => this.httpClient.get<T>(url, { ...options, params: data }),
+            () => this.httpClient.get<T>(url, { ...options, params: data, paramsSerializer: { dots: true } }),
         );
     }
 

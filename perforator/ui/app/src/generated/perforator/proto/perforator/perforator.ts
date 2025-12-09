@@ -170,6 +170,8 @@ export interface ClusterTopCount {
   Self: number;
   /** Cpu-hours */
   Cumulative: number;
+  SelfPct: number;
+  CumulativePct: number;
 }
 
 export interface ListClusterTopGenerationRequest {

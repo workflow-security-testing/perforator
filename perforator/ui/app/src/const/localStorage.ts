@@ -5,5 +5,6 @@ export enum LocalStorageKey {
     ShareFormat = 'shareFormat',
     UserSettings = 'userSettings',
     TutorialProgress = 'tutorialProgress',
-    TutorialBase = 'tutorialBase'
+    TutorialBase = 'tutorialBase',
+    ClusterTop = 'clusterTop',
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 
 import { AxiosError } from 'axios';
 
@@ -10,10 +10,7 @@ type UseFetchArgs<D> = {
     onStartRequest?: () => void;
 }
 export function useFetchResult<D>(args: UseFetchArgs<D>) {
-    const [data, setData] = React.useState<D | undefined>();
-    const [error, setError] = React.useState<Error | undefined>();
-
-    const getData = async ({ signal }: {signal: AbortSignal}) => {
+    const getData = useCallback(async ({ signal }: {signal: AbortSignal}) => {
         const fetchingStart = performance.now();
         const res = await fetch(args.url, { signal });
         const fetchingFinish = performance.now();
@@ -21,13 +18,29 @@ export function useFetchResult<D>(args: UseFetchArgs<D>) {
         // eslint-disable-next-line no-console
         console.log('Fetched data in', fetchingFinish - fetchingStart, 'ms');
         const extracted = await args.extractData(res);
-        setData(extracted);
         args?.onFinishDataLoading?.();
-    };
+        return extracted;
+    }, [args.url, args.extractData, args?.onFinishDataLoading]);
+
+    return useAsyncResult<D>({ getData });
+}
+
+type UseAsyncArgs<D> = {
+    getData: (args: { signal: AbortSignal }) => Promise<D>;
+    clearPrevResult?: boolean;
+}
+
+export function useAsyncResult<D>({ getData, clearPrevResult }: UseAsyncArgs<D>) {
+    const [data, setData] = React.useState<D | undefined>();
+    const [error, setError] = React.useState<Error | undefined>();
 
     const getDataWithCatch = async ({ signal }: {signal: AbortSignal}) => {
         try {
-            await getData({ signal });
+            if (clearPrevResult) {
+                setData(undefined);
+            }
+            const res = await getData({ signal });
+            setData(res);
         } catch (e) {
             if (e instanceof AxiosError && e.code === 'ERR_CANCELED') {
                 return;
@@ -47,7 +60,7 @@ export function useFetchResult<D>(args: UseFetchArgs<D>) {
         getDataWithCatch({ signal: controller.signal });
 
         return () => controller.abort();
-    }, [args.url]);
+    }, [getData]);
 
     return { data, error, loading, fetch: getDataWithCatch };
 }

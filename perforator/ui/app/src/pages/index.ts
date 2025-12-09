@@ -1,4 +1,5 @@
 export * from './BuildProfile';
+export * from './ClusterTop';
 export * from './DiffLists';
 export * from './History';
 export * from './NotFound';

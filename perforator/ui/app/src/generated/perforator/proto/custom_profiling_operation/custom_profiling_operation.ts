@@ -125,6 +125,10 @@ export interface CollectStackAbsoluteTimestampsFeature {
 export interface ExperimentalCollectSystemWidePerfEventSamplesFeature {
 }
 
+/** Collect innermost pidns tid and pid and add them to profile labels */
+export interface CollectInnermostPidnsFeature {
+}
+
 export interface Feature {
   CollectStackAbsoluteTimestampsFeature?:
     | CollectStackAbsoluteTimestampsFeature
@@ -133,6 +137,7 @@ export interface Feature {
   ExperimentalCollectSystemWidePerfEventSamplesFeature?:
     | ExperimentalCollectSystemWidePerfEventSamplesFeature
     | undefined;
+  CollectInnermostPidnsFeature?: CollectInnermostPidnsFeature | undefined;
 }
 
 export interface OperationSpec {

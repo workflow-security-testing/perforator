@@ -1,0 +1,41 @@
+.cluster-top-table__header {
+    word-break: keep-all;
+}
+
+.cluster-top-table__empty {
+    margin-top: 50px;
+    max-width: 1200px;
+    display: flex;
+    justify-content: center;
+}
+
+.cluster-top-table__service-name {
+    padding-left: 40px;
+}
+
+.cluster-top-table__filter__form {
+    display: inline;
+}
+
+.cluster-top-table__filter__input {
+    margin-left: 8px;
+    max-width: 400px;
+}
+
+.cluster-top-table__search-button {
+    margin-left: 8px;
+}
+
+.cluster-top-table__load-more {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.cluster-top-table__cell_count {
+   text-align: right; 
+}
+
+.cluster-top-table__header_count {
+    text-align: right;
+}

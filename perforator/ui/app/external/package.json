@@ -30,6 +30,7 @@
     "@gravity-ui/illustrations": "2.1.0",
     "@gravity-ui/navigation": "3.4.0",
     "@gravity-ui/onboarding": "1.11.4",
+    "@gravity-ui/table": "1.13.0",
     "@gravity-ui/uikit": "7.16.2",
     "@perforator/flamegraph": "workspace:../packages/flamegraph",
     "axios": "1.8.3",

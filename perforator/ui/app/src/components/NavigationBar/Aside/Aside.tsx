@@ -4,12 +4,14 @@ import BarsDescendingAlignLeftIcon from '@gravity-ui/icons/svgs/bars-descending-
 import ClockArrowRotateLeftIcon from '@gravity-ui/icons/svgs/clock-arrow-rotate-left.svg?raw';
 import GraduationCapIcon from '@gravity-ui/icons/svgs/graduation-cap.svg?raw';
 import ScalesUnbalancedIcon from '@gravity-ui/icons/svgs/scales-unbalanced.svg?raw';
+import ServerIcon from '@gravity-ui/icons/svgs/server.svg?raw';
 import type { DrawerItemProps, MenuItem } from '@gravity-ui/navigation';
 import { PageLayoutAside } from '@gravity-ui/navigation';
 
 import PerforatorLogo from 'src/assets/perforator.svg?raw';
 import { Link } from 'src/components/Link/Link';
 import { Tutorials } from 'src/components/Tutorials/Tutorials';
+import { LocalStorageKey } from 'src/const/localStorage';
 import { uiFactory } from 'src/factory';
 
 import { NavigationFooter } from '../NavigationFooter/NavigationFooter';
@@ -24,12 +26,19 @@ interface MenuLink {
     link: string;
 }
 
+const isClusterTopEnabled = Boolean(localStorage.getItem(LocalStorageKey.ClusterTop));
+
 const menuLinks: MenuLink[] = [
     {
         title: 'Profiles',
         icon: BarsDescendingAlignLeftIcon,
         link: '/',
     },
+    ...(isClusterTopEnabled ? [{
+        title: 'Cluster Top',
+        icon: ServerIcon,
+        link: '/cluster-top',
+    }] : []),
     {
         title: 'History',
         icon: ClockArrowRotateLeftIcon,

@@ -24,6 +24,22 @@ const setupQuery = (searchParams: URLSearchParams): ProfileTaskQuery => {
 
 export interface BuildProfileProps {}
 
+const WELL_KNOWN_QUERY_PARAMS = [
+    'flamegraphQuery',
+    'exactMatch',
+];
+
+function preserveWellKnownQueryParams(searchParams: URLSearchParams): URLSearchParams {
+    const preserved = new URLSearchParams();
+    searchParams.forEach((value, key) => {
+        if (WELL_KNOWN_QUERY_PARAMS.includes(key)) {
+            preserved.set(key, value);
+        }
+    });
+    return preserved;
+}
+
+
 export const BuildProfile: React.FC<BuildProfileProps> = () => {
     const isMounted = React.useRef(false);
     const [error, setError] = React.useState<string | undefined>(undefined);
@@ -34,8 +50,10 @@ export const BuildProfile: React.FC<BuildProfileProps> = () => {
     const navigateToTask = React.useCallback(async () => {
         const query = setupQuery(searchParams);
         try {
+
             const taskId = await startProfileTask(query, { showPrettyPythonFrames: showPrettyPythonFrames });
-            navigate(`/task/${taskId}`, { replace: true });
+            const q = preserveWellKnownQueryParams(new URLSearchParams(window.location.search));
+            navigate(`/task/${taskId}?${q.toString()}`, { replace: true });
         } catch (e) {
             if (e instanceof AxiosError) {
                 setError(e.message);

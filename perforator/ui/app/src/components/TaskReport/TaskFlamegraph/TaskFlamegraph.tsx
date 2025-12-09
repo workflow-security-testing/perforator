@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 
 import { parseFromWebStream } from '@discoveryjs/json-ext';
 import type { QueryKeys } from '@perforator/flamegraph';
@@ -38,25 +38,33 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
     const tab = getQuery('tab') ?? 'flame' as Tab;
     const pageName = tab === 'flame' ? 'task-flamegraph' : 'top-table';
 
-    const { data: profileData, error } = useFetchResult<ProfileData>({ url: props.url, extractData: async(req) => {
-        if (props.format === 'JSONFlamegraph') {
-            const data = await parseFromWebStream(req.body!);
-            const rows = data.rows.filter(Boolean);
-            return ({ rows, stringTable: data.stringTable, meta: data.meta });
-        } else if (props.format === 'Flamegraph') {
-            const data = await req.text();
-            return (uiFactory()?.parseLegacyFormat?.(data)!);
-        } else {
-            return { rows: [], stringTable: [], meta: {} };
-        }
-    },
-    onFinishDataLoading: () => uiFactory().rum()?.finishDataLoading?.(pageName),
-    onStartRequest: () => {
+    const extractData = useMemo(() => {
+        return async (req: Response) => {
+            if (props.format === 'JSONFlamegraph') {
+                const data = await parseFromWebStream(req.body!);
+                const rows = data.rows.filter(Boolean);
+                return ({ rows, stringTable: data.stringTable, meta: data.meta });
+            } else if (props.format === 'Flamegraph') {
+                const data = await req.text();
+                return (uiFactory()?.parseLegacyFormat?.(data)!);
+            } else {
+                return { rows: [], stringTable: [], meta: {} };
+            }
+        };
+    }, [props.format]);
+
+    const onFinishDataLoading = useCallback(() => uiFactory().rum()?.finishDataLoading?.(pageName), [pageName]);
+
+    const onStartRequest = useCallback(() => {
         if (!isMounted.current) {
             uiFactory().rum()?.makeSpaSubPage?.(pageName, undefined, undefined, { flamegraphFormat: props.format });
             isMounted.current = true;
         }
-    },
+    }, [props.format]);
+
+    const { data: profileData, error } = useFetchResult<ProfileData>({ url: props.url, extractData: extractData,
+        onFinishDataLoading: onFinishDataLoading,
+        onStartRequest: onStartRequest,
     });
 
     const prerenderedNewData = React.useMemo(() => {
@@ -80,5 +88,6 @@ export const TaskFlamegraph: React.FC<TaskFlamegraphProps> = (props) => {
     }
 
     return <Visualisation loading={loading} isDiff={props.isDiff} theme={theme} userSettings={userSettings} profileData={prerenderedNewData} />;
+
 
 };

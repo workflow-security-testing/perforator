@@ -12,7 +12,7 @@ export type TextProfileProps = {
 }
 
 export const TextProfile: React.FC<TextProfileProps> = ({ url }) => {
-    const { data: text = '', error } = useFetchResult({ url, extractData: res => res.text() });
+    const { data: text = '', error } = useFetchResult({ url, extractData: extractData });
 
     if (error) {
         return <ErrorPanel message={error.message}/>;
@@ -20,3 +20,7 @@ export const TextProfile: React.FC<TextProfileProps> = ({ url }) => {
 
     return <code className="text-profile" >{text}</code>;
 };
+
+function extractData(res: Response): Promise<string> {
+    return res.text();
+}

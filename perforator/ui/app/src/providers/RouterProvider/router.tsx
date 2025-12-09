@@ -6,6 +6,7 @@ import { DemoPage } from 'src/pages/DemoPage';
 
 import {
     BuildProfile,
+    ClusterTop,
     DiffLists,
     History,
     NotFound,
@@ -61,6 +62,10 @@ export const getRouter = (pageProps: PageProps) => {
                 {
                     path: '/tutorials/basics',
                     element: makePage(DemoPage, 'Demo'),
+                },
+                {
+                    path: 'cluster-top',
+                    element: makePage(ClusterTop, 'Cluster Top'),
                 },
             ],
         },
