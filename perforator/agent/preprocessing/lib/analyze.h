@@ -10,7 +10,7 @@ namespace NPerforator::NBinaryProcessing {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-BinaryAnalysis AnalyzeBinary(const char* path);
+BinaryAnalysis AnalyzeBinary(const char* path, const BinaryAnalysisOptions& opts);
 
 void SerializeBinaryAnalysis(BinaryAnalysis&& analysis, IOutputStream* out);
 

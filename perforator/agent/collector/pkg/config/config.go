@@ -103,8 +103,9 @@ type SymbolizerConfig struct {
 // FeatureFlagsConfig holds agent-side [feature-flags](https://trunkbaseddevelopment.com/feature-flags/)
 // except old ones.
 type FeatureFlagsConfig struct {
-	EnableJVM *bool `yaml:"enable_jvm"`
-	EnablePHP *bool `yaml:"enable_php"`
+	EnableJVM    *bool `yaml:"enable_jvm"`
+	EnablePHP    *bool `yaml:"enable_php"`
+	EnableSframe *bool `yaml:"enable_sframe"`
 }
 
 func (f *FeatureFlagsConfig) JVMEnabled() bool {
@@ -119,6 +120,13 @@ func (f *FeatureFlagsConfig) PhpEnabled() bool {
 		return false
 	}
 	return *f.EnablePHP
+}
+
+func (f *FeatureFlagsConfig) SframeEnabled() bool {
+	if f.EnableSframe == nil {
+		return false
+	}
+	return *f.EnableSframe
 }
 
 type Config struct {

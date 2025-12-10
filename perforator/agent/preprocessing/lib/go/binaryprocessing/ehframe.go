@@ -17,11 +17,21 @@ import (
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/unwind"
 )
 
-func analyzeBinary(path string, analysis *parse.BinaryAnalysis) (*BinaryAnalysisStats, error) {
+func analyzeBinary(path string, analysis *parse.BinaryAnalysis, options *parse.BinaryAnalysisOptions) (*BinaryAnalysisStats, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
-	res := C.build_binary_analysis(cpath)
+	if options == nil {
+		panic("BinaryAnalysisOptions cant be nil")
+	}
+	data, err := proto.Marshal(options)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build binary analysis: cant parse options %w")
+	}
+	c_data := C.CBytes(data)
+	defer C.free(unsafe.Pointer(c_data))
+
+	res := C.build_binary_analysis(cpath, c_data, C.uint32_t(len(data)))
 	if res.err != nil {
 		defer C.binary_analysis_free_error(res.err)
 		text := C.binary_analysis_error_text(res.err)

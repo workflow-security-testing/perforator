@@ -16,8 +16,8 @@ type BinaryAnalysisStats struct {
 	UnwindTableStats UnwindTableStats
 }
 
-func BuildBinaryAnalysis(path string, analysis *parse.BinaryAnalysis) (*BinaryAnalysisStats, error) {
-	return analyzeBinary(path, analysis)
+func BuildBinaryAnalysis(path string, analysis *parse.BinaryAnalysis, options *parse.BinaryAnalysisOptions) (*BinaryAnalysisStats, error) {
+	return analyzeBinary(path, analysis, options)
 }
 
 func LoadBinaryAnalysis(r io.Reader, analysis *parse.BinaryAnalysis) (*BinaryAnalysisStats, error) {

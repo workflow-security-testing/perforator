@@ -14,6 +14,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	bpf "github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/parser"
+	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	php_agent "github.com/yandex/perforator/perforator/internal/linguist/php/agent"
 	python_agent "github.com/yandex/perforator/perforator/internal/linguist/python/agent"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
@@ -79,8 +80,8 @@ type Registry struct {
 	metrics registryMetrics
 }
 
-func NewRegistry(l xlog.Logger, m metrics.Registry, manager *bpf.BPFBinaryManager) (*Registry, error) {
-	binaryParser, err := parser.NewBinaryParser(l.WithName("BinaryParser"), m.WithPrefix("BinaryParser"))
+func NewRegistry(l xlog.Logger, m metrics.Registry, manager *bpf.BPFBinaryManager, options *preprocessig_proto.BinaryAnalysisOptions) (*Registry, error) {
+	binaryParser, err := parser.NewBinaryParser(l.WithName("BinaryParser"), m.WithPrefix("BinaryParser"), options)
 	if err != nil {
 		return nil, err
 	}

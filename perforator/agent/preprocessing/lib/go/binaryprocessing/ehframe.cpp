@@ -5,8 +5,13 @@
 #include <util/stream/buffer.h>
 
 
-extern "C" struct raw_binary_analysis build_binary_analysis(const char* path) try {
-    auto analysis = NPerforator::NBinaryProcessing::AnalyzeBinary(path);
+extern "C" struct raw_binary_analysis build_binary_analysis(const char* path, const void* options_data, uint32_t options_len) try {
+    using TOpts = NPerforator::NBinaryProcessing::BinaryAnalysisOptions;
+    TOpts opt{};
+    if (options_data != nullptr) {
+        opt.ParseFromArray(options_data, options_len);
+    }
+    auto analysis = NPerforator::NBinaryProcessing::AnalyzeBinary(path, opt);
 
     TBufferOutput out;
 

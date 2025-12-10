@@ -15,6 +15,7 @@ PEERDIR(
     # contrib/libs/llvm18/lib/Target/NVPTX
     # contrib/libs/llvm18/lib/Target/PowerPC
     contrib/libs/llvm18/lib/Target/X86
+    library/cpp/getopt
     library/cpp/streams/zstd
     perforator/agent/preprocessing/lib
     perforator/agent/preprocessing/proto/parse

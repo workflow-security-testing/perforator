@@ -9,6 +9,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	bpf "github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/binary"
+	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	"github.com/yandex/perforator/perforator/pkg/disjointsegmentsets"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
@@ -69,8 +70,8 @@ type Storage struct {
 	metrics       *storageMetrics
 }
 
-func NewStorage(l xlog.Logger, m metrics.Registry, u *bpf.BPFBinaryManager) (*Storage, error) {
-	registry, err := NewRegistry(l, m, u)
+func NewStorage(l xlog.Logger, m metrics.Registry, u *bpf.BPFBinaryManager, options *preprocessig_proto.BinaryAnalysisOptions) (*Storage, error) {
+	registry, err := NewRegistry(l, m, u, options)
 	if err != nil {
 		return nil, err
 	}

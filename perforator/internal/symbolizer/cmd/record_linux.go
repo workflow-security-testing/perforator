@@ -85,6 +85,7 @@ type recordOptions struct {
 	disablePerfMapJVM                           bool
 	enableJVM                                   bool
 	enablePHP                                   bool
+	enableSframe                                bool
 }
 
 func (o *recordOptions) Bind(cmd *cobra.Command) {
@@ -114,6 +115,7 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&o.disablePerfMapJVM, "disable-perf-maps-jvm", false, "Disable perf map for JVM")
 	cmd.Flags().BoolVar(&o.enableJVM, "experimental-enable-jvm", false, "[Experimental feature] Enable JVM profiling")
 	cmd.Flags().BoolVar(&o.enablePHP, "experimental-enable-php", false, "[Experimental feature] Enable PHP profiling")
+	cmd.Flags().BoolVar(&o.enableSframe, "experimental-enable-sframe-parsing", false, "[Experimental feature] Enable Sframe unwinder")
 	cmd.Flags().BoolVar(&o.experimentalEnablePythonStackPrettification, "experimental-prettify-python-stacks", false, "[Experimental feature] Enable Python stack prettification")
 
 	cmd.MarkFlagsMutuallyExclusive("freq", "count")
@@ -370,8 +372,9 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 		EnablePerfMaps:    ptr.Bool(!opts.disablePerfMap),
 		EnablePerfMapsJVM: ptr.Bool(!opts.disablePerfMapJVM),
 		FeatureFlagsConfig: config.FeatureFlagsConfig{
-			EnableJVM: ptr.Bool(opts.enableJVM),
-			EnablePHP: ptr.Bool(opts.enablePHP),
+			EnableJVM:    ptr.Bool(opts.enableJVM),
+			EnablePHP:    ptr.Bool(opts.enablePHP),
+			EnableSframe: ptr.Bool(opts.enableSframe),
 		},
 	}, logger.WithContext(ctx), registry, profiler.WithStorage(storage))
 

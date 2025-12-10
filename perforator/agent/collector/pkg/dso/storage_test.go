@@ -32,7 +32,7 @@ func TestRegistry_Simple(t *testing.T) {
 	require.NoError(t, err)
 	ctx := context.Background()
 
-	registry, err := NewRegistry(logger, mock.NewRegistry(nil), nil)
+	registry, err := NewRegistry(logger, mock.NewRegistry(nil), nil, nil)
 	require.NoError(t, err)
 
 	buildID := "abacaba"
@@ -62,7 +62,7 @@ func TestRegistry_Concurrent(t *testing.T) {
 	l, err := createLogger()
 	require.NoError(t, err)
 
-	registry, err := NewRegistry(l, mock.NewRegistry(nil), nil)
+	registry, err := NewRegistry(l, mock.NewRegistry(nil), nil, nil)
 	require.NoError(t, err)
 
 	buildIDs := []string{"a", "b", "c", "d", "e"}
@@ -138,6 +138,7 @@ func TestStorage_Simple(t *testing.T) {
 			},
 		),
 		nil,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -164,6 +165,7 @@ func TestStorage_OneMapping(t *testing.T) {
 				AllowLoadRegisteredMetrics: true,
 			},
 		),
+		nil,
 		nil,
 	)
 	require.NoError(t, err)
@@ -224,6 +226,7 @@ func TestStorage_OverlappingMappings(t *testing.T) {
 				AllowLoadRegisteredMetrics: true,
 			},
 		),
+		nil,
 		nil,
 	)
 	require.NoError(t, err)
@@ -298,6 +301,7 @@ func TestStorage_MultipleProcsAndMappings(t *testing.T) {
 				AllowLoadRegisteredMetrics: true,
 			},
 		),
+		nil,
 		nil,
 	)
 	require.NoError(t, err)
@@ -393,6 +397,7 @@ func TestStorage_SameMappings(t *testing.T) {
 			},
 		),
 		nil,
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -445,6 +450,7 @@ func TestStorage_Concurrent(t *testing.T) {
 				AllowLoadRegisteredMetrics: true,
 			},
 		),
+		nil,
 		nil,
 	)
 	require.NoError(t, err)

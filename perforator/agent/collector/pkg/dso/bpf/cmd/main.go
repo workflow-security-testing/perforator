@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"os"
 
 	"github.com/yandex/perforator/library/go/core/log"
@@ -9,6 +10,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics/mock"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/parser"
+	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -23,17 +25,24 @@ func main() {
 func run(ctx context.Context, l xlog.Logger) error {
 	r := mock.NewRegistry(nil)
 
+	binaryParserOptions := &parse.BinaryAnalysisOptions{}
+	var preferSframe bool
+	flag.BoolVar(&preferSframe, "prefer-sframe", false, "")
+	if preferSframe {
+		binaryParserOptions.PreferredUnwindInfoSource = parse.UnwindInfoSource_Sframe
+	}
+
 	m, err := binary.NewBPFBinaryManager(l.Logger(), r, nil)
 	if err != nil {
 		return err
 	}
 
-	binaryParser, err := parser.NewBinaryParser(l, r)
+	binaryParser, err := parser.NewBinaryParser(l, r, binaryParserOptions)
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Open(os.Args[1])
+	f, err := os.Open(flag.Args()[0])
 	if err != nil {
 		return err
 	}

@@ -17,3 +17,13 @@ message BinaryAnalysis {
     NPerforator.NBinaryProcessing.NPthread.PthreadConfig PthreadConfig = 4;
     NPerforator.NBinaryProcessing.NPhp.PhpConfig PhpConfig = 5;
 }
+
+enum UnwindInfoSource {
+    Ehframe = 0;
+    Sframe = 1;
+}
+
+message BinaryAnalysisOptions {
+    UnwindInfoSource DefaultUnwindInfoSource = 1;
+    UnwindInfoSource PreferredUnwindInfoSource = 2;
+}

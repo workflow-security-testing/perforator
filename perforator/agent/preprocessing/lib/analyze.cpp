@@ -159,7 +159,7 @@ BinaryAnalysis DeserializeBinaryAnalysis(IInputStream* input) {
     return analysis;
 }
 
-NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path) {
+NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path, const NPerforator::NBinaryProcessing::BinaryAnalysisOptions& opts) {
     static std::once_flag once;
     std::call_once(once, [] {
         llvm::InitializeNativeTarget();
@@ -167,7 +167,7 @@ NPerforator::NBinaryProcessing::BinaryAnalysis AnalyzeBinary(const char* path) {
     });
 
     auto objectFile = Y_LLVM_RAISE(llvm::object::ObjectFile::createObjectFile(path));
-    auto unwtable = NUnwind::BuildUnwindTable(objectFile.getBinary());
+    auto unwtable = NUnwind::BuildUnwindTable(objectFile.getBinary(), opts);
     auto tlsConfig = NTls::BuildTlsConfig(objectFile.getBinary());
     auto pythonConfig = NPython::BuildPythonConfig(objectFile.getBinary());
     auto pthreadConfig = NPthread::BuildPthreadConfig(objectFile.getBinary());

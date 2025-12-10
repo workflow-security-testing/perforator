@@ -16,6 +16,7 @@
 #include <util/system/filemap.h>
 #include <util/system/info.h>
 
+#include <library/cpp/getopt/last_getopt.h>
 
 class TUnwindStats {
 public:
@@ -199,7 +200,7 @@ bool LooksLikeElf(const TFsPath& path) {
     return hdr == magic;
 }
 
-void WalkBinaries(const char* root) {
+void WalkBinaries(const char* root, const NPerforator::NBinaryProcessing::BinaryAnalysisOptions& opts) {
     TUnwindStatsCollector stats;
     THashSet<TString> visited;
 
@@ -223,11 +224,28 @@ void WalkBinaries(const char* root) {
         }
 
         Cerr << "Found executable file " << path.GetPath() << Endl;
-        auto analysis = NPerforator::NBinaryProcessing::AnalyzeBinary(path.GetPath().c_str());
+        auto analysis = NPerforator::NBinaryProcessing::AnalyzeBinary(path.GetPath().c_str(), opts);
         stats.AddTable(analysis.GetUnwindTable());
     }
 
     stats.Dump(Cout);
+}
+
+std::tuple<TVector<TString>, NPerforator::NBinaryProcessing::BinaryAnalysisOptions> ParseArgs(int argc, const char* argv[]) {
+    NPerforator::NBinaryProcessing::BinaryAnalysisOptions binaryAnalysisOptions;
+    NLastGetopt::TOpts options;
+    bool preferSframe = false;
+
+    options.SetFreeArgsMin(0);
+    options.SetFreeArgsMax(2);
+    options.AddLongOption("prefer-sframe", "Use sframe as prefered unwind info source").StoreTrue(&preferSframe);
+    NLastGetopt::TOptsParseResult optParsing(&options, argc, argv);
+
+    if (preferSframe) {
+        binaryAnalysisOptions.SetPreferredUnwindInfoSource(NPerforator::NBinaryProcessing::UnwindInfoSource::Sframe);
+    }
+
+    return {optParsing.GetFreeArgs(), binaryAnalysisOptions};
 }
 
 int main(int argc, const char* argv[]) {
@@ -235,7 +253,9 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
 
-    if (argv[1] == "print"sv) {
+    auto [freeArgs, binaryAnalysisOptions] = ParseArgs(argc, argv);
+
+    if (freeArgs[0] == "print"sv) {
         NPerforator::NBinaryProcessing::BinaryAnalysis analysis;
         TZstdDecompress in{&Cin};
         Y_ENSURE(analysis.ParseFromArcadiaStream(&in));
@@ -243,7 +263,7 @@ int main(int argc, const char* argv[]) {
         return 0;
     }
 
-    if (argv[1] == "pretty-print"sv) {
+    if (freeArgs[0] == "pretty-print"sv) {
         NPerforator::NBinaryProcessing::BinaryAnalysis analysis = NPerforator::NBinaryProcessing::DeserializeBinaryAnalysis(&Cin);
         ForEachThreadLocal(analysis.GetTLSConfig(), [&](const NPerforator::NBinaryProcessing::NTls::TLSVariable& var) {
             Cout << var.GetName() << ", offset: " << var.offset() << Endl;
@@ -254,12 +274,12 @@ int main(int argc, const char* argv[]) {
         return 0;
     }
 
-    if (argv[1] == "walk"sv) {
-        WalkBinaries(argv[2]);
+    if (freeArgs[0] == "walk"sv) {
+        WalkBinaries(freeArgs[1].c_str(), binaryAnalysisOptions);
         return 0;
     }
 
-    if (argv[1] == "count"sv) {
+    if (freeArgs[0] == "count"sv) {
         NPerforator::NBinaryProcessing::BinaryAnalysis analysis;
         TZstdDecompress in{&Cin};
         Y_ENSURE(analysis.ParseFromArcadiaStream(&in));
@@ -283,7 +303,7 @@ int main(int argc, const char* argv[]) {
         return 0;
     }
 
-    if (argv[1] == "width"sv) {
+    if (freeArgs[0] == "width"sv) {
         NPerforator::NBinaryProcessing::BinaryAnalysis analysis = NPerforator::NBinaryProcessing::DeserializeBinaryAnalysis(&Cin);
 
         TMap<ui64, ui32> counts;
@@ -305,13 +325,13 @@ int main(int argc, const char* argv[]) {
     }
 
     while (true) {
-        auto analysis = NPerforator::NBinaryProcessing::AnalyzeBinary(argv[1]);
         TString filename{"ehframe.pb.zstd"};
-        if (argc > 2) {
-            filename = argv[2];
+        if (freeArgs.size() >= 2) {
+            filename = freeArgs[1];
         }
         TFileOutput out{filename};
         TCountingOutput counting{&out};
+        auto analysis = NPerforator::NBinaryProcessing::AnalyzeBinary(freeArgs[0].c_str(), binaryAnalysisOptions);
         NPerforator::NBinaryProcessing::SerializeBinaryAnalysis(std::move(analysis), &counting);
         counting.Finish();
         out.Finish();

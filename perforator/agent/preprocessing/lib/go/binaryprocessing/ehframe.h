@@ -1,5 +1,5 @@
 #pragma once
-
+#include <stdint.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -15,7 +15,7 @@ struct raw_binary_analysis {
     int len;
 };
 
-struct raw_binary_analysis build_binary_analysis(const char* path);
+struct raw_binary_analysis build_binary_analysis(const char* path, const void* options_data, uint32_t options_len);
 
 const char* binary_analysis_error_text(void* err);
 

@@ -4,6 +4,7 @@ SRCS(
     analyze.cpp
     ehframe.cpp
     sframe.cpp
+    unwind_table_builder.cpp
 )
 
 

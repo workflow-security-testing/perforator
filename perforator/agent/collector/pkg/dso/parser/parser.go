@@ -22,9 +22,15 @@ type BinaryParser struct {
 	r metrics.Registry
 
 	metrics *parserMetrics
+	options *parse.BinaryAnalysisOptions
 }
 
-func NewBinaryParser(l xlog.Logger, r metrics.Registry) (*BinaryParser, error) {
+func NewBinaryParser(l xlog.Logger, r metrics.Registry, options *parse.BinaryAnalysisOptions) (*BinaryParser, error) {
+	if options == nil {
+		l.Info(context.TODO(), "Create a new BinaryParser with default options, as the user has not provided a custom one")
+		options = &parse.BinaryAnalysisOptions{}
+	}
+
 	return &BinaryParser{
 		l: l,
 		r: r,
@@ -32,6 +38,7 @@ func NewBinaryParser(l xlog.Logger, r metrics.Registry) (*BinaryParser, error) {
 			okAnalyzedBinaries:     r.WithTags(map[string]string{"status": "ok"}).Counter("analyzed_binaries.count"),
 			failedAnalyzedBinaries: r.WithTags(map[string]string{"status": "failed"}).Counter("analyzed_binaries.count"),
 		},
+		options: options,
 	}, nil
 }
 
@@ -48,6 +55,7 @@ func (p *BinaryParser) Parse(ctx context.Context, f *os.File) (res *parse.Binary
 	stats, err := binaryprocessing.BuildBinaryAnalysis(
 		fmt.Sprintf("/proc/self/fd/%d", f.Fd()),
 		res,
+		p.options,
 	)
 	if err != nil {
 		p.l.Debug(ctx, "Failed to analyze binary", log.Error(err))

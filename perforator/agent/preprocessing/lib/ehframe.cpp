@@ -1,71 +1,15 @@
-#include "dwarf_matcher.h"
 #include "ehframe.h"
+#include "dwarf_matcher.h"
 
-#include "rule_dict.h"
-
-#include <perforator/agent/preprocessing/proto/parse/parse.pb.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
-#include <perforator/lib/permutation/permutation.h>
-#include <perforator/lib/tls/parser/tls.h>
-
 #include <library/cpp/iterator/enumerate.h>
-#include <library/cpp/streams/zstd/zstd.h>
-
-#include <util/generic/algorithm.h>
 #include <util/generic/maybe.h>
-#include <util/generic/vector.h>
-#include <util/generic/xrange.h>
-#include <util/generic/yexception.h>
 
 #include <llvm/ADT/AddressRanges.h>
 #include <llvm/DebugInfo/DWARF/DWARFContext.h>
 #include <llvm/DebugInfo/DWARF/DWARFDebugFrame.h>
-#include <llvm/MC/MCRegisterInfo.h>
-#include <llvm/MC/TargetRegistry.h>
-#include <llvm/Object/ObjectFile.h>
-#include <llvm/Support/TargetSelect.h>
-
 
 namespace NPerforator::NBinaryProcessing::NUnwind {
-
-////////////////////////////////////////////////////////////////////////////////
-
-void DifferentiateUnwindTable(NUnwind::UnwindTable& table) {
-    // Delta-encode pc ranges
-    ui64 pc = 0;
-    for (int i : xrange(table.start_pc_size())) {
-        ui64 start_pc = table.start_pc(i);
-        ui64 pc_range = table.pc_range(i);
-
-        Y_ENSURE(start_pc >= pc, "Mismatched pc: " << start_pc << " < " << pc);
-        ui64 end = start_pc + pc_range;
-        table.set_start_pc(i, start_pc - pc);
-        pc = end;
-    }
-}
-
-void IntegrateUnwindTable(NUnwind::UnwindTable& table) {
-    ui64 pc = 0;
-    for (int i : xrange(table.start_pc_size())) {
-        table.set_start_pc(i, table.start_pc(i) + pc);
-        pc = table.start_pc(i) + table.pc_range(i);
-    }
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-void DeltaEncode(NUnwind::UnwindTable& table) {
-    MultiSort(
-         *table.mutable_start_pc(),
-         *table.mutable_pc_range(),
-         *table.mutable_cfa(),
-         *table.mutable_rbp(),
-         *table.mutable_ra()
-    );
-
-    NUnwind::DifferentiateUnwindTable(table);
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -103,7 +47,7 @@ static constexpr uint32_t kFrameRegister = 6; // rbp
 // See: https://github.com/ARM-software/abi-aa/blob/c51addc3dc03e73a016a1e4edf25440bcac76431/aadwarf64/aadwarf64.rst#41dwarf-register-names
 static constexpr uint32_t kFrameRegister = 29; // frame register
 #else
-#error This arch is not supported by Perforator yer
+#error This arch is not supported by Perforator yet
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -209,13 +153,6 @@ void FillRegisterLocation(UnwindRule* rule, const llvm::dwarf::UnwindLocation& l
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void RemapRules(google::protobuf::RepeatedField<ui32>* rules, const NUnwind::TRuleDict& dict) {
-    for (auto& rule : *rules) {
-        rule = dict.RemapRule(rule);
-    }
-}
-
-
 template<typename T>
 class TAddressRangeMapBuilder {
 public:
@@ -275,8 +212,7 @@ private:
     std::vector<std::pair<uint64_t, size_t>> Events_;
 };
 
-
-UnwindTable BuildUnwindTable(llvm::object::ObjectFile* objectFile) {
+UnwindTable BuildUnwindTableFromEhFrame(llvm::object::ObjectFile* objectFile, const NPerforator::NBinaryProcessing::BinaryAnalysisOptions& /*opts*/) {
     auto dwarfContext = llvm::DWARFContext::create(*objectFile);
 
     bool isEh = true;

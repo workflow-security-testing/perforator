@@ -25,6 +25,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
+	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/internal/linguist/symbolizer"
 	"github.com/yandex/perforator/perforator/internal/logfield"
@@ -415,7 +416,13 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to create bpf binary manager: %w", err)
 	}
 
-	p.dsoStorage, err = dso.NewStorage(xlog.New(p.log.WithName("ProcessRegistry")), r.WithPrefix("ProcessRegistry"), bpfManager)
+	binaryAnalysisOptions := &preprocessig_proto.BinaryAnalysisOptions{
+		PreferredUnwindInfoSource: preprocessig_proto.UnwindInfoSource_Ehframe,
+	}
+	if p.conf.FeatureFlagsConfig.SframeEnabled() {
+		binaryAnalysisOptions.PreferredUnwindInfoSource = preprocessig_proto.UnwindInfoSource_Sframe
+	}
+	p.dsoStorage, err = dso.NewStorage(xlog.New(p.log.WithName("ProcessRegistry")), r.WithPrefix("ProcessRegistry"), bpfManager, binaryAnalysisOptions)
 	if err != nil {
 		return fmt.Errorf("failed to create dso storage: %w", err)
 	}
