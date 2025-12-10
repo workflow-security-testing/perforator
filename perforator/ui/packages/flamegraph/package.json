@@ -13,6 +13,7 @@
     "@jest/globals": "29.7.0",
     "@swc/core": "1.7.21",
     "@swc/jest": "0.2.36",
+    "@types/culori": "4.0.1",
     "@types/node": "18.18.2",
     "@types/react": "18.3.20",
     "@types/react-dom": "18.3.6",
