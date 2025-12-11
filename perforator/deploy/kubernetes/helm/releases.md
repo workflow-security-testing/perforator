@@ -21,6 +21,12 @@ Internal changes:
 
 1: If you are sending patch to GitHub, specify PR. Otherwise (if you are sending patch to internal monorepo), leave unset and then specify Git commit.
 -->
+# 0.2.11
+
+Fixes:
++ Removed `--tls-ca` from clickhouse migration job as it was not implemented
++ Object storage TLS settings are now propagated to web.
+
 # 0.2.10
 
 Enhancements:
