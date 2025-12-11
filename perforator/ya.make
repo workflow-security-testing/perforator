@@ -3,6 +3,7 @@ IF (NOT OPENSOURCE)
         alerts
         docs
         opensource
+        recipes
         release
         sandbox
         scripts
