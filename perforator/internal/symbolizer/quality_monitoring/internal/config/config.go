@@ -69,7 +69,9 @@ func LoadConfig(configPath string) (*Config, error) {
 
 	var conf Config
 
-	err = yaml.NewDecoder(file).Decode(&conf)
+	dec := yaml.NewDecoder(file)
+	dec.KnownFields(true)
+	err = dec.Decode(&conf)
 	if err != nil {
 		return nil, fmt.Errorf("can't parse config: %s, with error: %w", configPath, err)
 	}
