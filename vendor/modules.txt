@@ -16426,7 +16426,7 @@ github.com/ydb-platform/fq-connector-go/tools/ydb/olap_inconsistency
 github.com/ydb-platform/fq-connector-go/tools/ydb/query_service_negative
 # github.com/ydb-platform/ydb-api-protos v0.0.0-20221215182550-667c41254584
 ## explicit
-# github.com/ydb-platform/ydb-go-genproto v0.0.0-20250911135631-b3beddd517d9
+# github.com/ydb-platform/ydb-go-genproto v0.0.0-20251125145508-6d7ef87db5cb
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-genproto
 github.com/ydb-platform/ydb-go-genproto/Ydb_Auth_V1
@@ -16516,7 +16516,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.118.2
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.121.1
 ## explicit; go 1.23.9
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -16578,7 +16578,6 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/query/scanner
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter/errors
-github.com/ydb-platform/ydb-go-sdk/v3/internal/ratelimiter/options
 github.com/ydb-platform/ydb-go-sdk/v3/internal/repeater
 github.com/ydb-platform/ydb-go-sdk/v3/internal/scanner
 github.com/ydb-platform/ydb-go-sdk/v3/internal/scheme
@@ -16626,6 +16625,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/pkg/xstring
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/xtest
 github.com/ydb-platform/ydb-go-sdk/v3/query
 github.com/ydb-platform/ydb-go-sdk/v3/ratelimiter
+github.com/ydb-platform/ydb-go-sdk/v3/ratelimiter/options
 github.com/ydb-platform/ydb-go-sdk/v3/retry
 github.com/ydb-platform/ydb-go-sdk/v3/retry/budget
 github.com/ydb-platform/ydb-go-sdk/v3/scheme
