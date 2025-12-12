@@ -8,7 +8,6 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
-	kafka "github.com/yandex/perforator/perforator/pkg/kafka/producer"
 	"github.com/yandex/perforator/perforator/pkg/postgres"
 	"github.com/yandex/perforator/perforator/pkg/s3"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -20,8 +19,6 @@ type Databases struct {
 	ClickhouseConn *clickhouse.Connection
 
 	S3Client *s3.Client
-
-	KafkaProducer *kafka.KafkaProducer
 }
 
 // bgCtx should be valid for as long as databases are used
@@ -47,13 +44,6 @@ func NewDatabases(ctx context.Context, bgCtx context.Context, l xlog.Logger, c *
 		res.ClickhouseConn, err = clickhouse.Connect(ctx, c.ClickhouseConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to init clickhouse conn: %w", err)
-		}
-	}
-
-	if c.KafkaConfig != nil {
-		res.KafkaProducer, err = kafka.NewKafkaProducer(l, c.KafkaConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to init kafka producer: %w", err)
 		}
 	}
 
