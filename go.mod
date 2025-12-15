@@ -846,6 +846,7 @@ require (
 	github.com/ydb-platform/ydb-go-sdk-zap v0.16.0
 	github.com/ydb-platform/ydb-go-sdk-zerolog v0.14.0
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.121.1
+	github.com/ydb-platform/ydb-go-yc v0.12.3
 	github.com/ydb-platform/ydb-go-yc-metadata v0.6.1
 	github.com/ydb-platform/ydbops v0.0.19
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
@@ -2246,7 +2247,6 @@ require (
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
 	github.com/yashtewari/glob-intersection v0.2.0 // indirect
 	github.com/ydb-platform/ydb-api-protos v0.0.0-20221215182550-667c41254584 // indirect
-	github.com/ydb-platform/ydb-go-yc v0.12.3 // indirect
 	github.com/yookoala/gofast v0.6.0 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/yosssi/ace v0.0.5 // indirect

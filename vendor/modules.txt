@@ -16652,6 +16652,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/trace
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-yc
 github.com/ydb-platform/ydb-go-yc/internal/auth
+github.com/ydb-platform/ydb-go-yc/internal/cmd/connect
 # github.com/ydb-platform/ydb-go-yc-metadata v0.6.1
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-yc-metadata
