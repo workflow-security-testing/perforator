@@ -56,7 +56,11 @@ func NewService(
 			podScopedOperationsNumber:  reg.WithTags(map[string]string{"scope": "pod"}).IntGauge("current_operations.gauge"),
 			nodeScopedOperationsNumber: reg.WithTags(map[string]string{"scope": "node"}).IntGauge("current_operations.gauge"),
 			latestSnapshotAge: reg.FuncIntGauge("latest_snapshot_age", func() int64 {
-				return int64(time.Since(snapshotManager.getSnapshotTimestamp()).Seconds())
+				ts := snapshotManager.getSnapshotTimestamp()
+				if ts.IsZero() {
+					return 0
+				}
+				return int64(time.Since(ts).Seconds())
 			}),
 		},
 		customProfilingOperationStorage: customProfilingOperationStorage,
