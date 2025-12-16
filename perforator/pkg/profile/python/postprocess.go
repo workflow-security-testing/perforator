@@ -526,7 +526,7 @@ func (p *Prettifier) removeUnsymbolizedCPythonFrames() {
 	for i := range p.sample.Location {
 		isUnsym := isUnsymbolizedLocation(p.sample.Location[i])
 		isCPyOrPy := isCPythonOrPythonLocation(p.sample.Location[i])
-		prevIsCPyOrPy := i > 0 && isCPythonOrPythonLocation(p.sample.Location[i-1])
+		prevIsCPyOrPy := i == 0 || isCPythonOrPythonLocation(p.sample.Location[i-1])
 
 		switch {
 		case isUnsym && unsymSegmentStart == -1 && prevIsCPyOrPy:
@@ -543,7 +543,6 @@ func (p *Prettifier) removeUnsymbolizedCPythonFrames() {
 			unsymSegmentStart = -1
 		}
 	}
-	// Trailing segment is not removed (no CPython/Python on the right)
 
 	// Second pass: filter out nil entries
 	p.sample.Location = slices.DeleteFunc(p.sample.Location, func(loc *pprof.Location) bool {
@@ -552,7 +551,10 @@ func (p *Prettifier) removeUnsymbolizedCPythonFrames() {
 }
 
 func isCPythonFunction(name string) bool {
-	return strings.HasPrefix(name, "Py") || strings.HasPrefix(name, "_Py")
+	return strings.HasPrefix(name, "Py") || // CPython
+		strings.HasPrefix(name, "_Py") || // CPython
+		strings.HasPrefix(name, "__Pyx") || // Cython
+		strings.HasPrefix(name, "__pyx") // Cython
 }
 
 func isCPythonLocation(loc *pprof.Location) bool {
@@ -594,6 +596,26 @@ func (p *Prettifier) removeCPythonInterpreterLocations() {
 	p.sample.Location = p.sample.Location[:resultIndex]
 }
 
+func isImportlibLocation(loc *pprof.Location) bool {
+	for _, line := range loc.Line {
+		if line.Function != nil && strings.Contains(line.Function.Filename, "importlib") {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isTrampolinePythonLocation(loc *pprof.Location) bool {
+	for _, line := range loc.Line {
+		if isTrampolinePythonFrame(line.Function) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (p *Prettifier) Prettify() {
 	// There are a lot of stripped CPython binaries. This can cause <unsymbolized function> frames between CPython interpreter frames.
 	// They can be inlined or not. These <unsymbolized function> frames should be treated as CPython intrepreter frames and be removed.
@@ -603,4 +625,9 @@ func (p *Prettifier) Prettify() {
 	// CPython interpreter locations usually are not informative, so remove them.
 	// Step 2: remove CPython interpreter locations
 	p.removeCPythonInterpreterLocations()
+
+	// Step 3: remove importlib, <trampoline python frame> frames
+	p.sample.Location = slices.DeleteFunc(p.sample.Location, func(loc *pprof.Location) bool {
+		return isImportlibLocation(loc) || isTrampolinePythonLocation(loc)
+	})
 }

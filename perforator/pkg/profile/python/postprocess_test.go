@@ -62,6 +62,20 @@ func createUnsymbolizedLocation() *pprof.Location {
 	}
 }
 
+func createImportlibLocation(funcName string) *pprof.Location {
+	return &pprof.Location{
+		Mapping: &pprof.Mapping{File: string(profile.PythonSpecialMapping)},
+		Line: []pprof.Line{
+			{
+				Function: &pprof.Function{
+					Name:     funcName,
+					Filename: "<frozen importlib._bootstrap>",
+				},
+			},
+		},
+	}
+}
+
 func TestMergeStacks_Simple(t *testing.T) {
 	merger := NewNativeAndPythonStackMerger()
 
@@ -647,21 +661,6 @@ func TestPrettifier_RemoveUnsymbolizedCPythonFrames(t *testing.T) {
 			},
 		},
 		{
-			name: "at_end_of_stack_should_be_kept",
-			sample: &pprof.Sample{
-				Location: []*pprof.Location{
-					createSimpleLocationUserspace("Py_Main"),
-					createUnsymbolizedLocation(),
-				},
-			},
-			resultSample: &pprof.Sample{
-				Location: []*pprof.Location{
-					createSimpleLocationUserspace("Py_Main"),
-					createUnsymbolizedLocation(),
-				},
-			},
-		},
-		{
 			name: "at_start_of_stack_should_be_kept",
 			sample: &pprof.Sample{
 				Location: []*pprof.Location{
@@ -825,6 +824,7 @@ func TestPrettifier_Prettify(t *testing.T) {
 					createSimpleLocationPython("foo"),
 					createSimpleLocationUserspace("PyNumber_InPlaceAdd"),
 					createUnsymbolizedLocation(),
+					createUnsymbolizedLocation(),
 				},
 			},
 			resultSample: &pprof.Sample{
@@ -834,7 +834,6 @@ func TestPrettifier_Prettify(t *testing.T) {
 					createSimpleLocationPython("simple"),
 					createSimpleLocationPython("foo"),
 					createSimpleLocationUserspace("PyNumber_InPlaceAdd"),
-					createUnsymbolizedLocation(),
 				},
 			},
 		},
@@ -859,6 +858,7 @@ func TestPrettifier_Prettify(t *testing.T) {
 					createSimpleLocationUserspace("cpp_function"),
 					createSimpleLocationPython("trampoline python frame"),
 					createSimpleLocationPython("python_func_called_from_cpp"),
+					createUnsymbolizedLocation(),
 				},
 			},
 			resultSample: &pprof.Sample{
@@ -870,6 +870,30 @@ func TestPrettifier_Prettify(t *testing.T) {
 					createSimpleLocationUserspace("cpp_function"),
 					createSimpleLocationPython("trampoline python frame"),
 					createSimpleLocationPython("python_func_called_from_cpp"),
+				},
+			},
+		},
+		{
+			name: "cython_importlib_trampoline_removal",
+			sample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationPython("<module>"),
+					createSimpleLocationUserspace("__Pyx_PyObject_Call"),    // Cython - should be removed
+					createSimpleLocationUserspace("__pyx_pw_6module_1func"), // Cython - should be removed
+					createSimpleLocationPython("main"),
+					createImportlibLocation("_find_and_load"),               // importlib - should be removed
+					createImportlibLocation("_load_unlocked"),               // importlib - should be removed
+					createSimpleLocationPython("<trampoline python frame>"), // trampoline - should be removed
+					createSimpleLocationPython("user_func"),
+					createSimpleLocationUserspace("native_func"),
+				},
+			},
+			resultSample: &pprof.Sample{
+				Location: []*pprof.Location{
+					createSimpleLocationPython("<module>"),
+					createSimpleLocationPython("main"),
+					createSimpleLocationPython("user_func"),
+					createSimpleLocationUserspace("native_func"),
 				},
 			},
 		},
