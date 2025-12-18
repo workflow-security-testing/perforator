@@ -1,8 +1,6 @@
 GTEST()
 
-ADDINCL(
-    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/X86
-)
+INCLUDE(${ARCADIA_ROOT}/perforator/lib/arch.ya.make.inc)
 
 PEERDIR(
     contrib/libs/re2

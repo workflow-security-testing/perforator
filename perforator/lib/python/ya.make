@@ -1,9 +1,6 @@
 LIBRARY()
 
-ADDINCL(
-    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/ARM
-    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/X86
-)
+INCLUDE(${ARCADIA_ROOT}/perforator/lib/arch.ya.make.inc)
 
 IF (ARCH_x86_64)
     PEERDIR(perforator/lib/python/asm/x86)

@@ -1,7 +1,7 @@
 LIBRARY()
 
 ADDINCL(
-    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/ARM
+    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/AArch64
 )
 
 PEERDIR(

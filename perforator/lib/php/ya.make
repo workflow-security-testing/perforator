@@ -1,8 +1,6 @@
 LIBRARY()
 
-ADDINCL(
-    ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/X86
-)
+INCLUDE(${ARCADIA_ROOT}/perforator/lib/arch.ya.make.inc)
 
 PEERDIR(
     contrib/libs/llvm18/include
@@ -11,7 +9,7 @@ PEERDIR(
     perforator/lib/elf
     perforator/lib/tls/parser
     perforator/lib/llvmex
-    perforator/lib/php/asm/x86
+    perforator/lib/php/asm
 )
 
 SRCS(

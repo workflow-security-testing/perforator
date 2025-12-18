@@ -2,7 +2,7 @@
 
 #include <perforator/lib/llvmex/llvm_elf.h>
 #include <perforator/lib/llvmex/llvm_exception.h>
-#include <perforator/lib/php/asm/x86/decode.h>
+#include <perforator/lib/php/asm/decode.h>
 
 #include <contrib/libs/re2/re2/stringpiece.h>
 
@@ -149,7 +149,7 @@ TryParsePhpVersion(const llvm::object::ObjectFile& file,
     if (!bytecode) {
         return Nothing();
     }
-    auto versionAddress = NAsm::NX86::DecodePhpVersion(file.makeTriple(), symbol.Address, *bytecode);
+    auto versionAddress = NAsm::DecodePhpVersion(file.makeTriple(), symbol.Address, *bytecode);
     if (!versionAddress) {
         return Nothing();
     }
@@ -170,7 +170,7 @@ TryParseZmInfoPhpCore(const llvm::object::ObjectFile& file,
     if (!bytecode) {
         return Nothing();
     }
-    auto versionAddress = NAsm::NX86::DecodeZmInfoPhpCore(file.makeTriple(), symbol.Address, *bytecode);
+    auto versionAddress = NAsm::DecodeZmInfoPhpCore(file.makeTriple(), symbol.Address, *bytecode);
     if (!versionAddress) {
         return Nothing();
     }
@@ -257,7 +257,7 @@ TMaybe<EZendVmKind> TZendPhpAnalyzer::ParseZendVmKind() {
         return Nothing();
     }
 
-    TMaybe<ui64> vmKindValue = NAsm::NX86::DecodeZendVmKind(
+    TMaybe<ui64> vmKindValue = NAsm::DecodeZendVmKind(
         File_.makeTriple(),
         zendVmKindSymbol.Address,
         *bytecode);

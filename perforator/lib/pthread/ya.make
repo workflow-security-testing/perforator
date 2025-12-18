@@ -1,16 +1,10 @@
 LIBRARY()
 
 IF (ARCH_X86_64)
-    ADDINCL(
-        ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/X86
-    )
     PEERDIR(
         perforator/lib/pthread/asm/x86
     )
-ELSEIF (ARCH_ARM)
-    ADDINCL(
-        ${ARCADIA_BUILD_ROOT}/contrib/libs/llvm18/lib/Target/ARM
-    )
+ELSEIF (ARCH_AARCH64)
     PEERDIR(
         perforator/lib/pthread/asm/arm
     )
