@@ -3,10 +3,10 @@ package symbolizer
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
+	"time"
 	"unsafe"
 
-	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/encoding/unicode/utf32"
 
@@ -21,7 +21,8 @@ const (
 )
 
 type SymbolizerConfig struct {
-	MaxCacheSize uint64 `yaml:"max_cache_size"`
+	MaxCacheSize uint64        `yaml:"max_cache_size"`
+	ItemTTL      time.Duration `yaml:"item_ttl"`
 }
 
 type symbolizerMetrics struct {
@@ -41,7 +42,7 @@ type Symbolizer struct {
 	reg   metrics.Registry
 	c     *SymbolizerConfig
 	bpf   *machine.BPF
-	cache *lru.Cache[unwinder.SymbolKey, *Symbol]
+	cache *expirable.LRU[unwinder.SymbolKey, *Symbol]
 
 	metrics *symbolizerMetrics
 }
@@ -56,14 +57,15 @@ func NewPhpSymbolizer(c *SymbolizerConfig, bpf *machine.BPF, reg metrics.Registr
 
 func newSymbolizer(c *SymbolizerConfig, bpf *machine.BPF, reg metrics.Registry, language string) (*Symbolizer, error) {
 	cacheSize := DefaultMaxCacheSize
+	itemTTL := 5 * time.Minute
+	if c.ItemTTL != 0 {
+		itemTTL = c.ItemTTL
+	}
 	if c.MaxCacheSize != 0 {
 		cacheSize = int(c.MaxCacheSize)
 	}
 
-	cache, err := lru.New[unwinder.SymbolKey, *Symbol](cacheSize)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create lru cache: %v", err)
-	}
+	cache := expirable.NewLRU[unwinder.SymbolKey, *Symbol](cacheSize, nil, itemTTL)
 
 	res := &Symbolizer{
 		reg:   reg,
