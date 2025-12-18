@@ -161,8 +161,6 @@ func (o *operationController) setupSampleConsumer(ctx context.Context) (err erro
 	profileLabels[profilequerylang.CPOIDLabel] = string(o.id)
 
 	sampleConsumerFeatures := profiler.DefaultSampleConsumerFeatures()
-	// FIXME: remove this later
-	sampleConsumerFeatures.EnableInnermostPidnsCollection = true
 	for _, feature := range o.spec.Features {
 		switch feature.Feature.(type) {
 		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
