@@ -9,6 +9,7 @@ END()
 
 RECURSE(
     btime
+    cgroupfs
     cpuinfo
     cpulist
     kallsyms

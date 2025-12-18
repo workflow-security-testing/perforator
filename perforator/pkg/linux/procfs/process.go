@@ -204,4 +204,22 @@ func (p *process) GetNamespacedPID() (linux.NamespacedPID, error) {
 	return 0, fmt.Errorf("failed to find NSpid in process status")
 }
 
+// GetComm returns the command name of the process
+func (p *process) GetComm() (string, error) {
+	path := p.child("comm")
+	f, err := p.fs.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to open %s: %w", path, err)
+	}
+	defer f.Close()
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %s: %w", path, err)
+	}
+
+	// Remove trailing newline
+	return strings.TrimSuffix(string(data), "\n"), nil
+}
+
 ////////////////////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 IF (NOT OPENSOURCE)
     RECURSE(
-        gen_docker_images
+        gen_images
     )
 ENDIF()
 
