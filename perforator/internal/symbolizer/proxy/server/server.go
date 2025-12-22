@@ -2188,8 +2188,9 @@ type RunConfig struct {
 
 func (s *PerforatorServer) runMetricsServer(ctx context.Context, port uint32) error {
 	s.l.Info(ctx, "Starting metrics server", log.UInt32("port", port))
-	http.Handle("/metrics", s.reg.HTTPHandler(ctx, s.l))
-	http.HandleFunc("GET /debug/pprof/polyheap", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", s.reg.HTTPHandler(ctx, s.l))
+	mux.HandleFunc("GET /debug/pprof/polyheap", func(w http.ResponseWriter, r *http.Request) {
 		p, err := polyheapprof.ReadCurrentHeapProfile()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -2200,7 +2201,8 @@ func (s *PerforatorServer) runMetricsServer(ctx context.Context, port uint32) er
 	})
 
 	srv := &http.Server{
-		Addr: fmt.Sprintf(":%d", port),
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: mux,
 		BaseContext: func(listener net.Listener) context.Context {
 			return ctx
 		},

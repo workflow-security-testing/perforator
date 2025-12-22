@@ -26,6 +26,7 @@ RECURSE(
     pkg
     proto
     symbolizer
+    tests
     tools
     util
 )

@@ -44,6 +44,13 @@ func (s *Server) runGrpcServer(ctx context.Context) error {
 		return err
 	}
 
+	unreg := context.AfterFunc(ctx, func() {
+		s.logger.Info(ctx, "Stopping Agent Gateway GRPC server")
+		s.grpcServer.Stop()
+		s.logger.Info(ctx, "Agent Gateway GRPC server shutdown complete")
+	})
+	defer unreg()
+
 	if err = s.grpcServer.Serve(lis); err != nil {
 		s.logger.Error(ctx, "Failed to grpc server", log.Error(err))
 	}
@@ -52,14 +59,26 @@ func (s *Server) runGrpcServer(ctx context.Context) error {
 }
 
 func (s *Server) runMetricsServer(ctx context.Context) error {
-	http.Handle("/metrics", s.reg.HTTPHandler(ctx, s.logger))
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", s.reg.HTTPHandler(ctx, s.logger))
 	port := s.conf.MetricsPort
 	if port == 0 {
 		port = 85
 	}
-	s.logger.Info(ctx, "Starting metrics server", log.UInt32("port", port))
+	s.logger.Info(ctx, "Starting Agent Gateway metrics server", log.UInt32("port", port))
 
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: mux,
+	}
+
+	unreg := context.AfterFunc(ctx, func() {
+		s.logger.Info(ctx, "Stopping Agent Gateway metrics server")
+		_ = srv.Close()
+	})
+	defer unreg()
+
+	return srv.ListenAndServe()
 }
 
 func (s *Server) Run(ctx context.Context) error {

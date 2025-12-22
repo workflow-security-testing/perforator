@@ -3,7 +3,7 @@ GO_LIBRARY()
 
 USE_UTIL()
 
-IF (CGO_ENABLED AND NOT SANDBOXING)
+IF (CGO_ENABLED)
     PEERDIR(
         perforator/lib/profile/c
     )

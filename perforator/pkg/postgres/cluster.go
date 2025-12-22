@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 	"golang.yandex/hasql/checkers"
 	hasql "golang.yandex/hasql/sqlx"
