@@ -360,7 +360,7 @@ func (t *TextFormatRenderer) getLocationFrames(loc *pprof.Location) []locationDa
 }
 
 func (t *TextFormatRenderer) getLocationFramesCached(loc *pprof.Location) []locationData {
-	if loc.Mapping == nil {
+	if loc.Mapping == nil || loc.Mapping.BuildID == "" {
 		return t.getLocationFrames(loc)
 	}
 
