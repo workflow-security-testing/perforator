@@ -599,6 +599,10 @@ func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int) {
 		rule.Cfa.Kind = unwinder.UnwindRuleRegisterOffset
 		rule.Cfa.Regno = uint8(cfa.GetRegisterOffset().GetRegister())
 		rule.Cfa.Offset = cfa.GetRegisterOffset().GetOffset()
+	} else if cfa != nil && cfa.GetCfaPlusOffset() != nil {
+		rule.Cfa.Kind = unwinder.UnwindRuleRegisterOffset
+		rule.Cfa.Regno = uint8(unwinder.DwarfCfiStackRegisterNumber)
+		rule.Cfa.Offset = cfa.GetCfaPlusOffset().GetOffset()
 	} else {
 		rule.Cfa.Kind = unwinder.UnwindRuleUnsupported
 	}

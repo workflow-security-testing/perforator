@@ -9,9 +9,14 @@
 enum {
     DWARF_CFI_UNKNOWN_REGISTER = 0xfffffffffffffffd,
 
-    DWARF_CFI_STACK_REGISTER_NUMBER = 7,
     DWARF_CFI_FRAME_REGISTER_NUMBER = 6
 };
+
+enum dwarf_amd64_regno : u8 {
+    DWARF_CFI_STACK_REGISTER_NUMBER = 7,
+};
+
+BTF_EXPORT(enum dwarf_amd64_regno);
 
 struct dwarf_cfi_context {
     u64 cfa;
