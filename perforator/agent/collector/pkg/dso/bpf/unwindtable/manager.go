@@ -344,7 +344,7 @@ func (b *pageTableBuilder) do() (pg []PageID, err error) {
 		}
 		b.nextpc = r.StartPC() + r.PCRange()
 
-		fillRule(r, b.page, b.rowid)
+		fillRule(r, b.page, b.rowid, b.startpc)
 		b.rowid++
 	}
 
@@ -581,7 +581,7 @@ func (b *pageTableBuilder) flushNodes() error {
 // FIXME(sskvor): Generate this from the BTF
 const dwarfUnwindRuleUndefined = 0x7f
 
-func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int) {
+func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int, pageStartPC uint64) {
 	rule := unwinder.UnwindRule{}
 
 	// Fill RBP rule
@@ -617,7 +617,7 @@ func fillRule(row row, page *unwinder.UnwindTablePageLeaf, idx int) {
 		rule.Ra = unwinder.RaUnwindRule{Offset: dwarfUnwindRuleUndefined}
 	}
 
-	page.Pc[idx] = uint32(row.StartPC())
+	page.Pc[idx] = uint32(row.StartPC() - pageStartPC)
 	page.Ranges[idx] = uint32(row.PCRange())
 	page.Rules[idx] = rule
 }

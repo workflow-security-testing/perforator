@@ -184,7 +184,7 @@ static ALWAYS_INLINE struct unwind_table_page* get_unwind_table_page(page_id pag
     return bpf_map_lookup_elem(part, &part_page_id);
 }
 
-static NOINLINE struct unwind_table_page_leaf* unwind_table_lookup_page(page_id pageid, u64 pc) {
+static NOINLINE struct unwind_table_page* unwind_table_lookup_page(page_id pageid, u64 pc) {
     u64 pc0 = (pc >> 28) & 1023;
     u64 pc1 = (pc >> 18) & 1023;
     u64 pc2 = (pc >> 8) & 1023;
@@ -234,15 +234,19 @@ static NOINLINE struct unwind_table_page_leaf* unwind_table_lookup_page(page_id 
 
     struct unwind_table_page_leaf* leaf = &page->kind.leaf;
     BPF_TRACE("found leaf %d [%llx, %llx)\n", pageid, leaf->pc[0], leaf->pc[255]);
-    return leaf;
+#ifndef BPF_DEBUG
+    (void) leaf;
+#endif
+    return page;
 }
 
 static NOINLINE bool unwind_table_lookup_fast(page_id pageid, u64 pc, struct unwind_rule* rule) {
-    struct unwind_table_page_leaf* leaf = unwind_table_lookup_page(pageid, pc);
-    if (leaf == NULL) {
+    struct unwind_table_page* leaf_page = unwind_table_lookup_page(pageid, pc);
+    if (leaf_page == NULL) {
         return false;
     }
-    return locate_rule(leaf, pc, rule);
+    BPF_TRACE("adjusting pc by page begin_address for binary search: %llx - %llx = %llx\n", pc, leaf_page->begin_address, pc-leaf_page->begin_address);
+    return locate_rule(&leaf_page->kind.leaf, pc-leaf_page->begin_address, rule);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
