@@ -24,6 +24,7 @@ const (
 	FrameOriginNative  FrameOrigin = "native"
 	FrameOriginKernel  FrameOrigin = "kernel"
 	FrameOriginPython  FrameOrigin = "python"
+	FrameOriginPHP     FrameOrigin = "php"
 )
 
 ////////////////////////////////////////////////////////////////////////////////

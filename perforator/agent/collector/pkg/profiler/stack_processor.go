@@ -42,6 +42,7 @@ func (s *sampleStackProcessor) Process(builder *profile.SampleBuilder, stack *un
 			Linestart:     stack.Frames[i].SymbolKey.Linestart,
 		})
 
+		loc.SetMapping().SetPath(string(s.langMapping)).Finish()
 		processFrame(s, &mtr, loc, &stack.Frames[i])
 
 		loc.Finish()
@@ -70,7 +71,6 @@ func processFrameCommon(s *sampleStackProcessor, mtr *interpreterStackMetrics, l
 }
 
 func processPythonFrame(s *sampleStackProcessor, mtr *interpreterStackMetrics, loc *profile.LocationBuilder, frame *unwinder.InterpreterFrame) {
-	loc.SetMapping().SetPath(string(s.langMapping)).Finish()
 	if frame.SymbolKey.Linestart == -1 {
 		loc.AddFrame().SetName(python_models.PythonTrampolineFrame).Finish()
 		return

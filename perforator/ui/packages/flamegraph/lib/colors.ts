@@ -45,6 +45,10 @@ export function hashcolor(name: string, module?: string): string {
         R = 103 + 50 * v2;
         G = 178 + 77 * v1;
         B = 120 + 50 * v3;
+    } else if (module === 'php' || name.includes('[php]') || name.endsWith('.php')) {
+        R = 120 + 40 * v2;
+        G = 130 + 40 * v1;
+        B = 180 + 40 * v3;
     } else {
         R = 205 + 50 * v3;
         G = 0 + 230 * v1;

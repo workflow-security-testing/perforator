@@ -266,6 +266,13 @@ func (f *FlameGraph) hashcolor(name string, module FrameOrigin) color.RGBA {
 			B: uint8(120 + 50*v3),
 			A: 0,
 		}
+	case FrameOriginPHP:
+		return color.RGBA{
+			R: uint8(120 + 40*v2),
+			G: uint8(130 + 40*v1),
+			B: uint8(180 + 40*v3),
+			A: 0,
+		}
 	default:
 		return color.RGBA{
 			R: uint8(205 + 50*v3),
@@ -657,6 +664,11 @@ func guessCollapsedFrameOrigin(name string) FrameOrigin {
 	if strings.HasSuffix(name, ".py") {
 		return FrameOriginPython
 	}
+
+	if strings.HasSuffix(name, ".php") {
+		return FrameOriginPHP
+	}
+
 	return FrameOriginNative
 }
 
@@ -786,12 +798,16 @@ func (f *FlameGraph) addProfile(p *pprof.Profile, baseline bool) {
 		locs := sample.Location
 		slices.Reverse(locs)
 		for _, loc := range locs {
-			var origin FrameOrigin
-			if loc.Mapping != nil && strings.Contains(loc.Mapping.File, "kernel") {
-				origin = FrameOriginKernel
-			}
-			if loc.Mapping != nil && loc.Mapping.File == profile.PythonSpecialMapping {
-				origin = FrameOriginPython
+			origin := FrameOriginNative
+			if loc.Mapping != nil {
+				switch loc.Mapping.File {
+				case profile.KernelSpecialMapping:
+					origin = FrameOriginKernel
+				case profile.PythonSpecialMapping:
+					origin = FrameOriginPython
+				case profile.PHPSpecialMapping:
+					origin = FrameOriginPHP
+				}
 			}
 
 			if len(loc.Line) == 0 {
