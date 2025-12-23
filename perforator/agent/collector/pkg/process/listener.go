@@ -1,6 +1,8 @@
 package process
 
 import (
+	"context"
+
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/xelf"
@@ -23,7 +25,7 @@ type ProcessInfo interface {
 }
 
 type Listener interface {
-	OnProcessDiscovery(info ProcessInfo)
-	OnProcessRescan(info ProcessInfo)
-	OnProcessDeath(pid linux.CurrentNamespacePID)
+	OnProcessDiscovery(ctx context.Context, info ProcessInfo)
+	OnProcessRescan(ctx context.Context, info ProcessInfo)
+	OnProcessDeath(ctx context.Context, pid linux.CurrentNamespacePID)
 }

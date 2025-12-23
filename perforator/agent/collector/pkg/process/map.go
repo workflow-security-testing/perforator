@@ -263,7 +263,7 @@ func (r *ProcessRegistry) deleteProcess(ctx context.Context, pid linux.CurrentNa
 	}
 
 	for _, listener := range r.listeners {
-		listener.OnProcessDeath(pid)
+		listener.OnProcessDeath(ctx, pid)
 	}
 }
 
@@ -517,11 +517,11 @@ func (a *processAnalyzer) run(ctx context.Context) error {
 	// so this has to be sequenced after storeBPFMaps.
 	if !a.proc.listenersNotified.Swap(true) {
 		for _, l := range a.reg.listeners {
-			l.OnProcessDiscovery(a.proc)
+			l.OnProcessDiscovery(ctx, a.proc)
 		}
 	} else {
 		for _, l := range a.reg.listeners {
-			l.OnProcessRescan(a.proc)
+			l.OnProcessRescan(ctx, a.proc)
 		}
 	}
 
