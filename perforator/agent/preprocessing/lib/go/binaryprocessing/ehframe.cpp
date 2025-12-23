@@ -2,6 +2,7 @@
 
 #include <perforator/agent/preprocessing/lib/analyze.h>
 
+#include <util/generic/yexception.h>
 #include <util/stream/buffer.h>
 
 
@@ -9,7 +10,10 @@ extern "C" struct raw_binary_analysis build_binary_analysis(const char* path, co
     using TOpts = NPerforator::NBinaryProcessing::BinaryAnalysisOptions;
     TOpts opt{};
     if (options_data != nullptr) {
-        opt.ParseFromArray(options_data, options_len);
+        bool ok = opt.ParseFromArray(options_data, options_len);
+        if (!ok) {
+            throw yexception() << "Failed to parse options";
+        }
     }
     auto analysis = NPerforator::NBinaryProcessing::AnalyzeBinary(path, opt);
 
