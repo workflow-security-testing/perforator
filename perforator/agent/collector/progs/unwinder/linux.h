@@ -47,7 +47,7 @@ struct thread_struct {
 
 #else
 
-#error This arch is not supported by Perforator yer
+#error This arch is not supported by Perforator yet
 
 #endif
 
