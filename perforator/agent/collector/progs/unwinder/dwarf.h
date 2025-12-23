@@ -2,6 +2,7 @@
 
 #include "metrics.h"
 #include "binary.h"
+#include "unwind_ctx.h"
 
 // For PERF_MAX_STACK_DEPTH
 #include <linux/perf_event.h>
@@ -122,7 +123,7 @@ struct stack {
 struct dwarf_unwind_context {
     u32 pid;
     enum dwarf_unwind_error error;
-    struct dwarf_cfi_context cfi;
+    struct unwind_context cfi;
     u32 framepointers;
 };
 
@@ -256,8 +257,8 @@ BTF_EXPORT(enum unwind_page_table_params);
 ////////////////////////////////////////////////////////////////////////////////
 
 static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
-    struct dwarf_cfi_context* prev,
-    struct dwarf_cfi_context* next,
+    struct unwind_context* prev,
+    struct unwind_context* next,
     struct cfa_unwind_rule* rule
 ) {
     if (rule == NULL || prev == NULL || next == NULL) {
@@ -298,8 +299,8 @@ static ALWAYS_INLINE bool dwarf_cfi_eval_cfa(
 }
 
 ALWAYS_INLINE bool dwarf_cfi_eval_fp(
-    struct dwarf_cfi_context* prev,
-    struct dwarf_cfi_context* next,
+    struct unwind_context* prev,
+    struct unwind_context* next,
     struct rbp_unwind_rule* rule
 ) {
     if (rule->offset == DWARF_UNWIND_CFA_RULE_UNDEFINED) {
@@ -321,8 +322,8 @@ ALWAYS_INLINE bool dwarf_cfi_eval_fp(
 }
 
 static NOINLINE bool dwarf_cfi_eval(
-    struct dwarf_cfi_context* prev,
-    struct dwarf_cfi_context* next,
+    struct unwind_context* prev,
+    struct unwind_context* next,
     struct unwind_rule* rule
 ) {
     if (!dwarf_cfi_eval_cfa(prev, next, &rule->cfa)) {
@@ -440,7 +441,7 @@ static NOINLINE struct executable_mapping* dwarf_unwind_locate_executable(u32 pi
 
 ALWAYS_INLINE u32 dwarf_unwind_get_executable_root(binary_id bid) {
     u32* page = bpf_map_lookup_elem(&unwind_roots, &bid);
-    if (page == 0) {
+    if (page == NULL) {
         DWARF_TRACE("failed to lookup mapping %llu root\n", bid);
         return -1;
     }
@@ -546,7 +547,7 @@ enum dwarf_unwind_step_result NOINLINE dwarf_unwind_step() {
 #endif
 
     // Evaluate next frame.
-    struct dwarf_cfi_context next;
+    struct unwind_context next;
     dwarf_cfi_context_init_next(&next);
 
     if (!dwarf_cfi_eval(&ctx->cfi, &next, &rule)) {

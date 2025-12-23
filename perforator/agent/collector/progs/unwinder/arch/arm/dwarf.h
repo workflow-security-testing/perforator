@@ -18,16 +18,7 @@ enum dwarf_aarch64_regno {
 
 BTF_EXPORT(enum dwarf_aarch64_regno);
 
-
-struct dwarf_cfi_context {
-    u64 cfa;
-    u64 fp;
-    u64 ip;
-
-    u64 lr;
-};
-
-static void ALWAYS_INLINE dwarf_cfi_context_init_next(struct dwarf_cfi_context* ctx) {
+static void ALWAYS_INLINE dwarf_cfi_context_init_next(struct unwind_context* ctx) {
     ctx->cfa = DWARF_CFI_UNKNOWN_REGISTER;
     ctx->fp = DWARF_CFI_UNKNOWN_REGISTER;
     ctx->ip = DWARF_CFI_UNKNOWN_REGISTER;
@@ -35,7 +26,7 @@ static void ALWAYS_INLINE dwarf_cfi_context_init_next(struct dwarf_cfi_context* 
 }
 
 static ALWAYS_INLINE void dwarf_unwind_setup_userspace_registers(
-    struct dwarf_cfi_context* cfi,
+    struct unwind_context* cfi,
     struct user_regs* regs
 ) {
     cfi->cfa = regs->sp;
@@ -51,8 +42,8 @@ static ALWAYS_INLINE void dwarf_unwind_setup_userspace_registers(
 // See: https://github.com/ARM-software/abi-aa/blob/main/aadwarf64/aadwarf64.rst#note-8
 // Currently not a single observed binary has this DWARF expression
 ALWAYS_INLINE bool dwarf_cfi_eval_ra(
-    struct dwarf_cfi_context* prev,
-    struct dwarf_cfi_context* next,
+    struct unwind_context* prev,
+    struct unwind_context* next,
     struct ra_unwind_rule* rule
 ) {
     if (rule->offset == DWARF_UNWIND_CFA_RULE_UNDEFINED) {
@@ -99,7 +90,7 @@ ALWAYS_INLINE bool dwarf_cfi_eval_ra(
 // |                     |
 // |                     | <- sp
 // +---------------------+
-static NOINLINE enum dwarf_unwind_step_result dwarf_unwind_step_fp(struct dwarf_cfi_context* cfi, u32* framepointers) {
+static NOINLINE enum dwarf_unwind_step_result dwarf_unwind_step_fp(struct unwind_context* cfi, u32* framepointers) {
     if (cfi == NULL || framepointers == NULL) {
         return DWARF_UNWIND_STEP_FAILED;
     }
