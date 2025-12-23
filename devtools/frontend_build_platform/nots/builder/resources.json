@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-12-09T08:50:02Z",
+    "created": "2025-12-18T17:00:07Z",
     "pr": {
-      "id": 10997193,
+      "id": 11133789,
       "author": "zaverden",
-      "summary": "fix(builder): single after_build script for multi vite configs"
+      "summary": "conf: skip resolution.type == directory when parsing lockfile"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10530389940"
+      "uri": "sbr:10673539657"
     },
     "darwin-arm64": {
-      "uri": "sbr:10530386261"
+      "uri": "sbr:10673538009"
     },
     "linux": {
-      "uri": "sbr:10530396316"
+      "uri": "sbr:10673543430"
     },
     "linux-aarch64": {
-      "uri": "sbr:10530393036"
+      "uri": "sbr:10673541606"
     }
   }
 }
