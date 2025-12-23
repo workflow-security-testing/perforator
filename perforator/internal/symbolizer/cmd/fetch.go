@@ -72,12 +72,12 @@ func makeRenderFormat(format string, formatOptions client.FormatOptions, enableS
 	rf := fillBaseRenderFormat(enableSymbolization, enableStackMerge, experimentalEnablePythonStackPrettification)
 
 	switch format {
-	case "flamegraph", "flame", "fg":
+	case "flamegraph", "flame", "fg", string(render.HTMLFormat):
 		rf.Format = &proto.RenderFormat_Flamegraph{
 			Flamegraph: formatOptions.Flamegraph,
 		}
 
-	case "visualisation", "vis", "html-v2":
+	case "visualisation", "vis", string(render.HTMLFormatV2):
 		rf.Format = &proto.RenderFormat_HTMLVisualisation{
 			HTMLVisualisation: formatOptions.Flamegraph,
 		}
@@ -800,13 +800,14 @@ func setupFetchCmd() *cobra.Command {
 		"Aggregate profiles by profiler version",
 	)
 
+	knownFormats := strings.Join([]string{"pprof", string(render.HTMLFormat), string(render.HTMLFormatV2), string(render.PlainTextFormat)}, ", ")
 	// profile format
 	fetchCmd.Flags().StringVarP(
 		&format,
 		"format",
 		"f",
-		"flamegraph",
-		"Format of the profile (pprof, flamegraph or text)",
+		string(render.HTMLFormatV2),
+		"Format of the profile ("+knownFormats+")",
 	)
 
 	return fetchCmd

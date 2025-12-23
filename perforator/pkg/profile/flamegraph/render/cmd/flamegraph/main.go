@@ -8,6 +8,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/pprof/profile"
@@ -28,11 +29,12 @@ func unwrap[T any](value T, err error) T {
 }
 
 func main() {
+	knownFormats := strings.Join([]string{string(render.HTMLFormat), string(render.HTMLFormatV2), string(render.JSONFormat)}, ", ")
 	loop := flag.Bool("loop", false, "Spin forever")
 	format := flag.String("format", "collapsed", "Profile format: pprof or collapsed")
 	maxdepth := flag.Int("maxdepth", 128, "Truncate stacks that are taller than the limit")
 	minweight := flag.Float64("minweight", 0.0001, "Truncate stacks that are narrower than the limit")
-	outFormat := flag.String("outformat", "html", "format for the result: html, json or html-v2")
+	outFormat := flag.String("outformat", string(render.HTMLFormatV2), "format for the result: "+knownFormats)
 	flag.Parse()
 
 	go func() {
@@ -49,10 +51,12 @@ func main() {
 		fg := render.NewFlameGraph()
 		fg.SetDepthLimit(*maxdepth)
 		fg.SetMinWeight(*minweight)
-		if *outFormat == "json" {
+		switch *outFormat {
+		case string(render.JSONFormat):
 			fg.SetFormat(render.JSONFormat)
-		}
-		if *outFormat == "html-v2" {
+		case string(render.HTMLFormat):
+			fg.SetFormat(render.HTMLFormat)
+		default:
 			fg.SetFormat(render.HTMLFormatV2)
 		}
 

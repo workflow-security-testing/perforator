@@ -40,6 +40,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/debuginfod"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
+	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render"
 	"github.com/yandex/perforator/perforator/pkg/profile/merge"
 	"github.com/yandex/perforator/perforator/pkg/profile/python"
 	"github.com/yandex/perforator/perforator/pkg/profile/quality"
@@ -103,7 +104,8 @@ func (o *recordOptions) Bind(cmd *cobra.Command) {
 		Currently only multiple uprobes are supported.`,
 	)
 	cmd.Flags().DurationVarP(&o.duration, "duration", "d", 0, "Profiling duration")
-	cmd.Flags().StringVarP(&o.renderFormat, "format", "f", "flamegraph", "Profile visualization format")
+	knownFormats := strings.Join([]string{"pprof", string(render.HTMLFormat), string(render.HTMLFormatV2)}, ", ")
+	cmd.Flags().StringVarP(&o.renderFormat, "format", "f", string(render.HTMLFormatV2), "Profile visualization format: %s"+knownFormats)
 	cmd.Flags().BoolVarP(&o.debug, "debug", "", false, "Run perforator in debug mode")
 	cmd.Flags().BoolVarP(&o.signals, "record-signals", "", false, "Record fatal signals")
 	cmd.Flags().BoolVarP(&o.walltime, "record-walltime", "", false, "Record wall time")
