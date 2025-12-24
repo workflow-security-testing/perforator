@@ -15,6 +15,7 @@ import (
 	cpo_internal "github.com/yandex/perforator/perforator/internal/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/btime"
+	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
@@ -29,6 +30,7 @@ type operationController struct {
 	profiler *profiler.Profiler
 
 	uprobes            []profiler.Uprobe
+	perfEvents         []*profiler.PerfEvent
 	sampleConsumerName string
 
 	id   models.OperationID
@@ -64,6 +66,13 @@ func (o *operationController) releaseProfilerResources() error {
 	errs := []error{}
 	for _, uprobe := range o.uprobes {
 		err := uprobe.Close()
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	for _, bundle := range o.perfEvents {
+		err := bundle.Close()
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -114,12 +123,68 @@ func (o *operationController) createUprobesForEvent(ctx context.Context, eventSe
 		uprobe := o.profiler.UprobeManager().Create(uprobeConfig)
 		err := uprobe.Attach()
 		if err != nil {
+			closeErr := uprobe.Close()
+			if closeErr != nil {
+				o.l.Error(ctx, "Failed to close uprobe", log.Error(closeErr))
+			}
 			return fmt.Errorf("failed to attach uprobe: %w", err)
 		}
 		o.l.Info(ctx, "Attached uprobe", log.Error(err))
 		o.uprobes = append(o.uprobes, uprobe)
 	}
 
+	return nil
+}
+
+func (o *operationController) createPerfEvents(ctx context.Context, eventSettings *cpo_proto.EventSettings_PerfEvent, target *cpo_proto.Target) error {
+	typ := perfevent.GetTypeByNameOrAlias(eventSettings.PerfEvent.Type)
+	if typ == nil {
+		return fmt.Errorf("unknown event type: %s", eventSettings.PerfEvent.Type)
+	}
+	perfEventType, ok := typ.(*perfevent.PerfEventType)
+	if !ok {
+		return fmt.Errorf("[BUG] event type %s is not a perf event", eventSettings.PerfEvent.Type)
+	}
+
+	options := &perfevent.Options{
+		Type:   perfEventType,
+		Enable: true,
+	}
+
+	if eventSettings.PerfEvent.Frequency > 0 {
+		options.Frequency = &eventSettings.PerfEvent.Frequency
+	} else if eventSettings.PerfEvent.SampleRate > 0 {
+		options.SampleRate = &eventSettings.PerfEvent.SampleRate
+	} else {
+		return fmt.Errorf("neither Frequency nor SampleRate is set for perf event")
+	}
+
+	perfTarget := &perfevent.Target{}
+	switch t := target.Target.(type) {
+	case *cpo_proto.Target_NodeProcess:
+		pid, err := o.convertTargetProcessToCurrentNamespace(ctx, t.NodeProcess)
+		if err != nil {
+			return err
+		}
+		ipid := int(pid)
+		perfTarget.ProcessID = &ipid
+	}
+
+	perfEvent, err := o.profiler.PerfEventManager().Open(perfTarget, options)
+	if err != nil {
+		return fmt.Errorf("failed to create perf event: %w", err)
+	}
+
+	err = perfEvent.Attach()
+	if err != nil {
+		closeErr := perfEvent.Close()
+		if closeErr != nil {
+			o.l.Error(ctx, "Failed to close perf event", log.Error(closeErr))
+		}
+		return fmt.Errorf("failed to attach perf event: %w", err)
+	}
+
+	o.perfEvents = append(o.perfEvents, perfEvent)
 	return nil
 }
 
@@ -188,6 +253,10 @@ func (o *operationController) setupSampleConsumer(ctx context.Context) (err erro
 	eventSampleFilters := []profiler.SampleFilterFunc{
 		profiler.NewUprobeSampleFilter(o.profiler, allowedUprobes),
 	}
+	if len(o.perfEvents) > 0 {
+		eventSampleFilters = append(eventSampleFilters, profiler.NewPerfEventIDSampleFilter(o.perfEvents...))
+	}
+
 	for _, feature := range o.spec.Features {
 		switch feature.Feature.(type) {
 		case *cpo_proto.Feature_ExperimentalCollectSystemWidePerfEventSamplesFeature:
@@ -228,6 +297,11 @@ func (o *operationController) Start(ctx context.Context) (err error) {
 			err := o.createUprobesForEvent(ctx, eventSettings, o.spec.Target)
 			if err != nil {
 				return fmt.Errorf("failed to create uprobes: %w", err)
+			}
+		case *cpo_proto.EventSettings_PerfEvent:
+			err := o.createPerfEvents(ctx, eventSettings, o.spec.Target)
+			if err != nil {
+				return fmt.Errorf("failed to create perf events: %w", err)
 			}
 		}
 	}

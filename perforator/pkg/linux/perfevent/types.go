@@ -6,6 +6,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// PerfEventID is a unique identifier of a single perf event.
+type PerfEventID uint64
+
 // Type is just a handle to some underlying event,
 // either perf event or some custom one.
 // Particular value is assigned at runtime and should be retrieved
@@ -19,6 +22,7 @@ type Type interface {
 
 type typeImpl struct {
 	name string
+	unit string
 }
 
 func (t *typeImpl) Name() string {
@@ -26,7 +30,11 @@ func (t *typeImpl) Name() string {
 }
 
 func (t *typeImpl) String() string {
-	return t.name
+	return t.name + "." + t.unit
+}
+
+func (t *typeImpl) Unit() string {
+	return t.unit
 }
 
 func (t *typeImpl) dummy() {}
@@ -88,39 +96,39 @@ func getCacheConfig(id, op, result uint32) uint64 {
 var (
 	CPUCycles = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "CPUCycles"},
+			typeImpl: &typeImpl{name: "cpu", unit: "cycles"},
 			Type:     unix.PERF_TYPE_HARDWARE,
 			Config:   unix.PERF_COUNT_HW_CPU_CYCLES,
 		},
-		nil,
+		[]string{"CPUCycles", "cycles"},
 	)
 	CPUInstructions = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "CPUInstructions"},
+			typeImpl: &typeImpl{name: "instructions", unit: "count"},
 			Type:     unix.PERF_TYPE_HARDWARE,
 			Config:   unix.PERF_COUNT_HW_INSTRUCTIONS,
 		},
-		nil,
+		[]string{"CPUInstructions"},
 	)
 	CacheReferences = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "CacheReferences"},
+			typeImpl: &typeImpl{name: "cache-references", unit: "count"},
 			Type:     unix.PERF_TYPE_HARDWARE,
 			Config:   unix.PERF_COUNT_HW_CACHE_REFERENCES,
 		},
-		nil,
+		[]string{"CacheReferences"},
 	)
 	CacheMisses = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "CacheMisses"},
+			typeImpl: &typeImpl{name: "cache-misses", unit: "count"},
 			Type:     unix.PERF_TYPE_HARDWARE,
 			Config:   unix.PERF_COUNT_HW_CACHE_MISSES,
 		},
-		nil,
+		[]string{"CacheMisses"},
 	)
 	LLCacheLoadMisses = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "LLCacheLoadMisses"},
+			typeImpl: &typeImpl{name: "LLC-load-misses", unit: "count"},
 			Type:     unix.PERF_TYPE_HW_CACHE,
 			Config: getCacheConfig(
 				unix.PERF_COUNT_HW_CACHE_LL,
@@ -128,11 +136,11 @@ var (
 				unix.PERF_COUNT_HW_CACHE_RESULT_MISS,
 			),
 		},
-		nil,
+		[]string{"LLCacheLoadMisses"},
 	)
 	LLCacheStoreMisses = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "LLCacheStoreMisses"},
+			typeImpl: &typeImpl{name: "LLC-store-misses", unit: "count"},
 			Type:     unix.PERF_TYPE_HW_CACHE,
 			Config: getCacheConfig(
 				unix.PERF_COUNT_HW_CACHE_LL,
@@ -140,11 +148,12 @@ var (
 				unix.PERF_COUNT_HW_CACHE_RESULT_MISS,
 			),
 		},
-		nil,
+		[]string{"LLCacheStoreMisses"},
 	)
 	// AMD-specific hardware events
 	AMDFam19hBRS = mustRegisterType(
 		&PerfEventType{
+			// TODO: replace with name: lbr, and unit: stacks ?
 			typeImpl: &typeImpl{name: "AMDFam19hBRS"},
 			// Has to be a raw event
 			Type: unix.PERF_TYPE_RAW,
@@ -158,79 +167,79 @@ var (
 	// cpu clock is broken: https://stackoverflow.com/a/56967896
 	CPUClock = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "CPUClock"},
+			typeImpl: &typeImpl{name: "cpu-clock", unit: "seconds"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_CPU_CLOCK,
 		},
-		nil,
+		[]string{"CPUClock"},
 	)
 	TaskClock = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "TaskClock"},
+			typeImpl: &typeImpl{name: "task-clock", unit: "seconds"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_TASK_CLOCK,
 		},
-		nil,
+		[]string{"TaskClock"},
 	)
 	PageFaults = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "PageFaults"},
+			typeImpl: &typeImpl{name: "page-faults", unit: "count"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_PAGE_FAULTS,
 		},
-		nil,
+		[]string{"PageFaults", "faults"},
 	)
 	ContextSwitches = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "ContextSwitches"},
+			typeImpl: &typeImpl{name: "context-switches", unit: "count"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_CONTEXT_SWITCHES,
 		},
-		nil,
+		[]string{"ContextSwitches", "cs"},
 	)
 	CPUMigrations = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "CPUMigrations"},
+			typeImpl: &typeImpl{name: "cpu-migrations", unit: "count"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_CPU_MIGRATIONS,
 		},
-		nil,
+		[]string{"CPUMigrations", "migrations"},
 	)
 	PageFaultsMin = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "PageFaultsMin"},
+			typeImpl: &typeImpl{name: "minor-faults", unit: "count"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_PAGE_FAULTS_MIN,
 		},
-		nil,
+		[]string{"PageFaultsMin"},
 	)
 	PageFaultsMaj = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "PageFaultsMaj"},
+			typeImpl: &typeImpl{name: "major-faults", unit: "count"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_PAGE_FAULTS_MAJ,
 		},
-		nil,
+		[]string{"PageFaultsMaj"},
 	)
 	AlignmentFaults = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "AlignmentFaults"},
+			typeImpl: &typeImpl{name: "alignment-faults", unit: "count"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_ALIGNMENT_FAULTS,
 		},
-		nil,
+		[]string{"AlignmentFaults"},
 	)
 	EmulationFaults = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "EmulationFaults"},
+			typeImpl: &typeImpl{name: "emulation-faults", unit: "count"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_EMULATION_FAULTS,
 		},
-		nil,
+		[]string{"EmulationFaults"},
 	)
 	Dummy = mustRegisterType(
 		&PerfEventType{
-			typeImpl: &typeImpl{name: "Dummy"},
+			typeImpl: &typeImpl{name: "dummy", unit: "count"},
 			Type:     unix.PERF_TYPE_SOFTWARE,
 			Config:   unix.PERF_COUNT_SW_DUMMY,
 		},

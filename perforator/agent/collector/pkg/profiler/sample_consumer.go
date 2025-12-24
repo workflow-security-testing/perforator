@@ -581,8 +581,9 @@ func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 
 	switch c.sample.SampleType {
 	case unwinder.SampleTypePerfEvent:
-		attr := c.sample.SampleConfig.GetAttr()
-		if attr.Type != perfevent.AMDFam19hBRS.Type || attr.Config != perfevent.AMDFam19hBRS.Config {
+		perfEvent := c.sample.SampleConfig.GetPerfEvent()
+		// TODO: remove this if and implement per-perf-event sample consuming logic using custom perf event filters from sample_filter.go
+		if perfEvent.Attr.Type != perfevent.AMDFam19hBRS.Type || perfEvent.Attr.Config != perfevent.AMDFam19hBRS.Config {
 			c.recordCPUSample(ctx)
 		}
 		c.recordLBRSample(ctx)
@@ -603,12 +604,30 @@ func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
 	hasWallTime := c.p.conf.BPF.TraceWallTime != nil && *c.p.conf.BPF.TraceWallTime
 
-	sampleTypes := []profile.SampleType{{Kind: "cpu", Unit: "cycles"}}
+	var resolvedPerfEvent *perfevent.Event
+	if c.sample.SampleType == unwinder.SampleTypePerfEvent {
+		resolvedPerfEvent = c.p.eventmanager.GetEvent(perfevent.PerfEventID(c.sample.SampleConfig.GetPerfEvent().Id))
+		if resolvedPerfEvent == nil {
+			c.p.metrics.unresolvedPerfEventsForSamples.Inc()
+			c.p.log.Debug("Skipped sample of unresolved perf event", log.Any("perf_event", c.sample.SampleConfig.GetPerfEvent()))
+			return
+		}
+	}
+
+	// In case of a kprobe_finish_task_switch sample we assume cpu cycles profile
+	sampleType := perfevent.CPUCycles.Name()
+	unit := perfevent.CPUCycles.Unit()
+	if resolvedPerfEvent != nil {
+		sampleType = resolvedPerfEvent.Type().Name()
+		unit = resolvedPerfEvent.Type().Unit()
+	}
+
+	sampleTypes := []profile.SampleType{{Kind: sampleType, Unit: unit}}
 	if hasWallTime {
 		sampleTypes = append(sampleTypes, profile.SampleType{Kind: "wall", Unit: "seconds"})
 	}
 
-	builder := c.initBuilderCommon("cpu", sampleTypes)
+	builder := c.initBuilderCommon(sampleType, sampleTypes)
 
 	c.collectEventCount(builder)
 	c.collectStacksInto(ctx, builder)

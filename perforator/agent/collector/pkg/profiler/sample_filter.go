@@ -7,6 +7,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/linux"
+	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 )
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,6 +56,31 @@ func NewNonUprobeSampleFilter() SampleFilterFunc {
 func NewPerfEventSampleFilter() SampleFilterFunc {
 	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
 		return sample.SampleType == unwinder.SampleTypePerfEvent
+	}
+}
+
+func NewPerfEventIDSampleFilter(events ...*PerfEvent) SampleFilterFunc {
+	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+		if sample.SampleType != unwinder.SampleTypePerfEvent {
+			return false
+		}
+
+		perfEvent := sample.SampleConfig.GetPerfEvent()
+		id := perfevent.PerfEventID(perfEvent.Id)
+
+		for _, event := range events {
+			if event.ContainsID(id) {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+func NewOtherSampleTypesFilter() SampleFilterFunc {
+	return func(ctx context.Context, sample *unwinder.RecordSample) bool {
+		return sample.SampleType != unwinder.SampleTypeUprobe && sample.SampleType != unwinder.SampleTypePerfEvent
 	}
 }
 

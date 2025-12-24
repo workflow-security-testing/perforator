@@ -2,9 +2,14 @@ package custom_profiling_operation
 
 import (
 	"errors"
+	"fmt"
 
 	cpo_proto "github.com/yandex/perforator/perforator/proto/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
+)
+
+const (
+	maxPerfEventFrequency = 1000
 )
 
 func validateUprobeSettings(uprobeSettings *cpo_proto.UprobeSettings) error {
@@ -50,6 +55,26 @@ func validateUprobeSettings(uprobeSettings *cpo_proto.UprobeSettings) error {
 	return nil
 }
 
+func validatePerfEventSettings(perfEventSettings *cpo_proto.PerfEventSettings) error {
+	if perfEventSettings.Type == "" {
+		return errors.New("perf event type is not set")
+	}
+
+	if perfEventSettings.SampleRate > 0 {
+		return errors.New("sample rate is not allowed, use frequency instead")
+	}
+
+	if perfEventSettings.Frequency == 0 {
+		return errors.New("frequency is not set for perf event")
+	}
+
+	if perfEventSettings.Frequency > maxPerfEventFrequency {
+		return fmt.Errorf("frequency is too high, max is %d", maxPerfEventFrequency)
+	}
+
+	return nil
+}
+
 func validateTimeInterval(timeInterval *time_interval.TimeInterval) error {
 	if timeInterval == nil || timeInterval.From == nil || timeInterval.To == nil {
 		return errors.New("time interval is not set")
@@ -82,10 +107,10 @@ func validateEvent(event *cpo_proto.Event) error {
 			return err
 		}
 	case *cpo_proto.EventSettings_PerfEvent:
-		// Not implemented yet.
-		// This requires mathcing samples from BPF with events by perf_event_id
-		// and routing each event's sample to the corresponding profile.
-		return errors.New("perf event is not supported yet")
+		err := validatePerfEventSettings(eventSettings.PerfEvent)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

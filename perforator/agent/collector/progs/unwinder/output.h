@@ -49,11 +49,16 @@ struct perf_event_attr_subset {
     u64 config;
 };
 
+struct perf_event_subset {
+    struct perf_event_attr_subset attr;
+    u64 id;
+};
+
 union sample_config {
     // For sample_type == SAMPLE_TYPE_TRACEPOINT_SIGNAL_DELIVER
     int sig;
     // For sample_type == SAMPLE_TYPE_PERF_EVENT
-    struct perf_event_attr_subset attr;
+    struct perf_event_subset perf_event;
     // For sample_type == SAMPLE_TYPE_UPROBE
     u64 ip;
 };

@@ -15,7 +15,7 @@ import (
 // The perf_event subsystem does not allow reinstalling eBPF programs
 // after the first call to PERF_EVENT_IOC_SET_BPF ioctl.
 // So we respawn events in the userspace.
-type event struct {
+type Event struct {
 	mu      sync.Mutex
 	logger  log.Logger
 	handle  *Handle
@@ -24,7 +24,7 @@ type event struct {
 	bpfprog *int
 }
 
-func (e *event) Reopen() error {
+func (e *Event) Reopen() error {
 	l := log.With(e.logger,
 		log.Any("target", e.target),
 		log.Any("options", e.options),
@@ -36,7 +36,7 @@ func (e *event) Reopen() error {
 		l.Error("Failed to open perf event", log.Error(err))
 		return err
 	}
-	l.Debug("Successfully opened perf event", log.UInt64("id", next.ID()))
+	l.Debug("Successfully opened perf event", log.UInt64("id", uint64(next.ID())))
 
 	defer func() {
 		if err != nil {
@@ -59,15 +59,19 @@ func (e *event) Reopen() error {
 	return nil
 }
 
-func (e *event) Close() error {
+func (e *Event) Close() error {
 	return e.handle.Close()
 }
 
-func (e *event) Handle() *Handle {
+func (e *Event) Handle() *Handle {
 	return e.handle
 }
 
-func (e *event) AttachBPF(progfd int) error {
+func (e *Event) Type() *PerfEventType {
+	return e.options.Type
+}
+
+func (e *Event) AttachBPF(progfd int) error {
 	defer func() {
 		e.bpfprog = &progfd
 	}()
@@ -92,12 +96,14 @@ func (e *event) AttachBPF(progfd int) error {
 ////////////////////////////////////////////////////////////////////////////////
 
 type EventBundle struct {
+	mu     sync.RWMutex
 	typ    Type
 	done   func()
-	events []*event
+	events []*Event
+	ids    map[PerfEventID]struct{}
 }
 
-func (e *EventBundle) foreach(cb func(e *event) error) error {
+func (e *EventBundle) foreach(cb func(e *Event) error) error {
 	errs := make([]error, 0, len(e.events))
 	for _, event := range e.events {
 		errs = append(errs, cb(event))
@@ -106,28 +112,70 @@ func (e *EventBundle) foreach(cb func(e *event) error) error {
 }
 
 func (e *EventBundle) Enable() error {
-	return e.foreach(func(e *event) error {
+	return e.foreach(func(e *Event) error {
 		return e.handle.Enable()
 	})
 }
 
 func (e *EventBundle) Disable() error {
-	return e.foreach(func(e *event) error {
+	return e.foreach(func(e *Event) error {
 		return e.handle.Disable()
 	})
 }
 
 func (e *EventBundle) AttachBPF(progfd int) error {
-	return e.foreach(func(e *event) error {
+	err := e.foreach(func(e *Event) error {
 		return e.AttachBPF(progfd)
 	})
+	if err != nil {
+		return err
+	}
+
+	e.refreshIDs()
+	return nil
+}
+
+func (e *EventBundle) ContainsID(id PerfEventID) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	_, ok := e.ids[id]
+	return ok
+}
+
+func (e *EventBundle) refreshIDs() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.ids = make(map[PerfEventID]struct{})
+	for _, event := range e.events {
+		e.ids[event.handle.ID()] = struct{}{}
+	}
+}
+
+func (e *EventBundle) clearIDs() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.ids = nil
+}
+
+func (e *EventBundle) Type() Type {
+	return e.typ
+}
+
+func (e *EventBundle) IDs() []PerfEventID {
+	ids := make([]PerfEventID, 0, len(e.events))
+	for _, event := range e.events {
+		ids = append(ids, event.handle.ID())
+	}
+	return ids
 }
 
 func (e *EventBundle) Close() error {
 	if e.done != nil {
 		e.done()
 	}
-	return e.foreach(func(e *event) error {
+	e.clearIDs()
+	return e.foreach(func(e *Event) error {
 		return e.Close()
 	})
 }
@@ -139,6 +187,7 @@ type EventManager struct {
 	mu      sync.Mutex
 	logger  log.Logger
 	bundles map[*EventBundle]any
+	events  map[PerfEventID]*Event
 	cpus    []int
 
 	eventCount       metrics.IntGauge
@@ -159,6 +208,7 @@ func NewEventManager(l log.Logger, r metrics.Registry) (*EventManager, error) {
 	e := &EventManager{
 		logger:  l,
 		bundles: make(map[*EventBundle]any),
+		events:  make(map[PerfEventID]*Event),
 		cpus:    cpus,
 	}
 
@@ -174,7 +224,7 @@ func (e *EventManager) instrument(r metrics.Registry) {
 
 func (e *EventManager) countEvents(count int64, typ Type) {
 	e.eventCount.Add(count)
-	e.eventCountByType.With(map[string]string{"type": typ.String()}).Add(count)
+	e.eventCountByType.With(map[string]string{"type": typ.Name()}).Add(count)
 }
 
 func (e *EventManager) Open(
@@ -190,7 +240,7 @@ func (e *EventManager) Open(
 
 	bundle = &EventBundle{
 		typ:    options.Type,
-		events: make([]*event, 0, len(cpus)),
+		events: make([]*Event, 0, len(cpus)),
 	}
 
 	for _, cpu := range cpus {
@@ -199,7 +249,7 @@ func (e *EventManager) Open(
 		options := *options
 		target.CPU = &cpu
 
-		event := &event{logger: e.logger, target: &target, options: &options}
+		event := &Event{logger: e.logger, target: &target, options: &options}
 		err = event.Reopen()
 		if err != nil {
 			closeErr := bundle.Close()
@@ -213,6 +263,7 @@ func (e *EventManager) Open(
 	}
 
 	e.register(bundle)
+	bundle.refreshIDs()
 
 	return bundle, nil
 }
@@ -221,13 +272,29 @@ func (e *EventManager) register(b *EventBundle) {
 	b.done = func() {
 		e.unregister(b)
 	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.bundles[b] = nil
+	for _, event := range b.events {
+		e.events[event.handle.ID()] = event
+	}
 	e.countEvents(int64(len(b.events)), b.typ)
 }
 
 func (e *EventManager) unregister(b *EventBundle) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	delete(e.bundles, b)
+	for _, event := range b.events {
+		delete(e.events, event.handle.ID())
+	}
 	e.countEvents(-int64(len(b.events)), b.typ)
+}
+
+func (e *EventManager) GetEvent(id PerfEventID) *Event {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.events[id]
 }
 
 ////////////////////////////////////////////////////////////////////////////////

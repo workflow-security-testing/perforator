@@ -73,12 +73,13 @@ type Profiler struct {
 	eventListener  EventListener
 	initialTargets *initialTargets
 
-	bpf            *machine.BPF
-	eventmanager   *perfevent.EventManager
-	uprobeRegistry *uprobeRegistry
-	mounts         *mountinfo.Watcher
-	kallsyms       *kallsyms.KallsymsResolver
-	events         map[perfevent.Type]*perfevent.EventBundle
+	bpf              *machine.BPF
+	eventmanager     *perfevent.EventManager
+	perfEventManager *PerfEventManager
+	uprobeRegistry   *uprobeRegistry
+	mounts           *mountinfo.Watcher
+	kallsyms         *kallsyms.KallsymsResolver
+	events           map[perfevent.Type]*PerfEvent
 	// uprobes which are created on Profiler startup
 	initialUprobes []Uprobe
 	debugmu        sync.Mutex
@@ -136,6 +137,8 @@ type profilerMetrics struct {
 	resolveTLSSuccess          metrics.Counter
 	recordedTLSVarsFromSamples metrics.Counter
 	recordedTLSBytes           metrics.Counter
+
+	unresolvedPerfEventsForSamples metrics.Counter
 
 	pythonMetrics languageCollectionMetrics
 	phpMetrics    languageCollectionMetrics
@@ -217,9 +220,32 @@ func WithThreadTarget(tid int, labels map[string]string) Option {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+func validateConfig(c *config.Config) error {
+	if c.BPF.TraceWallTime == nil || *c.BPF.TraceWallTime {
+		foundCPUCyclesPerfEvent := false
+		for _, perfEventConfig := range c.PerfEvents {
+			resolvedPerfEvent := perfevent.GetTypeByNameOrAlias(perfEventConfig.Type)
+			if resolvedPerfEvent.Name() == perfevent.CPUCycles.Name() {
+				foundCPUCyclesPerfEvent = true
+				break
+			}
+		}
+
+		if !foundCPUCyclesPerfEvent {
+			return errors.New("CPUCycles perf event must be configured to trace wall time")
+		}
+	}
+
+	return nil
+}
+
 func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Option) (*Profiler, error) {
 	c.FillDefault()
 	l = l.WithName("profiler")
+
+	if err := validateConfig(c); err != nil {
+		return nil, fmt.Errorf("invalid profiler config: %w", err)
+	}
 
 	envWhitelist := make(map[string]struct{})
 	for _, env := range c.SampleConsumer.EnvWhitelist {
@@ -230,7 +256,7 @@ func NewProfiler(c *config.Config, l log.Logger, r metrics.Registry, opts ...Opt
 		conf:                   c,
 		log:                    l,
 		mounts:                 mountinfo.NewWatcher(l, r),
-		events:                 make(map[perfevent.Type]*perfevent.EventBundle),
+		events:                 make(map[perfevent.Type]*PerfEvent),
 		pids:                   make(map[linux.CurrentNamespacePID]*trackedProcess),
 		profileChan:            make(chan client.LabeledProfile, 64),
 		debugmode:              c.Debug,
@@ -335,8 +361,12 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		return fmt.Errorf("failed to initialize perf event subsystem: %w", err)
 	}
 
+	p.perfEventManager = NewPerfEventManager(p.bpf, p.eventmanager)
+
 	// Prepare uprobe registry
 	p.uprobeRegistry = newUprobeRegistry(p.bpf)
+
+	p.events = make(map[perfevent.Type]*PerfEvent)
 
 	// Setup system-wide perf events
 	err = p.setupPerfEvents()
@@ -501,11 +531,17 @@ func (p *Profiler) registerMainSampleConsumer() error {
 		allowedUprobes[uprobe.Info().BinaryInfo] = struct{}{}
 	}
 
+	var mainPerfEvents []*PerfEvent
+	for _, bundle := range p.events {
+		mainPerfEvents = append(mainPerfEvents, bundle)
+	}
+
 	mainSampleConsumer := NewFilterSampleConsumerAdapter(
 		newContinuousProfilingSampleConsumer(p),
 		NewORSampleFilter(
-			NewNonUprobeSampleFilter(),
 			NewUprobeSampleFilter(p, allowedUprobes),
+			NewPerfEventIDSampleFilter(mainPerfEvents...),
+			NewOtherSampleTypesFilter(),
 		),
 	)
 	err := p.sampleConsumerRegistry.Register(mainSampleConsumerName, mainSampleConsumer)
@@ -580,7 +616,7 @@ func (p *Profiler) setupPerfEvents() error {
 			TryToSampleBranchStack: perfevent.ShouldTryToEnableBranchSampling(),
 		}
 
-		bundle, err := p.eventmanager.Open(target, options)
+		bundle, err := p.perfEventManager.Open(target, options)
 		if err != nil {
 			return fmt.Errorf("failed to create perf event bundle: %w", err)
 		}
@@ -594,7 +630,7 @@ func (p *Profiler) setupPerfEvents() error {
 
 func (p *Profiler) installPerfEventBPF() error {
 	for _, bundle := range p.events {
-		err := bundle.AttachBPF(p.bpf.ProfilerProgramFD())
+		err := bundle.Attach()
 		if err != nil {
 			return err
 		}
@@ -616,6 +652,10 @@ func (p *Profiler) setupUprobes() {
 
 func (p *Profiler) UprobeManager() UprobeManager {
 	return p.uprobeRegistry
+}
+
+func (p *Profiler) PerfEventManager() *PerfEventManager {
+	return p.perfEventManager
 }
 
 func (p *Profiler) SampleConsumerRegistry() SampleConsumerRegistry {
@@ -654,7 +694,7 @@ func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
 		TryToSampleBranchStack: true,
 	}
 
-	bundle, err := p.eventmanager.Open(target, options)
+	bundle, err := p.perfEventManager.openImpl(target, options, amdBRSProgram)
 	if err != nil {
 		p.log.Warn("Failed to enable AMD BRS perf-event")
 		// Failure here is okay, BRS support is best-effort.
@@ -666,7 +706,7 @@ func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
 		}
 	}()
 
-	err = bundle.AttachBPF(p.bpf.AmdBRSProgramFD())
+	err = bundle.Attach()
 	if err != nil {
 		p.log.Warn("Failed to attach eBPF-program to the AMD BRS perf-event")
 		return
@@ -689,6 +729,8 @@ func (p *Profiler) registerMetrics(r metrics.Registry) error {
 
 	p.metrics.recordedTLSVarsFromSamples = r.Counter("tls.variables_recorded.count")
 	p.metrics.recordedTLSBytes = r.Counter("tls.variables_recorded.bytes")
+
+	p.metrics.unresolvedPerfEventsForSamples = r.Counter("perf_event.unresolved.count")
 
 	p.metrics.droppedProfiles = r.WithTags(Labels{"kind": "dropped"}).Counter("profiles.count")
 

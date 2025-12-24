@@ -700,9 +700,10 @@ int perforator_perf_event(struct bpf_perf_event_data* ctx) {
     args.record_walltime = true;
 
     args.sample_type = SAMPLE_TYPE_PERF_EVENT;
-    args.sample_config.attr.type = get_perf_event_type(ctx);
-    args.sample_config.attr.config = get_perf_event_config(ctx);
-    args.event_count = calculate_perf_counter_delta(ctx, get_perf_event_id(ctx));
+    args.sample_config.perf_event.attr.type = get_perf_event_type(ctx);
+    args.sample_config.perf_event.attr.config = get_perf_event_config(ctx);
+    args.sample_config.perf_event.id = get_perf_event_id(ctx);
+    args.event_count = calculate_perf_counter_delta(ctx, args.sample_config.perf_event.id);
     if (args.event_count == 0) {
         return 0;
     }
@@ -743,9 +744,10 @@ int perforator_amd_fam19h_brs_event(struct bpf_perf_event_data* ctx) {
     args.record_walltime = false;
 
     args.sample_type = SAMPLE_TYPE_PERF_EVENT;
-    args.sample_config.attr.type = get_perf_event_type(ctx);
-    args.sample_config.attr.config = get_perf_event_config(ctx);
-    args.event_count = calculate_perf_counter_delta(ctx, get_perf_event_id(ctx));
+    args.sample_config.perf_event.attr.type = get_perf_event_type(ctx);
+    args.sample_config.perf_event.attr.config = get_perf_event_config(ctx);
+    args.sample_config.perf_event.id = get_perf_event_id(ctx);
+    args.event_count = calculate_perf_counter_delta(ctx, args.sample_config.perf_event.id);
     if (args.event_count == 0) {
         return 0;
     }

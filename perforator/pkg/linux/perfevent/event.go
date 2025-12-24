@@ -86,7 +86,7 @@ type branchStackOptions struct {
 
 type Handle struct {
 	fd *os.File
-	id uint64
+	id PerfEventID
 }
 
 // TODO(sskvor): Use less hardcoded values, add more options
@@ -126,17 +126,18 @@ func (h *Handle) AttachBPF(bpfFD int) error {
 }
 
 // Get system-wide unique id of the perf event.
-func (h *Handle) ID() uint64 {
+func (h *Handle) ID() PerfEventID {
 	return h.id
 }
 
-func getPerfEventID(fd *os.File) (id uint64, err error) {
-	_, _, errno := unix.Syscall(syscall.SYS_IOCTL, fd.Fd(), unix.PERF_EVENT_IOC_ID, uintptr(unsafe.Pointer(&id)))
+func getPerfEventID(fd *os.File) (id PerfEventID, err error) {
+	var rawID uint64
+	_, _, errno := unix.Syscall(syscall.SYS_IOCTL, fd.Fd(), unix.PERF_EVENT_IOC_ID, uintptr(unsafe.Pointer(&rawID)))
 	if errno != 0 {
 		err = errno
 		return
 	}
-	return id, nil
+	return PerfEventID(rawID), nil
 }
 
 func newHandle(target *Target, options *Options, branchStackOptions branchStackOptions) (*Handle, error) {
