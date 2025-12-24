@@ -1,6 +1,7 @@
 package profiler
 
 import (
+	"sync"
 	"time"
 
 	"golang.org/x/exp/maps"
@@ -16,6 +17,7 @@ type labeledAgentProfiles struct {
 }
 
 type multiProfileBuilder struct {
+	mu               sync.RWMutex
 	labels           map[string]string
 	caches           *profile.DefaultMap[uint32, profile.ProcessCache]
 	builders         map[string]*profile.Builder
@@ -28,12 +30,12 @@ func newMultiProfileBuilder(labels map[string]string) *multiProfileBuilder {
 		caches:   profile.NewProcessCaches(),
 		builders: make(map[string]*profile.Builder),
 	}
-	builder.StartNewProfiles()
+	builder.startNewProfiles()
 
 	return &builder
 }
 
-func (b *multiProfileBuilder) StartNewProfiles() {
+func (b *multiProfileBuilder) startNewProfiles() {
 	b.profileStartTime = time.Now()
 	for _, builder := range b.builders {
 		builder.SetStartTime(b.profileStartTime)
@@ -41,6 +43,9 @@ func (b *multiProfileBuilder) StartNewProfiles() {
 }
 
 func (b *multiProfileBuilder) RestartProfiles() labeledAgentProfiles {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	now := time.Now()
 
 	profiles := make([]*profile.Profile, 0, len(b.builders))
@@ -49,7 +54,7 @@ func (b *multiProfileBuilder) RestartProfiles() labeledAgentProfiles {
 		profiles = append(profiles, builder.Finish())
 	}
 	b.caches.Clear()
-	b.StartNewProfiles()
+	b.startNewProfiles()
 
 	result := labeledAgentProfiles{
 		Profiles: profiles,
@@ -61,7 +66,14 @@ func (b *multiProfileBuilder) RestartProfiles() labeledAgentProfiles {
 }
 
 func (b *multiProfileBuilder) EnsureBuilder(name string, sampleTypes []profile.SampleType) *profile.Builder {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	builder := b.builders[name]
+	if builder != nil {
+		return builder
+	}
+
+	builder = b.builders[name]
 	if builder != nil {
 		return builder
 	}
@@ -77,6 +89,8 @@ func (b *multiProfileBuilder) EnsureBuilder(name string, sampleTypes []profile.S
 }
 
 func (b *multiProfileBuilder) ProfileStartTime() time.Time {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
 	return b.profileStartTime
 }
 

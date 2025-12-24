@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"strings"
 	"time"
 
@@ -162,7 +163,10 @@ func (c *Client) PushProfile(
 		if err != nil {
 			return 0, fmt.Errorf("failed to compress profile: %w", err)
 		}
-		labels[profilestorage.CompressionLabel] = string(c.compressionCodec)
+		newLabels := make(map[string]string, len(labels)+1)
+		maps.Copy(newLabels, labels)
+		newLabels[profilestorage.CompressionLabel] = string(c.compressionCodec)
+		labels = newLabels
 	}
 
 	c.logger.Debug(ctx, "Pushing profile", log.Int("size", len(profileBytes)))
