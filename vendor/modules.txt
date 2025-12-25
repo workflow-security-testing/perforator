@@ -6686,6 +6686,10 @@ github.com/emersion/go-sasl
 # github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594
 ## explicit
 github.com/emersion/go-textwrapper
+# github.com/emiago/sipgo v1.0.0
+## explicit; go 1.23.0
+github.com/emiago/sipgo
+github.com/emiago/sipgo/sip
 # github.com/emicklei/go-restful v2.16.0+incompatible
 ## explicit
 # github.com/emicklei/go-restful-swagger12 v0.0.0-20201014110547-68ccff494617
@@ -10454,6 +10458,10 @@ github.com/iancoleman/strcase
 # github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465
 ## explicit; go 1.13
 github.com/ianlancetaylor/demangle
+# github.com/icholy/digest v1.1.0
+## explicit; go 1.20
+github.com/icholy/digest
+github.com/icholy/digest/internal/param
 # github.com/icrowley/fake v0.0.0-20221112152111-d7b7e2276db2
 ## explicit; go 1.17
 # github.com/icza/bitio v1.1.0

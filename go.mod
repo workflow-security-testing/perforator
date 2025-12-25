@@ -343,6 +343,7 @@ require (
 	github.com/elastic/go-elasticsearch/v7 v7.17.1
 	github.com/elimity-com/scim v0.0.0-20220121082953-15165b1a61c8
 	github.com/emersion/go-imap v1.2.1
+	github.com/emiago/sipgo v1.0.0
 	github.com/emicklei/go-restful/v3 v3.11.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha
 	github.com/envoyproxy/go-control-plane v0.13.4
@@ -1698,6 +1699,7 @@ require (
 	github.com/hybridgroup/mjpeg v0.0.0-20140228234708-4680f319790e // indirect
 	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465 // indirect
+	github.com/icholy/digest v1.1.0 // indirect
 	github.com/icrowley/fake v0.0.0-20221112152111-d7b7e2276db2 // indirect
 	github.com/icza/mighty v0.0.0-20220812133946-909cba2425e9 // indirect
 	github.com/iij/doapi v0.0.0-20190504054126-0bbf12d6d7df // indirect
