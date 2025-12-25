@@ -14,6 +14,8 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profilerext"
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmattach"
 	"github.com/yandex/perforator/perforator/internal/logfield"
 	"github.com/yandex/perforator/perforator/pkg/linux"
@@ -343,12 +345,19 @@ func (r *Registry) findProcess(pid linux.CurrentNamespacePID) *trackedProcess {
 	return r.procs[pid]
 }
 
-func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (string, bool) {
+func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizaterOutput, bool) {
 	tp := r.findProcess(pid)
 	if tp == nil || tp.state.Load() != int32(processStateInitialized) {
-		return "", false
+		return profilerext.JITSymbolizaterOutput{}, false
 	}
-	return tp.perfmap.find(ip)
+	name, ok := tp.perfmap.find(ip)
+	if !ok {
+		return profilerext.JITSymbolizaterOutput{}, false
+	}
+	return profilerext.JITSymbolizaterOutput{
+		SymbolName:  name,
+		MappingName: profile.JITSpecialMapping,
+	}, true
 }
 
 func trySleepContext(ctx context.Context, dur time.Duration) {

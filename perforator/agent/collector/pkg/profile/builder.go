@@ -15,17 +15,20 @@ type SpecialMapping = string
 
 const (
 	KernelSpecialMapping SpecialMapping = "[kernel]"
-	PythonSpecialMapping SpecialMapping = "[python]"
-	PHPSpecialMapping    SpecialMapping = "[php]"
+	// jit code for which exact runtime is not known
+	JITSpecialMapping    SpecialMapping = "[jit]"
 	JVMSpecialMapping    SpecialMapping = "[jvm]"
+	PHPSpecialMapping    SpecialMapping = "[php]"
+	PythonSpecialMapping SpecialMapping = "[python]"
 )
 
 var (
 	SpecialMappings = map[string]bool{
-		string(PythonSpecialMapping): true,
 		string(KernelSpecialMapping): true,
-		string(PHPSpecialMapping):    true,
+		string(JITSpecialMapping):    true,
 		string(JVMSpecialMapping):    true,
+		string(PHPSpecialMapping):    true,
+		string(PythonSpecialMapping): true,
 	}
 )
 

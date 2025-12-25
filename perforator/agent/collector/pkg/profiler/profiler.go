@@ -23,6 +23,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/perfmap"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/profilerext"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	preprocessig_proto "github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
@@ -95,6 +96,8 @@ type Profiler struct {
 
 	pythonSymbolizer *symbolizer.Symbolizer
 	phpSymbolizer    *symbolizer.Symbolizer
+
+	jitSymbolizers []profilerext.JITSymbolizer
 
 	// Profiling targets
 	wholeSystem SampleConsumer
@@ -439,6 +442,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 
 	if p.enablePerfMaps {
 		p.processListeners = append(p.processListeners, p.perfmap)
+		p.jitSymbolizers = append(p.jitSymbolizers, p.perfmap)
 	}
 
 	bpfManager, err := binary.NewBPFBinaryManager(p.log.WithName("ProcessRegistry"), r.WithPrefix("ProcessRegistry"), p.bpf)

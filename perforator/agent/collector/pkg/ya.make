@@ -11,6 +11,7 @@ RECURSE(
     process
     profile
     profiler
+    profilerext
     storage
     uprobe
 )

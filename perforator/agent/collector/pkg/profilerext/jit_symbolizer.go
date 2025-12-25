@@ -1,0 +1,17 @@
+package profilerext
+
+import "github.com/yandex/perforator/perforator/pkg/linux"
+
+type JITSymbolizaterOutput struct {
+	SymbolName string
+	// This should not be a real mapping (i.e. elf file) name, but a pseudo-mapping
+	// representing the runtime.
+	MappingName string
+}
+
+// LocalSymbolizer resolves jit-ed IPs in samples into function names.
+type JITSymbolizer interface {
+	// Note that this function has neither context nor error result, because
+	// it is not supposed to contain complex logic for now.
+	Resolve(pid linux.CurrentNamespacePID, ip uint64) (JITSymbolizaterOutput, bool)
+}

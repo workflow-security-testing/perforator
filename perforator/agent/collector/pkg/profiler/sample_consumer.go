@@ -416,11 +416,15 @@ func (c *oneShotSampleConsumer) collectKernelStackInto(builder *profile.SampleBu
 }
 
 func (c *oneShotSampleConsumer) processUserSpaceLocation(ctx context.Context, loc *profile.LocationBuilder, ip uint64) {
-	if c.p.enablePerfMaps {
-		name, ok := c.p.perfmap.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
-		if ok {
-			loc.AddFrame().SetName(name).SetMangledName(name).Finish()
+	for _, s := range c.p.jitSymbolizers {
+		out, ok := s.Resolve(linux.CurrentNamespacePID(c.sample.Pid), ip)
+		if !ok {
+			continue
 		}
+		loc.AddFrame().SetName(out.SymbolName).SetMangledName(out.SymbolName).Finish()
+		loc.SetMapping().SetPath(out.MappingName).Finish()
+		loc.Finish()
+		return
 	}
 	mapping, err := c.p.dsoStorage.ResolveMapping(ctx, linux.CurrentNamespacePID(c.sample.Pid), ip)
 	if err == nil {
