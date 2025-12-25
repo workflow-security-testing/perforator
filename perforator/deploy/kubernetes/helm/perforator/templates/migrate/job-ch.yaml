@@ -44,6 +44,7 @@ spec:
       containers:
       - name: init
         image:  "{{ .Values.databases.clickhouse.migrations.image.repository }}:{{ .Values.databases.clickhouse.migrations.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.databases.clickhouse.migrations.image.pullPolicy }}
         command:
         - /bin/sh
         - -c

@@ -21,6 +21,12 @@ Internal changes:
 
 1: If you are sending patch to GitHub, specify PR. Otherwise (if you are sending patch to internal monorepo), leave unset and then specify Git commit.
 -->
+
+# Unreleased
+
+Fixes:
++ Migration jobs no longer ignore pullPolicy from values
+
 # 0.2.11
 
 Fixes:

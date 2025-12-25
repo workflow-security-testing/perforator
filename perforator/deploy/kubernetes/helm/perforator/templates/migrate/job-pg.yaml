@@ -35,6 +35,7 @@ spec:
       containers:
       - name: init
         image:  "{{ .Values.databases.postgresql.migrations.image.repository }}:{{ .Values.databases.postgresql.migrations.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.databases.postgresql.migrations.image.pullPolicy }}
         command:
         - /bin/sh
         - -c
