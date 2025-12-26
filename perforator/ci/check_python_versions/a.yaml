@@ -1,0 +1,59 @@
+service: perforator
+title: "Check for new CPython versions"
+
+ci:
+  secret: sec-01g2yv0azvpmfn076nvn0m4fa8
+  runtime:
+    sandbox-owner: PERFORATOR
+
+  permissions:
+    start-flow:
+      - service: perforator
+
+  flows:
+    check-cpython-versions:
+      jobs:
+        start:
+          title: Start CPython versions check
+          task: dummy
+
+        run-check:
+          title: Run CPython versions check
+          task: common/misc/run_command
+          needs: start
+          requirements:
+            sandbox:
+              dns: dns64
+          input:
+              config:
+                  cmd_line: >
+                    ya run perforator/internal/linguist/python/scripts/check_new_versions
+                    --offsets-dir perforator/internal/linguist/python/agent/offsets
+                    --monium-token $MONIUM_TOKEN
+                    --monium-project perforator
+                    --monium-cluster production
+                    --monium-service cpython-offsets
+                    --host-label perforator-ci
+                  arc_mount_config:
+                      enabled: true
+                  secret_environment_variables:
+                      - key: MONIUM_TOKEN
+                        secret_spec:
+                          key: MONITORING_API_TOKEN
+                  logs_config:
+                    stderr_ci_badge: true
+                    ci_badge_tail: true
+
+  actions:
+    check-missing-cpython-versions:
+      title: "Check missing CPython versions"
+      flow: check-cpython-versions
+      max-active: 1
+      schedule:
+        cron: "0,30 * * * *" # Every 30 minutes
+        timezone: MSK
+      triggers:
+        - on: pr
+          into: trunk
+          on-demand: true
+          required: false
