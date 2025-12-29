@@ -10,6 +10,7 @@ import (
 
 type Mapping interface {
 	Path() string
+	BinaryClass() dso.BinaryClass
 	dso() *dso.DSO
 	begin() uint64
 	end() uint64

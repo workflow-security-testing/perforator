@@ -86,6 +86,10 @@ func (m mappingImpl) Path() string {
 	return m.m.Path
 }
 
+func (m mappingImpl) BinaryClass() dso.BinaryClass {
+	return m.m.DSO.BinaryClass
+}
+
 func (m mappingImpl) buildInfo() *xelf.BuildInfo {
 	return m.m.BuildInfo
 }
