@@ -6,7 +6,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/unwindtable"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/parse"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/php"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/pthread"
@@ -30,21 +30,21 @@ type Allocation struct {
 
 type BPFBinaryManager struct {
 	l      log.Logger
-	bpf    *machine.BPF
+	state  *programstate.State
 	tables *unwindtable.BPFManager
 }
 
-func NewBPFBinaryManager(l log.Logger, r metrics.Registry, bpf *machine.BPF) (*BPFBinaryManager, error) {
+func NewBPFBinaryManager(l log.Logger, r metrics.Registry, state *programstate.State) (*BPFBinaryManager, error) {
 	l = l.WithName("BinaryManager")
 
-	unwmanager, err := unwindtable.NewBPFManager(l, r, bpf)
+	unwmanager, err := unwindtable.NewBPFManager(l, r, state)
 	if err != nil {
 		return nil, err
 	}
 
 	return &BPFBinaryManager{
 		l:      l,
-		bpf:    bpf,
+		state:  state,
 		tables: unwmanager,
 	}, nil
 }
@@ -63,7 +63,7 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 	binId := unwinder.BinaryId(id)
 
 	if analysis.TLSConfig != nil {
-		err = m.bpf.AddTLSConfig(binId, convertToUnwindTLSConfig(analysis.TLSConfig))
+		err = m.state.AddTLSConfig(binId, convertToUnwindTLSConfig(analysis.TLSConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +75,7 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 	}
 
 	if analysis.PythonConfig != nil {
-		err = m.bpf.AddPythonConfig(binId, convertToUnwindPythonConfig(analysis.PythonConfig))
+		err = m.state.AddPythonConfig(binId, convertToUnwindPythonConfig(analysis.PythonConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +87,7 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 	}
 
 	if analysis.PhpConfig != nil {
-		err = m.bpf.AddPhpConfig(binId, convertToUnwindPhpConfig(analysis.PhpConfig))
+		err = m.state.AddPhpConfig(binId, convertToUnwindPhpConfig(analysis.PhpConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +100,7 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 	}
 
 	if analysis.PthreadConfig != nil {
-		err = m.bpf.AddPthreadConfig(binId, convertToUnwindPthreadConfig(analysis.PthreadConfig))
+		err = m.state.AddPthreadConfig(binId, convertToUnwindPthreadConfig(analysis.PthreadConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -126,28 +126,28 @@ func (m *BPFBinaryManager) Release(a *Allocation) {
 }
 
 func (m *BPFBinaryManager) releasePython(id unwinder.BinaryId) {
-	err := m.bpf.DeletePythonConfig(id)
+	err := m.state.DeletePythonConfig(id)
 	if err != nil {
 		m.l.Error("Failed to delete python config", log.Error(err))
 	}
 }
 
 func (m *BPFBinaryManager) releasePthread(id unwinder.BinaryId) {
-	err := m.bpf.DeletePthreadConfig(id)
+	err := m.state.DeletePthreadConfig(id)
 	if err != nil {
 		m.l.Error("Failed to delete pthread config", log.Error(err))
 	}
 }
 
 func (m *BPFBinaryManager) releasePhp(id unwinder.BinaryId) {
-	err := m.bpf.DeletePhpConfig(id)
+	err := m.state.DeletePhpConfig(id)
 	if err != nil {
 		m.l.Error("Failed to delete php config", log.Error(err))
 	}
 }
 
 func (m *BPFBinaryManager) releaseTLS(id unwinder.BinaryId) {
-	err := m.bpf.DeleteTLSConfig(id)
+	err := m.state.DeleteTLSConfig(id)
 	if err != nil {
 		m.l.Error("Failed to delete TLS config", log.Error(err))
 	}

@@ -7,3 +7,6 @@ SRCS(
 
 END()
 
+RECURSE(
+    programstate
+)

@@ -18,7 +18,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/upload"
 	"github.com/yandex/perforator/perforator/internal/logfield"
@@ -48,7 +48,7 @@ type ProcessRegistry struct {
 
 	buildids   *BuildIDCache
 	dsoStorage *dso.Storage
-	bpf        *machine.BPF
+	state      *programstate.State
 	mounts     *mountinfo.Watcher
 
 	uploader *upload.Scheduler
@@ -181,7 +181,7 @@ type UploaderArguments struct {
 func NewProcessRegistry(
 	l xlog.Logger,
 	m metrics.Registry,
-	ebpf *machine.BPF,
+	state *programstate.State,
 	mounts *mountinfo.Watcher,
 	dsoStorage *dso.Storage,
 	uploaderArgs *UploaderArguments,
@@ -202,7 +202,7 @@ func NewProcessRegistry(
 		log:               l,
 		procs:             make(map[linux.CurrentNamespacePID]*processInfo),
 		dsoStorage:        dsoStorage,
-		bpf:               ebpf,
+		state:             state,
 		procchan:          make(chan *processInfo, 8192),
 		buildids:          NewBuildIDCache(),
 		uploader:          uploader,
@@ -256,7 +256,7 @@ func (r *ProcessRegistry) deleteProcess(ctx context.Context, pid linux.CurrentNa
 	r.dsoStorage.RemoveProcess(ctx, pid)
 	r.removeProcessMappings(ctx, pi)
 
-	err := r.bpf.RemoveProcess(pid)
+	err := r.state.RemoveProcess(pid)
 	if err != nil {
 		r.log.Debug(
 			ctx,
@@ -733,7 +733,7 @@ func (a *processAnalyzer) storeBPFMaps(ctx context.Context) error {
 	a.fillMappedBinaryInfo(pi, a.exemappings)
 
 	a.log.Debug(ctx, "Put process info", log.Any("info", pi))
-	err := a.reg.bpf.AddProcess(a.proc.currentNamespaceID, pi)
+	err := a.reg.state.AddProcess(a.proc.currentNamespaceID, pi)
 	if err != nil {
 		return err
 	}
@@ -792,7 +792,7 @@ func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso
 
 	// Step 1. Populate LPM trie
 	err := iterateMappingLPMSegments(mappingImpl{m}, func(address uint64, prefix uint32) error {
-		return r.bpf.AddMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
+		return r.state.AddMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
 			Prefixlen:     32 + prefix,
 			Pid:           uint32(pi.currentNamespaceID),
 			AddressPrefix: HostToBigEndian64(address),
@@ -806,7 +806,7 @@ func (r *ProcessRegistry) addBPFMap(ctx context.Context, pi *processInfo, m *dso
 	}
 
 	// Step 2. Add eBPF mapping to the per-process registry.
-	err = r.bpf.AddMapping(&unwinder.ExecutableMappingKey{
+	err = r.state.AddMapping(&unwinder.ExecutableMappingKey{
 		Pid:           uint32(pi.currentNamespaceID),
 		UnusedPadding: 0,
 		Id:            id,
@@ -837,7 +837,7 @@ func (r *ProcessRegistry) removeBPFMap(ctx context.Context, pi *processInfo, m p
 
 	// Step 1. Remove LPM trie
 	err := iterateMappingLPMSegments(m.Mapping, func(address uint64, prefix uint32) error {
-		return r.bpf.RemoveMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
+		return r.state.RemoveMappingLPMSegment(&unwinder.ExecutableMappingTrieKey{
 			Prefixlen:     32 + prefix,
 			Pid:           uint32(pi.currentNamespaceID),
 			AddressPrefix: HostToBigEndian64(address),
@@ -850,7 +850,7 @@ func (r *ProcessRegistry) removeBPFMap(ctx context.Context, pi *processInfo, m p
 
 	// Step 2. Remove eBPF mapping from the per-process registry.
 	// If this fails, we will retry on the next iteration.
-	err = r.bpf.RemoveMapping(&unwinder.ExecutableMappingKey{
+	err = r.state.RemoveMapping(&unwinder.ExecutableMappingKey{
 		Pid: uint32(pi.currentNamespaceID),
 		Id:  m.id,
 	})

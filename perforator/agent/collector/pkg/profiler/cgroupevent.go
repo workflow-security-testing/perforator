@@ -5,7 +5,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 )
 
 type CgroupConfig struct {
@@ -20,7 +20,7 @@ type CgroupConfig struct {
 type trackedCgroup struct {
 	l               log.Logger
 	conf            *CgroupConfig
-	bpf             *machine.BPF
+	state           *programstate.State
 	freezerCgroupID uint64
 	sampleConsumer  SampleConsumer
 }
@@ -28,13 +28,13 @@ type trackedCgroup struct {
 func (p *Profiler) newTrackedCgroup(
 	conf *CgroupConfig,
 	sampleConsumer SampleConsumer,
-	bpf *machine.BPF,
+	state *programstate.State,
 	l log.Logger,
 ) (*trackedCgroup, error) {
 	t := &trackedCgroup{
 		l:              log.With(l, log.String("cgroup", conf.Name)),
 		conf:           conf,
-		bpf:            bpf,
+		state:          state,
 		sampleConsumer: sampleConsumer,
 	}
 
@@ -42,7 +42,7 @@ func (p *Profiler) newTrackedCgroup(
 }
 
 func (t *trackedCgroup) Close() {
-	err := t.bpf.RemoveTracedCgroup(t.freezerCgroupID)
+	err := t.state.RemoveTracedCgroup(t.freezerCgroupID)
 	if err != nil {
 		t.l.Warn("Failed to remove traced cgroup from the eBPF maps", log.Error(err))
 	}
@@ -51,7 +51,7 @@ func (t *trackedCgroup) Close() {
 func (t *trackedCgroup) Open(name string, freezerCgroupID uint64) error {
 	t.l.Info("Registered cgroup", log.UInt64("id", freezerCgroupID))
 
-	err := t.bpf.AddTracedCgroup(freezerCgroupID)
+	err := t.state.AddTracedCgroup(freezerCgroupID)
 	if err != nil {
 		return fmt.Errorf("failed to add cgroup %q with id %d to eBPF maps: %w", name, freezerCgroupID, err)
 	}

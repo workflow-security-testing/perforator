@@ -1,7 +1,7 @@
 package profiler
 
 import (
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
@@ -10,15 +10,15 @@ import (
 type trackedProcess struct {
 	pid            linux.CurrentNamespacePID
 	sampleConsumer SampleConsumer
-	bpf            *machine.BPF
+	state          *programstate.State
 }
 
 func (p *Profiler) newTrackedProcess(
 	pid linux.CurrentNamespacePID,
 	sampleConsumer SampleConsumer,
-	bpf *machine.BPF,
+	state *programstate.State,
 ) (*trackedProcess, error) {
-	err := bpf.AddTracedProcess(pid)
+	err := state.AddTracedProcess(pid)
 	if err != nil {
 		return nil, err
 	}
@@ -26,12 +26,12 @@ func (p *Profiler) newTrackedProcess(
 	return &trackedProcess{
 		pid:            pid,
 		sampleConsumer: sampleConsumer,
-		bpf:            bpf,
+		state:          state,
 	}, nil
 }
 
 func (t *trackedProcess) close() error {
-	return t.bpf.RemoveTracedProcess(t.pid)
+	return t.state.RemoveTracedProcess(t.pid)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

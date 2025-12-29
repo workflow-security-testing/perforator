@@ -1,7 +1,6 @@
 package machine
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding"
@@ -9,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,17 +19,16 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
-	"github.com/yandex/perforator/library/go/ptr"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 	"github.com/yandex/perforator/perforator/pkg/graceful"
-	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
 )
 
 // We work with large programs.
 const (
-	verifierLogSizeStart  = 6 * 1024 * 1024
+	verifierLogSizeStart  = 60 * 1024 * 1024
 	perfReaderTimeout     = 2 * time.Second
 	ebpfMapSizeLimitBytes = 1<<32 - 1<<20
 )
@@ -70,24 +67,20 @@ type BPF struct {
 	opts Options
 	log  log.Logger
 
-	currentPageCount metrics.IntGauge
-	currentPartCount metrics.IntGauge
-	maxPageCount     metrics.IntGauge
-	maxPartCount     metrics.IntGauge
-	maxSizeBytes     metrics.IntGauge
-	metrics          metrics.Registry
+	maxPageCount metrics.IntGauge
+	maxPartCount metrics.IntGauge
+	maxSizeBytes metrics.IntGauge
+	metrics      metrics.Registry
 
-	maps            *unwinder.Maps
 	mapreplacements map[string]*ebpf.Map
+	state           programstate.State
+	// some maps that we need in runtime
+	samplesMap   *ebpf.Map
+	processesMap *ebpf.Map
 
 	progsmu   sync.RWMutex
 	progdebug bool
 	progs     *unwinder.Progs
-
-	unwindTablePartCount int
-	unwindTablePartSpec  *ebpf.MapSpec
-	partsmu              sync.RWMutex
-	unwindTableParts     map[uint32]*ebpf.Map
 
 	links *bpfLinks
 }
@@ -100,17 +93,13 @@ func NewBPF(conf *Config, log log.Logger, metrics metrics.Registry, opts Options
 		opts: opts,
 		log:  log.WithName("BPF"),
 
-		currentPageCount: metrics.IntGauge("unwind_page_table.current_pages.count"),
-		currentPartCount: metrics.IntGauge("unwind_page_table.current_parts.count"),
-		maxSizeBytes:     metrics.IntGauge("unwind_page_table.size.bytes"),
-		maxPartCount:     metrics.IntGauge("unwind_page_table.max_parts.count"),
-		maxPageCount:     metrics.IntGauge("unwind_page_table.max_pages.count"),
+		maxSizeBytes: metrics.IntGauge("unwind_page_table.size.bytes"),
+		maxPartCount: metrics.IntGauge("unwind_page_table.max_parts.count"),
+		maxPageCount: metrics.IntGauge("unwind_page_table.max_pages.count"),
 
 		metrics: metrics,
 
 		progdebug: conf.Debug,
-
-		unwindTableParts: make(map[uint32]*ebpf.Map),
 	}
 
 	err := b.initialize()
@@ -124,7 +113,6 @@ func NewBPF(conf *Config, log log.Logger, metrics metrics.Registry, opts Options
 func (b *BPF) currentProgramRequirements() unwinder.ProgramRequirements {
 	return unwinder.ProgramRequirements{
 		Debug: b.progdebug,
-		JVM:   b.opts.EnableJVM,
 		PHP:   b.opts.EnablePHP,
 	}
 }
@@ -152,7 +140,7 @@ func (b *BPF) initialize() (err error) {
 
 	err = b.setupMaps(b.currentProgramRequirements())
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to setup maps: %w", err)
 	}
 
 	err = b.setupProgramsUnsafe(b.currentProgramRequirements())
@@ -214,35 +202,37 @@ func (b *BPF) calculatePageTablePartCount() (int, error) {
 	return nparts, nil
 }
 
-func (b *BPF) prepareUnwindTableSpec(unwindTableMap *ebpf.MapSpec) error {
+func (b *BPF) prepareUnwindTableSpec(unwindTableMap *ebpf.MapSpec) (programstate.UnwindTableOpts, error) {
+	var opts programstate.UnwindTableOpts
 	var err error
-	b.unwindTablePartCount, err = b.calculatePageTablePartCount()
+	opts.PartCount, err = b.calculatePageTablePartCount()
 	if err != nil {
-		return fmt.Errorf("failed to calculate page table size: %w", err)
+		return opts, fmt.Errorf("failed to calculate page table size: %w", err)
 	}
-	maxPageCount := uint64(unwinder.UnwindPageTableNumPagesPerPart) * uint64(b.unwindTablePartCount)
+	maxPageCount := uint64(unwinder.UnwindPageTableNumPagesPerPart) * uint64(opts.PartCount)
 
 	bytes := uint64(unwinder.UnwindPageTablePageSize) * maxPageCount
 	b.log.Debug("Calculated unwind page table size",
-		log.Int("parts", b.unwindTablePartCount),
+		log.Int("parts", opts.PartCount),
 		log.UInt64("pages", maxPageCount),
 		log.UInt64("bytes", bytes),
 	)
 	b.maxSizeBytes.Set(int64(bytes))
-	b.maxPartCount.Set(int64(b.unwindTablePartCount))
+	b.maxPartCount.Set(int64(opts.PartCount))
 	b.maxPageCount.Set(int64(maxPageCount))
-	b.currentPageCount.Set(0)
-	b.currentPartCount.Set(0)
-	unwindTableMap.MaxEntries = uint32(b.unwindTablePartCount)
+	unwindTableMap.MaxEntries = uint32(opts.PartCount)
 	if unwindTableMap.InnerMap == nil {
-		return fmt.Errorf("unwind_table map does not have inner map spec: %+v", *unwindTableMap)
+		return opts, fmt.Errorf("unwind_table map does not have inner map spec: %+v", *unwindTableMap)
 	}
-	b.unwindTablePartSpec = unwindTableMap.InnerMap
-	return nil
+	opts.PartSpec = unwindTableMap.InnerMap
+
+	opts.Logger = b.log
+	opts.Metrics = b.metrics
+	return opts, nil
 }
 
 func (b *BPF) loadCollectionSpec(reqs unwinder.ProgramRequirements) (*ebpf.CollectionSpec, error) {
-	b.log.Debug("Loading eBPF program", log.Bool("debug", reqs.Debug), log.Bool("jvm", reqs.JVM))
+	b.log.Debug("Loading eBPF program", log.Bool("debug", reqs.Debug))
 	// Load & prepare main program ELF.
 	program, err := unwinder.LoadProg(reqs)
 	if err != nil {
@@ -260,16 +250,6 @@ func (b *BPF) loadCollectionSpec(reqs unwinder.ProgramRequirements) (*ebpf.Colle
 		log.Int64("num_bytes", elf.Size()),
 	)
 
-	unwindTableMap, ok := spec.Maps["unwind_table"]
-	if !ok {
-		return nil, fmt.Errorf("unwind_table map not found")
-	}
-
-	err = b.prepareUnwindTableSpec(unwindTableMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare unwind table spec: %w", err)
-	}
-
 	return spec, nil
 }
 
@@ -281,18 +261,37 @@ func (b *BPF) setupMaps(reqs unwinder.ProgramRequirements) (err error) {
 
 	b.log.Debug("Loading eBPF maps into the kernel")
 
-	b.maps = &unwinder.Maps{}
-	err = spec.LoadAndAssign(b.maps, nil)
+	maps := &unwinder.Maps{}
+	err = spec.LoadAndAssign(maps, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to assign maps: %w", err)
 	}
 
 	// Prepare map replacements to be used by programs later.
 	b.mapreplacements = make(map[string]*ebpf.Map)
-	_ = b.maps.ForEachNamedMap(func(name string, m *ebpf.Map) error {
+	_ = maps.ForEachNamedMap(func(name string, m *ebpf.Map) error {
 		b.mapreplacements[name] = m
 		return nil
 	})
+
+	unwindTableMapSpec, ok := spec.Maps["unwind_table"]
+	if !ok {
+		return fmt.Errorf("missing unwind_table map")
+	}
+	utSpec, err := b.prepareUnwindTableSpec(unwindTableMapSpec)
+	if err != nil {
+		return fmt.Errorf("failed to prepare unwind table spec: %w", err)
+	}
+
+	b.state = *programstate.New(maps, &utSpec)
+	b.samplesMap = maps.Samples
+	b.processesMap = maps.Processes
+	if b.samplesMap == nil {
+		return fmt.Errorf("missing samples map")
+	}
+	if b.processesMap == nil {
+		return fmt.Errorf("missing processes map")
+	}
 
 	return nil
 }
@@ -352,47 +351,7 @@ func (b *BPF) UnlinkPrograms() error {
 func (b *BPF) Close() error {
 	b.progsmu.Lock()
 	defer b.progsmu.Unlock()
-	return errors.Join(b.maps.Close(), b.progs.Close(), b.links.close())
-}
-
-func memLockedSize(fd int) (uint64, error) {
-	b, err := os.ReadFile(fmt.Sprintf("/proc/self/fdinfo/%d", fd))
-	if err != nil {
-		return 0, err
-	}
-
-	r := bufio.NewScanner(bytes.NewBuffer(b))
-	for r.Scan() {
-		key, value, _ := strings.Cut(r.Text(), ":\t")
-		if key == "memlock" {
-			count, err := strconv.ParseUint(value, 10, 64)
-			if err != nil {
-				return 0, err
-			}
-			return count, nil
-		}
-	}
-
-	return 0, r.Err()
-}
-
-func (b *BPF) CountMemLockedBytes() (uint64, error) {
-	var locked uint64
-
-	err := b.maps.ForEachMap(func(m *ebpf.Map) error {
-		count, err := memLockedSize(m.FD())
-		if err != nil {
-			return err
-		}
-		locked += count
-		return nil
-	})
-
-	if err != nil {
-		return 0, err
-	}
-
-	return locked, nil
+	return errors.Join(b.state.Close(), b.progs.Close(), b.links.close())
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -431,47 +390,6 @@ func (b *BPF) ReloadProgram(debug bool) error {
 	return b.links.setup(b.conf, b.progs)
 }
 
-func (b *BPF) UpdateConfig(conf *unwinder.ProfilerConfig) error {
-	return b.maps.ProfilerConfig.Update(ptr.Uint32(0), conf, ebpf.UpdateAny)
-}
-
-func (b *BPF) PatchConfig(patcher func(conf *unwinder.ProfilerConfig) error) error {
-	var key = ptr.Uint32(0)
-	var conf unwinder.ProfilerConfig
-
-	err := b.maps.ProfilerConfig.Lookup(key, &conf)
-	if err != nil {
-		return err
-	}
-
-	err = patcher(&conf)
-	if err != nil {
-		return err
-	}
-
-	return b.maps.ProfilerConfig.Update(key, &conf, ebpf.UpdateAny)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-func (b *BPF) AddTracedCgroup(cgroup uint64) error {
-	return b.maps.TracedCgroups.Update(cgroup, uint8(0), ebpf.UpdateAny)
-}
-
-func (b *BPF) RemoveTracedCgroup(cgroup uint64) error {
-	return b.maps.TracedCgroups.Delete(cgroup)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-func (b *BPF) AddTracedProcess(pid linux.CurrentNamespacePID) error {
-	return b.maps.TracedProcesses.Update(pid, uint8(0), ebpf.UpdateAny)
-}
-
-func (b *BPF) RemoveTracedProcess(pid linux.CurrentNamespacePID) error {
-	return b.maps.TracedProcesses.Delete(pid)
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 func (b *BPF) GenericUprobeProgram() *ebpf.Program {
@@ -483,150 +401,11 @@ func (b *BPF) GenericUprobeProgram() *ebpf.Program {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (b *BPF) UnwindTablePartCount() int {
-	return b.unwindTablePartCount
+func (b *BPF) State() *programstate.State {
+	return &b.state
 }
 
-func (b *BPF) AddProcess(pid linux.CurrentNamespacePID, info *unwinder.ProcessInfo) error {
-	return b.maps.ProcessInfo.Put(&pid, info)
-}
-
-func (b *BPF) RemoveProcess(pid linux.CurrentNamespacePID) error {
-	return b.maps.ProcessInfo.Delete(&pid)
-}
-
-func (b *BPF) AddMappingLPMSegment(key *unwinder.ExecutableMappingTrieKey, value *unwinder.ExecutableMappingInfo) error {
-	return b.maps.ExecutableMappingTrie.Update(key, value, ebpf.UpdateAny)
-}
-
-func (b *BPF) RemoveMappingLPMSegment(key *unwinder.ExecutableMappingTrieKey) error {
-	return b.maps.ExecutableMappingTrie.Delete(key)
-}
-
-func (b *BPF) AddMapping(key *unwinder.ExecutableMappingKey, value *unwinder.ExecutableMapping) error {
-	return b.maps.ExecutableMappings.Update(key, value, ebpf.UpdateAny)
-}
-
-func (b *BPF) RemoveMapping(key *unwinder.ExecutableMappingKey) error {
-	return b.maps.ExecutableMappings.Delete(key)
-}
-
-func getPartID(pageID unwinder.PageId) uint32 {
-	return uint32(pageID) / uint32(unwinder.UnwindPageTableNumPagesPerPart)
-}
-
-func getPartPageID(pageID unwinder.PageId) uint32 {
-	return uint32(pageID) % uint32(unwinder.UnwindPageTableNumPagesPerPart)
-}
-
-func (b *BPF) getUnwindTablePartFast(partID uint32) *ebpf.Map {
-	b.partsmu.RLock()
-	defer b.partsmu.RUnlock()
-	return b.unwindTableParts[partID]
-}
-
-func (b *BPF) getUnwindTablePart(partID uint32) (*ebpf.Map, error) {
-	part := b.getUnwindTablePartFast(partID)
-	if part != nil {
-		return part, nil
-	}
-	b.partsmu.Lock()
-	defer b.partsmu.Unlock()
-	if b.unwindTableParts[partID] != nil {
-		return b.unwindTableParts[partID], nil
-	}
-
-	partSpec := b.unwindTablePartSpec.Copy()
-	var err error
-	part, err = ebpf.NewMap(partSpec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create new unwind table part: %w", err)
-	}
-	partFD := uint32(part.FD())
-	b.log.Debug("Allocated new unwind table part", log.UInt32("part_id", partID), log.UInt32("part_fd", partFD))
-	err = b.maps.UnwindTable.Put(&partID, &partFD)
-	if err != nil {
-		cleanupErr := part.Close()
-		if cleanupErr != nil {
-			b.log.Warn("Failed to cleanup unwind table part after failed insert, it will be leaked", log.Error(cleanupErr))
-		}
-		return nil, fmt.Errorf("failed to add part into unwind table: %w", err)
-	}
-	b.unwindTableParts[partID] = part
-	partCount := len(b.unwindTableParts)
-	b.currentPartCount.Set(int64(partCount))
-	// TODO: track page count more accurately
-	b.currentPageCount.Set(int64(partCount) * int64(unwinder.UnwindPageTableNumPagesPerPart))
-	return part, nil
-}
-
-func (b *BPF) PutUnwindTablePage(id unwinder.PageId, page *unwinder.UnwindTablePage) error {
-	part, err := b.getUnwindTablePart(getPartID(id))
-	if err != nil {
-		return fmt.Errorf("failed to get or insert part (id=%d): %w", getPartID(id), err)
-	}
-	partPageID := getPartPageID(id)
-	err = part.Put(&partPageID, page)
-	if err != nil {
-		return fmt.Errorf("failed to add page into part (id=%d): %w", getPartID(id), err)
-	}
-	return nil
-}
-
-func (b *BPF) PutBinaryUnwindTable(id unwinder.BinaryId, root unwinder.PageId) error {
-	return b.maps.UnwindRoots.Update(&id, &root, ebpf.UpdateNoExist)
-}
-
-func (b *BPF) DeleteBinaryUnwindTable(id unwinder.BinaryId) error {
-	return b.maps.UnwindRoots.Delete(&id)
-}
-
-func (b *BPF) AddTLSConfig(id unwinder.BinaryId, tlsInfo *unwinder.TlsBinaryConfig) error {
-	return b.maps.TlsStorage.Update(&id, tlsInfo, ebpf.UpdateAny)
-}
-
-func (b *BPF) DeleteTLSConfig(id unwinder.BinaryId) error {
-	return b.maps.TlsStorage.Delete(&id)
-}
-
-func (b *BPF) AddPythonConfig(id unwinder.BinaryId, pythonInfo *unwinder.PythonConfig) error {
-	return b.maps.PythonStorage.Update(id, pythonInfo, ebpf.UpdateAny)
-}
-
-func (b *BPF) DeletePythonConfig(id unwinder.BinaryId) error {
-	return b.maps.PythonStorage.Delete(&id)
-}
-
-func (b *BPF) AddPhpConfig(id unwinder.BinaryId, phpInfo *unwinder.PhpConfig) error {
-	if b.opts.EnablePHP {
-		return b.maps.PhpStorage.Update(id, phpInfo, ebpf.UpdateAny)
-	}
-
-	return nil
-}
-
-func (b *BPF) DeletePhpConfig(id unwinder.BinaryId) error {
-	if b.opts.EnablePHP {
-		return b.maps.PhpStorage.Delete(&id)
-	}
-
-	return nil
-}
-
-func (b *BPF) AddPthreadConfig(id unwinder.BinaryId, pthreadInfo *unwinder.PthreadConfig) error {
-	return b.maps.PthreadStorage.Update(id, pthreadInfo, ebpf.UpdateAny)
-}
-
-func (b *BPF) DeletePthreadConfig(id unwinder.BinaryId) error {
-	return b.maps.PthreadStorage.Delete(&id)
-}
-
-// TODO: we can use batch lookups into bpf maps
-func (b *BPF) SymbolizeInterpeter(key *unwinder.SymbolKey) (res unwinder.Symbol, exists bool) {
-	err := b.maps.InterpreterSymbols.Lookup(key, &res)
-	exists = (err == nil)
-	return
-}
+////////////////////////////////////////////////////////////////////////////////
 
 func (b *BPF) RunMetricsPoller(ctx context.Context, stop graceful.ShutdownSource) error {
 	defer stop.Finish()
@@ -653,7 +432,7 @@ func (b *BPF) RunMetricsPoller(ctx context.Context, stop graceful.ShutdownSource
 		var deltas [unwinder.MetricCount]int64
 		for metric := range int(unwinder.MetricCount) {
 			key := unwinder.Metric(metric)
-			err := b.maps.Metrics.Lookup(&key, &nextmetrics)
+			err := b.state.GetMetric(key, nextmetrics)
 			if err != nil {
 				b.log.Warn("Failed to load metric value",
 					log.Error(err),
@@ -722,11 +501,11 @@ type PerfReader struct {
 }
 
 func (b *BPF) MakeSampleReader(opts *PerfReaderOptions) (*PerfReader, error) {
-	return b.makePerfBufReader(b.maps.Samples, "Samples", opts)
+	return b.makePerfBufReader(b.samplesMap, "Samples", opts)
 }
 
 func (b *BPF) MakeProcessReader(opts *PerfReaderOptions) (*PerfReader, error) {
-	return b.makePerfBufReader(b.maps.Processes, "Processes", opts)
+	return b.makePerfBufReader(b.processesMap, "Processes", opts)
 }
 
 func (b *BPF) makePerfBufReader(m *ebpf.Map, name string, opts *PerfReaderOptions) (*PerfReader, error) {

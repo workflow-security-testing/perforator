@@ -414,7 +414,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 
 	// Create python symbolizer
 	if enabled := p.conf.BPF.TracePython; enabled == nil || *enabled {
-		p.pythonSymbolizer, err = symbolizer.NewPythonSymbolizer(&p.conf.Symbolizer.Python, p.bpf, r)
+		p.pythonSymbolizer, err = symbolizer.NewPythonSymbolizer(&p.conf.Symbolizer.Python, p.bpf.State(), r)
 		if err != nil {
 			return err
 		}
@@ -422,7 +422,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 
 	// Create PHP symbolizer
 	if enabled := p.conf.FeatureFlagsConfig.EnablePHP; enabled != nil && *enabled {
-		p.phpSymbolizer, err = symbolizer.NewPhpSymbolizer(&p.conf.Symbolizer.Php, p.bpf, r)
+		p.phpSymbolizer, err = symbolizer.NewPhpSymbolizer(&p.conf.Symbolizer.Php, p.bpf.State(), r)
 		if err != nil {
 			return err
 		}
@@ -445,7 +445,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		p.jitSymbolizers = append(p.jitSymbolizers, p.perfmap)
 	}
 
-	bpfManager, err := binary.NewBPFBinaryManager(p.log.WithName("ProcessRegistry"), r.WithPrefix("ProcessRegistry"), p.bpf)
+	bpfManager, err := binary.NewBPFBinaryManager(p.log.WithName("ProcessRegistry"), r.WithPrefix("ProcessRegistry"), p.bpf.State())
 	if err != nil {
 		return fmt.Errorf("failed to create bpf binary manager: %w", err)
 	}
@@ -465,7 +465,7 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	p.procs, err = process.NewProcessRegistry(
 		xlog.New(p.log.WithName("ProcessRegistry")),
 		r.WithPrefix("ProcessRegistry"),
-		p.bpf,
+		p.bpf.State(),
 		p.mounts,
 		p.dsoStorage,
 		&process.UploaderArguments{
@@ -761,7 +761,7 @@ func (p *Profiler) registerMetrics(r metrics.Registry) error {
 		if p.bpf == nil {
 			return 0.0
 		}
-		count, err := p.bpf.CountMemLockedBytes()
+		count, err := p.bpf.State().CountTotalMemLockedBytes()
 		if err != nil {
 			p.log.Error("Failed to count memlocked bytes", log.UInt64("bytes", count))
 			return 0.0
@@ -836,7 +836,7 @@ func (p *Profiler) setupConfig() error {
 	}
 
 	p.log.Info("Configuring the profiler", log.Any("config", conf))
-	err = p.bpf.UpdateConfig(conf)
+	err = p.bpf.State().UpdateConfig(conf)
 	if err != nil {
 		return fmt.Errorf("failed to configure the profiler: %w", err)
 	}
@@ -1203,7 +1203,7 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 	conf.Labels = p.enrichProfileLabels(conf.Labels)
 
 	// TODO: For now we do not provide a way to enable features through AddCgroup
-	cg, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels), p.bpf, p.log)
+	cg, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels), p.bpf.State(), p.log)
 	if err != nil {
 		return err
 	}
@@ -1217,7 +1217,7 @@ func (p *Profiler) AddCgroup(conf *CgroupConfig) error {
 func (p *Profiler) TraceWholeSystem(labels map[string]string) error {
 	labels = p.enrichProfileLabels(labels)
 	p.wholeSystem = NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), labels)
-	return p.bpf.PatchConfig(func(conf *unwinder.ProfilerConfig) error {
+	return p.bpf.State().PatchConfig(func(conf *unwinder.ProfilerConfig) error {
 		conf.TraceWholeSystem = true
 		return nil
 	})
@@ -1279,7 +1279,7 @@ func (p *Profiler) TracePid(pid linux.CurrentNamespacePID, optAppliers ...TraceO
 
 	labels := p.enrichProfileLabels(opts.profileLabels)
 
-	trackedProcess, err := p.newTrackedProcess(pid, NewSimpleSampleConsumer(p, opts.features, labels), p.bpf)
+	trackedProcess, err := p.newTrackedProcess(pid, NewSimpleSampleConsumer(p, opts.features, labels), p.bpf.State())
 	if err != nil {
 		return nil, err
 	}
@@ -1318,7 +1318,7 @@ func (p *Profiler) TraceCgroups(configs []*CgroupConfig) error {
 		conf.Labels = p.enrichProfileLabels(conf.Labels)
 
 		// TODO: For now we do not provide a way to enable features through TraceCgroups
-		profiledCgroup, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels), p.bpf, p.log)
+		profiledCgroup, err := p.newTrackedCgroup(conf, NewSimpleSampleConsumer(p, DefaultSampleConsumerFeatures(), conf.Labels), p.bpf.State(), p.log)
 		if err != nil {
 			return err
 		}

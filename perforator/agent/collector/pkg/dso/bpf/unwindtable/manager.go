@@ -9,7 +9,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/unwind"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
@@ -63,7 +63,7 @@ const (
 
 type BPFManager struct {
 	l        log.Logger
-	bpf      *machine.BPF
+	state    *programstate.State
 	freelist *freelist[PageID]
 	cache    cache
 
@@ -87,10 +87,10 @@ type BPFManager struct {
 	}
 }
 
-func NewBPFManager(l log.Logger, m metrics.Registry, bpf *machine.BPF) (*BPFManager, error) {
+func NewBPFManager(l log.Logger, m metrics.Registry, state *programstate.State) (*BPFManager, error) {
 	mgr := &BPFManager{
-		l:   l.WithName("UnwindManager"),
-		bpf: bpf,
+		l:     l.WithName("UnwindManager"),
+		state: state,
 	}
 
 	if err := mgr.init(); err != nil {
@@ -135,7 +135,7 @@ func (m *BPFManager) instrument(metrics metrics.Registry) error {
 }
 
 func (m *BPFManager) init() error {
-	npages := int(m.bpf.UnwindTablePartCount()) * int(unwinder.UnwindPageTableNumPagesPerPart)
+	npages := int(m.state.UnwindTablePartCount()) * int(unwinder.UnwindPageTableNumPagesPerPart)
 
 	m.freelist = newFreelist[PageID](int(npages))
 	for id := PageID(0); id < PageID(npages); id++ {
@@ -252,11 +252,11 @@ func (m *BPFManager) registerTable(id uint64, table *unwind.UnwindTable) (res *r
 }
 
 func (m *BPFManager) putPage(id PageID, page *unwinder.UnwindTablePage) error {
-	if m.bpf == nil {
+	if m.state == nil {
 		return nil
 	}
 	page.Id = id
-	err := m.bpf.PutUnwindTablePage(id, page)
+	err := m.state.PutUnwindTablePage(id, page)
 	if err != nil {
 		return fmt.Errorf("failed to add root page into unwind table: %w", err)
 	}
@@ -264,17 +264,17 @@ func (m *BPFManager) putPage(id PageID, page *unwinder.UnwindTablePage) error {
 }
 
 func (m *BPFManager) putRoot(id uint64, root PageID) error {
-	if m.bpf == nil {
+	if m.state == nil {
 		return nil
 	}
-	return m.bpf.PutBinaryUnwindTable(unwinder.BinaryId(id), root)
+	return m.state.PutBinaryUnwindTable(unwinder.BinaryId(id), root)
 }
 
 func (m *BPFManager) delRoot(id uint64) error {
-	if m.bpf == nil {
+	if m.state == nil {
 		return nil
 	}
-	return m.bpf.DeleteBinaryUnwindTable(unwinder.BinaryId(id))
+	return m.state.DeleteBinaryUnwindTable(unwinder.BinaryId(id))
 }
 
 type pageTableBuilder struct {

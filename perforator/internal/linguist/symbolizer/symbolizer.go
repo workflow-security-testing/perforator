@@ -12,7 +12,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/copy"
-	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
 )
 
@@ -41,21 +41,21 @@ type Symbol struct {
 type Symbolizer struct {
 	reg   metrics.Registry
 	c     *SymbolizerConfig
-	bpf   *machine.BPF
+	state *programstate.State
 	cache *expirable.LRU[unwinder.SymbolKey, *Symbol]
 
 	metrics *symbolizerMetrics
 }
 
-func NewPythonSymbolizer(c *SymbolizerConfig, bpf *machine.BPF, reg metrics.Registry) (*Symbolizer, error) {
-	return newSymbolizer(c, bpf, reg, "python")
+func NewPythonSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.Registry) (*Symbolizer, error) {
+	return newSymbolizer(c, state, reg, "python")
 }
 
-func NewPhpSymbolizer(c *SymbolizerConfig, bpf *machine.BPF, reg metrics.Registry) (*Symbolizer, error) {
-	return newSymbolizer(c, bpf, reg, "php")
+func NewPhpSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.Registry) (*Symbolizer, error) {
+	return newSymbolizer(c, state, reg, "php")
 }
 
-func newSymbolizer(c *SymbolizerConfig, bpf *machine.BPF, reg metrics.Registry, language string) (*Symbolizer, error) {
+func newSymbolizer(c *SymbolizerConfig, state *programstate.State, reg metrics.Registry, language string) (*Symbolizer, error) {
 	cacheSize := DefaultMaxCacheSize
 	itemTTL := 5 * time.Minute
 	if c.ItemTTL != 0 {
@@ -70,7 +70,7 @@ func newSymbolizer(c *SymbolizerConfig, bpf *machine.BPF, reg metrics.Registry, 
 	res := &Symbolizer{
 		reg:   reg,
 		c:     c,
-		bpf:   bpf,
+		state: state,
 		cache: cache,
 		metrics: &symbolizerMetrics{
 			cacheMisses: reg.WithTags(map[string]string{"type": "miss"}).Counter(language + ".symbolize.cache.access.count"),
@@ -186,7 +186,7 @@ func (s *Symbolizer) Symbolize(key *unwinder.SymbolKey) (*Symbol, bool) {
 
 	s.metrics.cacheMisses.Inc()
 
-	symbol, exists := s.bpf.SymbolizeInterpeter(key)
+	symbol, exists := s.state.SymbolizeInterpeter(key)
 	if !exists {
 		return nil, false
 	}
