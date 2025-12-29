@@ -73,11 +73,6 @@ func (b *multiProfileBuilder) EnsureBuilder(name string, sampleTypes []profile.S
 		return builder
 	}
 
-	builder = b.builders[name]
-	if builder != nil {
-		return builder
-	}
-
 	builder = profile.NewBuilderWithCaches(b.caches)
 	builder.SetStartTime(b.profileStartTime)
 	for _, sampleType := range sampleTypes {
