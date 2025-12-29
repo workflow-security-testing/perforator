@@ -111,23 +111,28 @@ func (b *Builder) GetStartTime() time.Time {
 }
 
 func (b *Builder) Finish() *Profile {
-	sampleType := make([]*profile.ValueType, len(b.profile.SampleType))
-	copy(sampleType, b.profile.SampleType)
+	finishedProfile := b.profile
 
-	b.profile.PeriodType = &profile.ValueType{}
+	sampleTypeCopy := make([]*profile.ValueType, 0, len(b.profile.SampleType))
+	for _, st := range finishedProfile.SampleType {
+		sampleTypeCopy = append(sampleTypeCopy, &profile.ValueType{
+			Type: st.Type,
+			Unit: st.Unit,
+		})
+	}
+	b.profile = &Profile{SampleType: sampleTypeCopy}
 
-	// Compactify profile.
-	res, err := merge.Merge([]*profile.Profile{b.profile})
+	finishedProfile.PeriodType = &profile.ValueType{}
+	finishedCompactedProfile, err := merge.Merge([]*profile.Profile{finishedProfile})
 	if err != nil {
 		panic(err)
 	}
-	b.profile = &Profile{SampleType: sampleType}
 
 	if b.ownsCaches {
 		b.caches.Clear()
 	}
 
-	return res
+	return finishedCompactedProfile
 }
 
 func (b *Builder) Add(pid uint32) *SampleBuilder {
