@@ -709,7 +709,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.0.5
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
-	github.com/redis/go-redis/v9 v9.11.0
+	github.com/redis/go-redis/v9 v9.17.2
 	github.com/rekby/fixenv v0.7.0
 	github.com/riverqueue/river v0.16.0
 	github.com/riverqueue/river/riverdriver v0.16.0
