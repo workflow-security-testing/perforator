@@ -19,7 +19,7 @@ func TestEnvWhitelist(t *testing.T) {
 			},
 		},
 		DefaultSampleConsumerFeatures(),
-		newMultiProfileBuilder(nil),
+		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil)},
 		&sample,
 	)
 
@@ -55,7 +55,7 @@ func TestNoEmptySamples(t *testing.T) {
 			},
 		},
 		DefaultSampleConsumerFeatures(),
-		newMultiProfileBuilder(nil),
+		&guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(nil)},
 		&sample,
 	)
 

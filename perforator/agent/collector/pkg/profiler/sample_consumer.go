@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -146,10 +147,24 @@ var (
 	_ SampleConsumer = (*simpleSampleConsumer)(nil)
 )
 
+type guardedProfileBuilder struct {
+	// This mutex synchronizes SampleBuilder.Finish() calls which add sample to
+	// sample array of the underlying profile.Builder with
+	// multiProfileBuilder.RestartProfiles() calls which restart the profiles.
+	sync.Mutex
+	*multiProfileBuilder
+}
+
+func (g *guardedProfileBuilder) RestartProfiles() labeledAgentProfiles {
+	g.Lock()
+	defer g.Unlock()
+	return g.multiProfileBuilder.RestartProfiles()
+}
+
 type simpleSampleConsumer struct {
 	p              *Profiler
 	features       SampleConsumerFeatures
-	profileBuilder *multiProfileBuilder
+	profileBuilder *guardedProfileBuilder
 }
 
 func NewSimpleSampleConsumer(
@@ -159,7 +174,7 @@ func NewSimpleSampleConsumer(
 ) *simpleSampleConsumer {
 	return &simpleSampleConsumer{
 		features:       features,
-		profileBuilder: newMultiProfileBuilder(labels),
+		profileBuilder: &guardedProfileBuilder{multiProfileBuilder: newMultiProfileBuilder(labels)},
 		p:              p,
 	}
 }
@@ -181,7 +196,7 @@ type oneShotSampleConsumer struct {
 	p      *Profiler
 	sample *unwinder.RecordSample
 
-	profileBuilder *multiProfileBuilder
+	profileBuilder *guardedProfileBuilder
 	features       SampleConsumerFeatures
 	envWhitelist   map[string]struct{}
 
@@ -197,7 +212,7 @@ type oneShotSampleConsumer struct {
 func newOneShotSampleConsumer(
 	p *Profiler,
 	features SampleConsumerFeatures,
-	profileBuilder *multiProfileBuilder,
+	profileBuilder *guardedProfileBuilder,
 	sample *unwinder.RecordSample,
 ) *oneShotSampleConsumer {
 	return &oneShotSampleConsumer{
@@ -604,6 +619,13 @@ func (c *oneShotSampleConsumer) recordSample(ctx context.Context) {
 	c.logSample(err)
 }
 
+// Writing sample to profile builder which can be flushed by other goroutines (via RestartProfiles) requires synchronization.
+func (c *oneShotSampleConsumer) finishSample(builder *profile.SampleBuilder) {
+	c.profileBuilder.Lock()
+	defer c.profileBuilder.Unlock()
+	builder.Finish()
+}
+
 // On CPU / perf event profiling.
 func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
 	hasWallTime := c.p.conf.BPF.TraceWallTime != nil && *c.p.conf.BPF.TraceWallTime
@@ -643,7 +665,7 @@ func (c *oneShotSampleConsumer) recordCPUSample(ctx context.Context) {
 		c.collectWallTime(builder)
 	}
 
-	builder.Finish()
+	c.finishSample(builder)
 }
 
 func (c *oneShotSampleConsumer) recordLBRSample(ctx context.Context) {
@@ -655,7 +677,8 @@ func (c *oneShotSampleConsumer) recordLBRSample(ctx context.Context) {
 	builder := c.initBuilderCommon("lbr", sampleTypes)
 	c.collectEventCount(builder)
 	c.collectLBRStackInto(ctx, builder)
-	builder.Finish()
+
+	c.finishSample(builder)
 }
 
 func (c *oneShotSampleConsumer) recordSignalSample(ctx context.Context) error {
@@ -676,7 +699,7 @@ func (c *oneShotSampleConsumer) recordSignalSample(ctx context.Context) error {
 		return err
 	}
 
-	builder.Finish()
+	c.finishSample(builder)
 
 	return nil
 }
@@ -729,7 +752,7 @@ func (c *oneShotSampleConsumer) recordUprobeSample(ctx context.Context) {
 		c.collectSampleTime(builder)
 	}
 
-	builder.Finish()
+	c.finishSample(builder)
 }
 
 func (c *oneShotSampleConsumer) logSample(err error) {
