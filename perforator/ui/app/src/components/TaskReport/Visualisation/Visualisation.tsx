@@ -95,6 +95,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
         setQuery({ 'leftHeavy': value ? 'true' : 'false' });
     }, [setQuery, props.onChangeLeftHeavy]);
 
+    const firstRenderRef = React.useRef(true);
 
     const rowsRef = React.useRef(profileData?.rows);
     // HACK using memo for ref modification
@@ -113,6 +114,10 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             return -1;
         }
         const coordsMapper = (hmap: number, oldI: number, newI: number) => {
+            if (firstRenderRef.current) {
+                return;
+            }
+
             if (hmap === currentRootH && oldI === currentRootI) {
                 setQuery({ framePos: String(newI) });
             }
@@ -127,15 +132,18 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             if (newOmittedIndices && newOmittedIndices.length > 0) {
                 setQuery({ omittedIndexes: stringifyStacks(newOmittedIndices) });
             }
-            return;
         } else if (profileData?.rows && !isLeftHeavy) {
             const rows = inverseLeftHeavy(rowsRef.current ?? profileData.rows, profileData.stringTable, coordsMapper);
             rowsRef.current = rows;
             if (newOmittedIndices && newOmittedIndices.length > 0) {
                 setQuery({ omittedIndexes: stringifyStacks(newOmittedIndices) });
             }
-            return;
         }
+        if (firstRenderRef.current && profileData?.rows) {
+            firstRenderRef.current = false;
+        }
+
+        return;
     }, [profileData?.rows, isLeftHeavy, props.loading]);
 
     React.useEffect(() => {
