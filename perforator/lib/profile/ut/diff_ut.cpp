@@ -10,9 +10,9 @@
 using namespace NPerforator::NProfile::NTest;
 
 // NOLINTNEXTLINE(readability-identifier-naming)
-struct GoldenProfileTest : testing::TestWithParam<TFsPath> {};
+struct GoldenProfileDiffTest : testing::TestWithParam<TFsPath> {};
 
-TEST_P(GoldenProfileTest, ConvertPprofCanon) {
+TEST_P(GoldenProfileDiffTest, ConvertPprofCanon) {
     NPerforator::NProto::NPProf::Profile pprofProto;
     Y_ENSURE(pprofProto.ParseFromString(DecompressPprof(GetParam())));
 
@@ -23,7 +23,7 @@ TEST_P(GoldenProfileTest, ConvertPprofCanon) {
     CompareFlatProfiles(pprofProto, profileProto);
 }
 
-TEST_P(GoldenProfileTest, ConvertPprofRoundTripCanon) {
+TEST_P(GoldenProfileDiffTest, ConvertPprofRoundTripCanon) {
     NPerforator::NProto::NPProf::Profile pprofOriginalProto;
     Y_ENSURE(pprofOriginalProto.ParseFromString(DecompressPprof(GetParam())));
 
@@ -37,7 +37,7 @@ TEST_P(GoldenProfileTest, ConvertPprofRoundTripCanon) {
     CompareFlatProfiles(pprofOriginalProto, pprofConvertedProto);
 }
 
-TEST_P(GoldenProfileTest, ConvertPprofBytesCanon) {
+TEST_P(GoldenProfileDiffTest, ConvertPprofBytesCanon) {
     TString pprofBytes = DecompressPprof(GetParam());
 
     NPerforator::NProto::NProfile::Profile profileProto;
@@ -49,7 +49,7 @@ TEST_P(GoldenProfileTest, ConvertPprofBytesCanon) {
     CompareFlatProfiles(pprof, profileProto);
 }
 
-TEST_P(GoldenProfileTest, ConvertPprofBytesRoundTripCanon) {
+TEST_P(GoldenProfileDiffTest, ConvertPprofBytesRoundTripCanon) {
     TString pprofOriginalBytes = DecompressPprof(GetParam());
 
     NPerforator::NProto::NProfile::Profile profileProto;
@@ -66,6 +66,6 @@ TEST_P(GoldenProfileTest, ConvertPprofBytesRoundTripCanon) {
 
 INSTANTIATE_TEST_SUITE_P(
     GoldenProfiles,
-    GoldenProfileTest,
-    testing::ValuesIn(NPerforator::NProfile::NTest::ListGoldenProfiles(SRC_("testprofiles/diff"), ".*.pb.gz", 5))
+    GoldenProfileDiffTest,
+    testing::ValuesIn(NPerforator::NProfile::NTest::ListGoldenProfiles(SRC_("testprofiles/diff"), "[^\\.]*.pb.gz", 5))
 );

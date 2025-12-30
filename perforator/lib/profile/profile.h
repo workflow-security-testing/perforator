@@ -134,14 +134,14 @@ struct TEntityTraits<TBinaryId> : TCommonDenseIndexTraits<TBinaryId> {
 template <>
 struct TEntityTraits<TSourceLineId> : TCommonDenseIndexTraits<TSourceLineId> {
     static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.inline_chains().function_id_size();
+        return profile.inline_chains().lines().function_id_size();
     }
 };
 
 template <>
 struct TEntityTraits<TInlineChainId> : TCommonDenseIndexTraits<TInlineChainId> {
     static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.inline_chains().offset_size();
+        return profile.inline_chains().lines_offset_size();
     }
 };
 
@@ -155,28 +155,28 @@ struct TEntityTraits<TStackFrameId> : TCommonDenseIndexTraits<TStackFrameId> {
 template <>
 struct TEntityTraits<TStackSegmentId> : TCommonDenseIndexTraits<TStackSegmentId> {
     static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.stack_segments().offset_size();
+        return profile.stack_segments().frame_ids_offset_size();
     }
 };
 
 template <>
 struct TEntityTraits<TStackId> : TCommonDenseIndexTraits<TStackId> {
     static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.stacks().kind_size();
+        return profile.stacks().top_frame_id_size();
     }
 };
 
 template <>
-struct TEntityTraits<TThreadId> : TCommonDenseIndexTraits<TThreadId> {
+struct TEntityTraits<TLabelGroupId> : TCommonDenseIndexTraits<TLabelGroupId> {
     static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.threads().thread_id_size();
+        return profile.label_groups().packed_label_ids_offset_size();
     }
 };
 
 template <>
 struct TEntityTraits<TSampleKeyId> : TCommonDenseIndexTraits<TSampleKeyId> {
     static i32 GetEntityCount(const NProto::NProfile::Profile& profile) {
-        return profile.sample_keys().threads().thread_id_size();
+        return profile.sample_keys().stacks().stack_ids_offset_size();
     }
 };
 
@@ -499,16 +499,16 @@ public:
     using TBase::TBase;
 
     TFunction GetFunction() const {
-        i32 functionId = Profile_->inline_chains().function_id(*Index_);
+        i32 functionId = Profile_->inline_chains().lines().function_id(*Index_);
         return TFunction{Profile_, TFunctionId::FromInternalIndex(functionId)};
     }
 
     ui32 GetLine() const {
-        return Profile_->inline_chains().line(*Index_);
+        return Profile_->inline_chains().lines().line(*Index_);
     }
 
     ui32 GetColumn() const {
-        return Profile_->inline_chains().column(*Index_);
+        return Profile_->inline_chains().lines().column(*Index_);
     }
 
     void DumpJson(NJson::TJsonWriter& writer) const {
@@ -532,8 +532,8 @@ public:
 
     i32 GetLineCount() const {
         auto [from, to] = GetOffsetRange(
-            Profile_->inline_chains().offset(),
-            Profile_->inline_chains().function_id(),
+            Profile_->inline_chains().lines_offset(),
+            Profile_->inline_chains().lines().function_id(),
             *Index_
         );
 
@@ -541,7 +541,7 @@ public:
     }
 
     TSourceLine GetLine(i32 id) const {
-        i32 offset = Profile_->inline_chains().offset(*Index_);
+        i32 offset = Profile_->inline_chains().lines_offset(*Index_);
         return TSourceLine{Profile_, TSourceLineId::FromInternalIndex(offset + id)};
     }
 
@@ -579,6 +579,10 @@ public:
         return {Profile_, id};
     }
 
+    bool HasSkewedAddresses() const {
+        return Profile_->binaries().has_skewed_addresses(*Index_);
+    }
+
     void DumpJson(NJson::TJsonWriter& writer) const {
         writer.OpenMap();
         writer.Write("type", "binary");
@@ -586,6 +590,7 @@ public:
 
         writer.Write("build_id", GetBuildId().View());
         writer.Write("path", GetPath().View());
+        writer.Write("has_skewed_addresses", HasSkewedAddresses());
 
         writer.CloseMap();
     }
@@ -600,8 +605,8 @@ public:
         return TBinary{Profile_, TBinaryId::FromInternalIndex(index)};
     }
 
-    i64 GetBinaryOffset() const {
-        return Profile_->stack_frames().binary_offset(*Index_);
+    ui64 GetAddress() const {
+        return Profile_->stack_frames().address(*Index_);
     }
 
     TInlineChain GetInlineChain() const {
@@ -617,7 +622,7 @@ public:
         writer.WriteKey("binary");
         GetBinary().DumpJson(writer);
 
-        writer.Write("binary_offset", GetBinaryOffset());
+        writer.Write("address", GetAddress());
 
         writer.WriteKey("inline_chain");
         GetInlineChain().DumpJson(writer);
@@ -632,8 +637,8 @@ public:
 
     i32 GetFrameCount() const {
         auto [from, to] = GetOffsetRange(
-            Profile_->stack_segments().offset(),
-            Profile_->stack_segments().frame_id(),
+            Profile_->stack_segments().frame_ids_offset(),
+            Profile_->stack_segments().frame_ids(),
             *Index_
         );
 
@@ -641,8 +646,8 @@ public:
     }
 
     TStackFrame GetFrame(i32 id) const {
-        i32 position = id + Profile_->stack_segments().offset(*Index_);
-        i32 index = Profile_->stack_segments().frame_id(position);
+        i32 position = id + Profile_->stack_segments().frame_ids_offset(*Index_);
+        i32 index = Profile_->stack_segments().frame_ids(position);
         return TStackFrame{Profile_, TStackFrameId::FromInternalIndex(index)};
     }
 
@@ -667,14 +672,6 @@ public:
 class TStack : public TIndexedEntityReader<TStackId> {
 public:
     using TBase::TBase;
-
-    NProto::NProfile::StackKind GetKind() const {
-        return Profile_->stacks().kind(*Index_);
-    }
-
-    TStringRef GetRuntimeName() const {
-        return {Profile_, Profile_->stacks().runtime_name(*Index_)};
-    }
 
     TStackFrame GetTopFrame() const {
         i32 id = Profile_->stacks().top_frame_id(*Index_);
@@ -705,8 +702,6 @@ public:
         writer.OpenMap();
         writer.Write("type", "stack");
         writer.Write("id", *GetIndex());
-        writer.Write("kind", StackKind_Name(GetKind()));
-        writer.Write("runtime", GetRuntimeName().View());
 
         writer.WriteKey("top_frame");
         GetTopFrame().DumpJson(writer);
@@ -793,58 +788,38 @@ private:
     }
 };
 
-class TThread : public TIndexedEntityReader<TThreadId> {
+class TLabelGroup : public TIndexedEntityReader<TLabelGroupId> {
 public:
     using TBase::TBase;
 
-    ui32 GetThreadId() const {
-        return Profile_->threads().thread_id(*Index_);
-    }
-
-    ui32 GetProcessId() const {
-        return Profile_->threads().process_id(*Index_);
-    }
-
-    TStringRef GetThreadName() const {
-        return {Profile_, Profile_->threads().thread_name(*Index_)};
-    }
-
-    TStringRef GetProcessName() const {
-        return {Profile_, Profile_->threads().process_name(*Index_)};
-    }
-
-    i32 GetContainerCount() const {
-        auto [begin, end] = GetOffsetRange(
-            Profile_->threads().container_offset(),
-            Profile_->threads().container_names(),
+    i32 GetLabelCount() const {
+        auto [from, to] = GetOffsetRange(
+            Profile_->label_groups().packed_label_ids_offset(),
+            Profile_->label_groups().packed_label_ids(),
             *Index_
         );
 
-        return end - begin;
+        return to - from;
     }
 
-    TStringRef GetContainer(i32 id) const {
-        ui32 offset = Profile_->threads().container_offset(*Index_);
-        ui32 index = Profile_->threads().container_names(offset + id);
-        return {Profile_, index};
+    TLabel GetLabel(i32 index) const {
+        ui32 offset = Profile_->label_groups().packed_label_ids_offset(*Index_);
+        ui32 labelIndex = Profile_->label_groups().packed_label_ids(offset + index);
+        return TLabel{Profile_, labelIndex};
     }
 
-    auto GetContainers() const {
-        return TArrayField<TThread, &TThread::GetContainerCount, &TThread::GetContainer>(this);
+    auto GetLabels() const {
+        return TArrayField<TLabelGroup, &TLabelGroup::GetLabelCount, &TLabelGroup::GetLabel>(this);
     }
 
     void DumpJson(NJson::TJsonWriter& writer) const {
         writer.OpenMap();
-        writer.Write("type", "thread");
+        writer.Write("type", "label_group");
         writer.Write("id", *GetIndex());
-        writer.Write("thread_id", GetThreadId());
-        writer.Write("process_id", GetProcessId());
-        writer.Write("thread_name", GetThreadName().View());
-        writer.Write("process_name", GetProcessName().View());
-        writer.WriteKey("containers");
+        writer.WriteKey("labels");
         writer.OpenArray();
-        for (TStringRef container : GetContainers()) {
-            writer.Write(container.View());
+        for (TLabel label : GetLabels()) {
+            label.DumpJson(writer);
         }
         writer.CloseArray();
         writer.CloseMap();
@@ -857,8 +832,8 @@ public:
 
     i32 GetStackCount() const {
         auto [from, to] = GetOffsetRange(
-            Profile_->sample_keys().stacks().first_stack_id(),
-            Profile_->sample_keys().stacks().stack_id(),
+            Profile_->sample_keys().stacks().stack_ids_offset(),
+            Profile_->sample_keys().stacks().stack_ids(),
             *Index_
         );
 
@@ -866,8 +841,8 @@ public:
     }
 
     TStack GetStack(i32 index) const {
-        ui32 offset = Profile_->sample_keys().stacks().first_stack_id(*Index_);
-        ui32 stackIndex = Profile_->sample_keys().stacks().stack_id(offset + index);
+        ui32 offset = Profile_->sample_keys().stacks().stack_ids_offset(*Index_);
+        ui32 stackIndex = Profile_->sample_keys().stacks().stack_ids(offset + index);
         return TStack{Profile_, stackIndex};
     }
 
@@ -875,15 +850,15 @@ public:
         return TArrayField<TSampleKey, &TSampleKey::GetStackCount, &TSampleKey::GetStack>(this);
     }
 
-    TThread GetThread() const {
-        ui32 tid = Profile_->sample_keys().threads().thread_id(*Index_);
-        return TThread{Profile_, TThreadId::FromInternalIndex(tid)};
+    TLabelGroup GetLabelGroup() const {
+        ui32 id = Profile_->sample_keys().label_group_id(*Index_);
+        return TLabelGroup{Profile_, TLabelGroupId::FromInternalIndex(id)};
     }
 
     i32 GetLabelCount() const {
         auto [from, to] = GetOffsetRange(
-            Profile_->sample_keys().labels().first_label_id(),
-            Profile_->sample_keys().labels().packed_label_id(),
+            Profile_->sample_keys().labels().packed_label_ids_offset(),
+            Profile_->sample_keys().labels().packed_label_ids(),
             *Index_
         );
 
@@ -891,8 +866,8 @@ public:
     }
 
     TLabel GetLabel(i32 index) const {
-        ui32 offset = Profile_->sample_keys().labels().first_label_id(*Index_);
-        ui32 labelIndex = Profile_->sample_keys().labels().packed_label_id(offset + index);
+        ui32 offset = Profile_->sample_keys().labels().packed_label_ids_offset(*Index_);
+        ui32 labelIndex = Profile_->sample_keys().labels().packed_label_ids(offset + index);
         return TLabel{Profile_, labelIndex};
     }
 
@@ -900,13 +875,26 @@ public:
         return TArrayField<TSampleKey, &TSampleKey::GetLabelCount, &TSampleKey::GetLabel>(this);
     }
 
+    i32 GetTotalLabelCount() const {
+        return GetLabelCount() + GetLabelGroup().GetLabelCount();
+    }
+
+    TLabel GetLabelSimple(i32 index) const {
+        auto group = GetLabelGroup();
+        return index < group.GetLabelCount() ? group.GetLabel(index) : GetLabel(index - group.GetLabelCount());
+    }
+
+    auto GetAllLabels() const {
+        return TArrayField<TSampleKey, &TSampleKey::GetTotalLabelCount, &TSampleKey::GetLabelSimple>(this);
+    }
+
     void DumpJson(NJson::TJsonWriter& writer) const {
         writer.OpenMap();
         writer.Write("type", "sample_key");
         writer.Write("id", *GetIndex());
 
-        writer.WriteKey("thread");
-        GetThread().DumpJson(writer);
+        writer.WriteKey("label_group");
+        GetLabelGroup().DumpJson(writer);
 
         writer.WriteKey("stacks");
         writer.OpenArray();
@@ -1105,8 +1093,6 @@ public:
 
     const NProto::NProfile::Metadata& GetMetadata() const;
 
-    const NProto::NProfile::Features& GetFeatures() const;
-
     ////////////////////////////////////////////////////////////////////////////////
 
     TEntityArray<TStringRef> Strings() const {
@@ -1157,7 +1143,7 @@ public:
         return {Profile_};
     }
 
-    TEntityArray<TThread> Threads() const {
+    TEntityArray<TLabelGroup> LabelGroups() const {
         return {Profile_};
     }
 

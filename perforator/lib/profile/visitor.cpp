@@ -9,10 +9,9 @@ void VisitProfile(
     visitor.VisitWholeProfile(profile);
     visitor.VisitStringTable(profile.strtab());
     visitor.VisitMetadata(profile.metadata());
-    visitor.VisitFeatures(profile.features());
     visitor.VisitComments(profile.comments());
     visitor.VisitLabels(profile.labels());
-    visitor.VisitThreads(profile.threads());
+    visitor.VisitLabelGroups(profile.label_groups());
     visitor.VisitBinaries(profile.binaries());
     visitor.VisitFunctions(profile.functions());
     visitor.VisitInlineChains(profile.inline_chains());

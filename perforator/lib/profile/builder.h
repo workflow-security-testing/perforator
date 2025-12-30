@@ -4,6 +4,7 @@
 
 #include <perforator/proto/profile/profile.pb.h>
 
+#include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
 #include <library/cpp/containers/stack_vector/stack_vec.h>
 #include <library/cpp/introspection/introspection.h>
 
@@ -59,30 +60,10 @@ struct TNumberLabelInfo {
     Y_DEFAULT_ABSL_HASHABLE_TYPE(TNumberLabelInfo);
 };
 
-struct TThreadInfo {
-    ui64 ProcessId = 0;
-    ui64 ThreadId = 0;
-    TStringId ProcessNameIdx = TStringId::Zero();
-    TStringId ThreadNameIdx = TStringId::Zero();
-    TStackVec<TStringId, 8> ContainerIdx;
-
-    Y_DEFAULT_EQUALITY_COMPARABLE_TYPE(TThreadInfo);
-    Y_DEFAULT_ABSL_HASHABLE_TYPE(TThreadInfo);
-
-    ui64 StableHashValue() const {
-        return MultiHash(
-            ProcessId,
-            ThreadId,
-            *ProcessNameIdx,
-            *ThreadNameIdx,
-            HashArrayFast(ContainerIdx)
-        );
-    }
-};
-
 struct TBinaryInfo {
     TStringId BuildId = TStringId::Zero();
     TStringId Path = TStringId::Zero();
+    bool HasSkewedAddresses = false;
 
     Y_DEFAULT_EQUALITY_COMPARABLE_TYPE(TBinaryInfo);
     Y_DEFAULT_ABSL_HASHABLE_TYPE(TBinaryInfo);
@@ -120,7 +101,7 @@ struct TInlineChainInfo {
 
 struct TStackFrameInfo {
     TBinaryId Binary = TBinaryId::Zero();
-    i64 BinaryOffset = 0;
+    ui64 Address = 0;
     TInlineChainId InlineChain = TInlineChainId::Zero();
 
     Y_DEFAULT_EQUALITY_COMPARABLE_TYPE(TStackFrameInfo);
@@ -139,8 +120,6 @@ struct TStackSegmentInfo {
 };
 
 struct TStackInfo {
-    NProto::NProfile::StackKind Kind = NProto::NProfile::StackKind::Unknown;
-    TStringId RuntimeName = TStringId::Zero();
     TStackFrameId TopFrame = TStackFrameId::Zero();
     TStackSegmentId StackSegment = TStackSegmentId::Zero();
 
@@ -148,14 +127,25 @@ struct TStackInfo {
     Y_DEFAULT_ABSL_HASHABLE_TYPE(TStackInfo);
 };
 
+struct TLabelGroupInfo {
+    TStackVec<TLabelId, 8> Labels;
+
+    Y_DEFAULT_EQUALITY_COMPARABLE_TYPE(TLabelGroupInfo);
+    Y_DEFAULT_ABSL_HASHABLE_TYPE(TLabelGroupInfo);
+
+    ui64 StableHashValue() const {
+        return HashArrayFast(Labels);
+    }
+};
+
 struct TSampleKeyInfo {
-    TThreadId Thread = TThreadId::Zero();
-    TStackVec<TStackId, 2> Stacks;
+    TLabelGroupId LabelGroup = TLabelGroupId::Zero();
+    TStackVec<TStackId, 8> Stacks;
     TStackVec<TLabelId, 8> Labels;
 
     ui64 StableHashValue() const {
         return MultiHash(
-            *Thread,
+            *LabelGroup,
             HashArrayFast(Stacks),
             HashArrayFast(Labels)
         );
@@ -165,16 +155,16 @@ struct TSampleKeyInfo {
 
     template <typename H>
     friend H AbslHashValue(H state, const TSampleKeyInfo& self) {
-        state = H::combine(std::move(state), self.Thread);
+        state = H::combine(std::move(state), self.LabelGroup);
 
-        state = H::combine_unordered(std::move(state),
-            self.Stacks.begin(),
-            self.Stacks.end()
+        state = H::combine_contiguous(std::move(state),
+            self.Stacks.data(),
+            self.Stacks.size()
         );
 
-        return H::combine_unordered(std::move(state),
-            self.Labels.begin(),
-            self.Labels.end()
+        return H::combine_contiguous(std::move(state),
+            self.Labels.data(),
+            self.Labels.size()
         );
     }
 };
@@ -203,16 +193,15 @@ class TProfileBuilder {
 public:
     // A bunch of forward declarations to make the class readable.
     class TMetadataBuilder;
-    class TFeaturesBuilder;
-    class TThreadBuilder;
     class TBinaryBuilder;
     class TFunctionBuilder;
     class TInlineChainBuilder;
     class TStackFrameBuilder;
     class TStackSegmentBuilder;
+    class TLabelGroupBuilder;
     class TStackBuilder;
-    class TSimpleStackBuilder;
     class TSampleKeyBuilder;
+    class TSimpleSampleKeyBuilder;
     class TSampleBuilder;
 
 public:
@@ -220,7 +209,6 @@ public:
     ~TProfileBuilder();
 
     TMetadataBuilder Metadata();
-    TFeaturesBuilder Features();
 
     TStringId AddString(TStringBuf string);
 
@@ -234,9 +222,6 @@ public:
     TLabelId AddStringLabel(TStringId key, TStringId value);
     TLabelId AddNumericLabel(TStringBuf key, i64 value);
     TLabelId AddNumericLabel(TStringId key, i64 value);
-
-    TThreadBuilder AddThread();
-    TThreadId AddThread(const TThreadInfo& info);
 
     TBinaryBuilder AddBinary();
     TBinaryId AddBinary(const TBinaryInfo& key, const TBinaryInfo& value);
@@ -254,11 +239,15 @@ public:
     TStackSegmentId AddStackSegment(const TStackSegmentInfo& info);
 
     TStackBuilder AddStack();
-    TSimpleStackBuilder AddSimpleStack();
     TStackId AddStack(const TStackInfo& info);
+
+    TLabelGroupBuilder AddLabelGroup();
+    TLabelGroupId AddLabelGroup(const TLabelGroupInfo& info);
 
     TSampleKeyBuilder AddSampleKey();
     TSampleKeyId AddSampleKey(const TSampleKeyInfo& info);
+
+    TSimpleSampleKeyBuilder AddSimpleSampleKey();
 
     TSampleBuilder AddSample();
     TSampleId AddSample(const TSampleInfo& info);
@@ -291,83 +280,6 @@ public:
         NProto::NProfile::Metadata& Metadata_;
     };
 
-    class TFeaturesBuilder {
-    public:
-        TFeaturesBuilder(TProfileBuilder& builder, NProto::NProfile::Features& features)
-            : Builder_{builder}
-            , Features_{features}
-        {}
-
-        TFeaturesBuilder& SetHasSkewedBinaryOffsets(bool has) {
-            Features_.set_has_skewed_binary_offsets(has);
-            return *this;
-        }
-
-        NProto::NProfile::Features& GetProto() const {
-            return Features_;
-        }
-
-        TProfileBuilder& Finish() {
-            return Builder_;
-        }
-
-    private:
-        TProfileBuilder& Builder_;
-        NProto::NProfile::Features& Features_;
-    };
-
-    class TThreadBuilder {
-    public:
-        TThreadBuilder(TProfileBuilder& builder)
-            : Builder_{builder}
-        {}
-
-        TThreadBuilder& SetProcessId(ui32 id) {
-            Info_.ProcessId = id;
-            return *this;
-        }
-
-        TThreadBuilder& SetThreadId(ui32 id) {
-            Info_.ThreadId = id;
-            return *this;
-        }
-
-        TThreadBuilder& SetProcessName(TStringBuf name) {
-            return SetProcessName(Builder_.AddString(name));
-        }
-
-        TThreadBuilder& SetProcessName(TStringId name) {
-            Info_.ProcessNameIdx = name;
-            return *this;
-        }
-
-        TThreadBuilder& SetThreadName(TStringBuf name) {
-            return SetThreadName(Builder_.AddString(name));
-        }
-
-        TThreadBuilder& SetThreadName(TStringId name) {
-            Info_.ThreadNameIdx = name;
-            return *this;
-        }
-
-        TThreadBuilder& AddContainerName(TStringBuf name) {
-            return AddContainerName(Builder_.AddString(name));
-        }
-
-        TThreadBuilder& AddContainerName(TStringId name) {
-            Info_.ContainerIdx.push_back(name);
-            return *this;
-        }
-
-        TThreadId Finish() {
-            return Builder_.AddThread(Info_);
-        }
-
-    private:
-        TThreadInfo Info_;
-        TProfileBuilder& Builder_;
-    };
-
     class TBinaryBuilder {
     public:
         TBinaryBuilder(TProfileBuilder& builder)
@@ -392,8 +304,13 @@ public:
             return *this;
         }
 
-        TBinaryBuilder& SetIgnoreBinaryPaths(bool ignoreBinaryPaths) {
-            IgnoreBinaryPaths_ = ignoreBinaryPaths;
+        TBinaryBuilder& SetIgnoreBinaryPaths(bool value) {
+            IgnoreBinaryPaths_ = value;
+            return *this;
+        }
+
+        TBinaryBuilder& SetHasSkewedAddresses(bool value) {
+            Info_.HasSkewedAddresses = value;
             return *this;
         }
 
@@ -525,8 +442,8 @@ public:
             return *this;
         }
 
-        TStackFrameBuilder& SetBinaryOffset(i64 offset) {
-            Info_.BinaryOffset = offset;
+        TStackFrameBuilder& SetAddress(ui64 address) {
+            Info_.Address = address;
             return *this;
         }
 
@@ -570,16 +487,6 @@ public:
             : Builder_{builder}
         {}
 
-        TStackBuilder& SetKind(NProto::NProfile::StackKind kind) {
-            Info_.Kind = kind;
-            return *this;
-        }
-
-        TStackBuilder& SetRuntimeName(TStringId name) {
-            Info_.RuntimeName = name;
-            return *this;
-        }
-
         TStackBuilder& SetTopFrame(TStackFrameId frame) {
             Info_.TopFrame = frame;
             return *this;
@@ -599,47 +506,24 @@ public:
         TProfileBuilder& Builder_;
     };
 
-    class TSimpleStackBuilder {
+    class TLabelGroupBuilder {
     public:
-        TSimpleStackBuilder(TProfileBuilder& builder)
-            : Segment_{builder}
-            , Stack_{builder}
+        TLabelGroupBuilder(TProfileBuilder& builder)
+            : Builder_{builder}
         {}
 
-        bool Empty() const {
-            return !HasTopFrame_;
-        }
-
-        TSimpleStackBuilder& SetKind(NProto::NProfile::StackKind kind) {
-            Stack_.SetKind(kind);
+        TLabelGroupBuilder& AddLabel(TLabelId label) {
+            Info_.Labels.push_back(label);
             return *this;
         }
 
-        TSimpleStackBuilder& SetRuntimeName(TStringId name) {
-            Stack_.SetRuntimeName(name);
-            return *this;
-        }
-
-        TSimpleStackBuilder& AddFrame(TStackFrameId frame) {
-            if (HasTopFrame_) {
-                Segment_.AddFrame(frame);
-            } else {
-                Stack_.SetTopFrame(frame);
-                HasTopFrame_ = true;
-            }
-            return *this;
-        }
-
-        TStackId Finish() {
-            TStackSegmentId segment = Segment_.Finish();
-            Stack_.SetStackSegment(segment);
-            return Stack_.Finish();
+        TLabelGroupId Finish() {
+            return Builder_.AddLabelGroup(Info_);
         }
 
     private:
-        TStackSegmentBuilder Segment_;
-        TStackBuilder Stack_;
-        bool HasTopFrame_ = false;
+        TLabelGroupInfo Info_;
+        TProfileBuilder& Builder_;
     };
 
     class TSampleKeyBuilder {
@@ -653,8 +537,8 @@ public:
             return *this;
         }
 
-        TSampleKeyBuilder& SetThread(TThreadId thread) {
-            Info_.Thread = thread;
+        TSampleKeyBuilder& SetLabelGroup(TLabelGroupId labelGroup) {
+            Info_.LabelGroup = labelGroup;
             return *this;
         }
 
@@ -669,6 +553,40 @@ public:
 
     private:
         TSampleKeyInfo Info_;
+        TProfileBuilder& Builder_;
+    };
+
+    class TSimpleSampleKeyBuilder {
+    public:
+        TSimpleSampleKeyBuilder(TProfileBuilder& builder)
+            : KeyBuilder_{builder}
+            , Builder_{builder}
+        {}
+
+        TSimpleSampleKeyBuilder& AddLabel(TLabelId label);
+
+        TSimpleSampleKeyBuilder& AddFrame(TStackFrameId frame);
+
+        TSampleKeyId Finish() {
+            if (TopFrame_ != TStackFrameId::Invalid()) {
+                auto builder = Builder_.AddStack();
+                builder.SetTopFrame(TopFrame_);
+                if (!StackSegment_.Stack.empty()) {
+                    builder.SetStackSegment(Builder_.AddStackSegment(StackSegment_));
+                }
+                KeyBuilder_.AddStack(builder.Finish());
+            }
+            if (LabelGroup_.Labels) {
+                KeyBuilder_.SetLabelGroup(Builder_.AddLabelGroup(LabelGroup_));
+            }
+            return KeyBuilder_.Finish();
+        }
+
+    private:
+        TSampleKeyBuilder KeyBuilder_;
+        TLabelGroupInfo LabelGroup_;
+        TStackFrameId TopFrame_ = TStackFrameId::Invalid();
+        TStackSegmentInfo StackSegment_;
         TProfileBuilder& Builder_;
     };
 

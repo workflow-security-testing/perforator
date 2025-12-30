@@ -14,7 +14,7 @@ TEST(MergeProfilesTest, Golden) {
     TVector<TString> profilesBytes;
     NPerforator::NProto::NPProf::Profile expected;
 
-    for (TFsPath path : NPerforator::NProfile::NTest::ListGoldenProfiles(SRC_("testprofiles/merge"), ".*.pb.gz", 11)) {
+    for (TFsPath path : NPerforator::NProfile::NTest::ListGoldenProfiles(SRC_("testprofiles/merge"), "[^\\.]*(.[0-9]+)?.pb.gz", 11)) {
         TFileInput input{path};
 
         auto profileBytes = DecompressPprof(path);
@@ -31,11 +31,8 @@ TEST(MergeProfilesTest, Golden) {
     const ui32 threadCount = 4;
     NPerforator::NProfile::TMergeManager manager{threadCount};
 
-    NPerforator::NProto::NProfile::MergeOptions options;
-    options.set_ignore_process_ids(false);
-    options.set_ignore_thread_ids(false);
-    options.set_cleanup_thread_names(false);
-    auto session = manager.StartSession(options);
+    NPerforator::NProto::NProfile::MergeOptions opts;
+    auto session = manager.StartSession(opts);
 
     for (auto&& profileBytes : profilesBytes) {
         NPerforator::NProto::NProfile::Profile profile;

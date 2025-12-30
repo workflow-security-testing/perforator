@@ -24,10 +24,9 @@ public:
     virtual void VisitWholeProfile(const NProto::NProfile::Profile& profile) = 0;
     virtual void VisitStringTable(const NProto::NProfile::StringTable& strtab) = 0;
     virtual void VisitMetadata(const NProto::NProfile::Metadata& metadata) = 0;
-    virtual void VisitFeatures(const NProto::NProfile::Features& functions) = 0;
     virtual void VisitComments(const NProto::NProfile::Comments& comments) = 0;
     virtual void VisitLabels(const NProto::NProfile::Labels& labels) = 0;
-    virtual void VisitThreads(const NProto::NProfile::Threads& threads) = 0;
+    virtual void VisitLabelGroups(const NProto::NProfile::LabelGroups& labelGroups) = 0;
     virtual void VisitBinaries(const NProto::NProfile::Binaries& binaries) = 0;
     virtual void VisitFunctions(const NProto::NProfile::Functions& functions) = 0;
     virtual void VisitInlineChains(const NProto::NProfile::InlineChains& inlineChains) = 0;
@@ -43,10 +42,9 @@ public:
     void VisitWholeProfile(const NProto::NProfile::Profile&) override {}
     void VisitStringTable(const NProto::NProfile::StringTable&) override {}
     void VisitMetadata(const NProto::NProfile::Metadata&) override {}
-    void VisitFeatures(const NProto::NProfile::Features&) override {}
     void VisitComments(const NProto::NProfile::Comments&) override {}
     void VisitLabels(const NProto::NProfile::Labels&) override {}
-    void VisitThreads(const NProto::NProfile::Threads&) override {}
+    void VisitLabelGroups(const NProto::NProfile::LabelGroups&) override {}
     void VisitBinaries(const NProto::NProfile::Binaries&) override {}
     void VisitFunctions(const NProto::NProfile::Functions&) override {}
     void VisitInlineChains(const NProto::NProfile::InlineChains&) override {}

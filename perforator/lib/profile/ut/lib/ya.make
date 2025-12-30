@@ -7,6 +7,7 @@ SRCS(
 PEERDIR(
     contrib/libs/re2
     perforator/lib/profile
+    library/cpp/iterator
     library/cpp/testing/gtest
 )
 

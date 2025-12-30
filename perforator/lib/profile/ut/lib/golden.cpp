@@ -35,7 +35,7 @@ TVector<TFsPath> ListGoldenProfiles(const TFsPath& dir, TStringBuf pattern, TMay
 
         TStringBuf absPath{entry.fts_path, entry.fts_pathlen};
         TFsPath localPath = TFsPath{absPath}.RelativeTo(dir);
-        if (!re2::RE2::PartialMatch(localPath.GetPath(), regex)) {
+        if (!re2::RE2::FullMatch(localPath.GetPath(), regex)) {
             continue;
         }
 

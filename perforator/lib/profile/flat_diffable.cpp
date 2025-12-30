@@ -37,8 +37,10 @@ public:
 
         auto& labels = Value_["labels"][key];
         if (labels.IsDefined()) {
-            NJson::TJsonValue prev = std::move(labels);
-            labels.AppendValue(std::move(prev));
+            if (!labels.IsArray()) {
+                NJson::TJsonValue prev = std::move(labels);
+                labels.AppendValue(std::move(prev));
+            }
             labels.AppendValue(value);
         } else {
             labels = value;
@@ -54,7 +56,7 @@ public:
     TFlatSampleKeyBuilder& AddFrame(
         TStringBuf buildid,
         TStringBuf path,
-        ui64 offset,
+        ui64 address,
         TStringBuf sourceFile = "",
         TStringBuf sourceFunction = "",
         ui32 line = 0
@@ -66,8 +68,8 @@ public:
         if (path) {
             frame["binary"]["path"] = path;
         }
-        if (offset && Options_.PrintAddresses) {
-            frame["address"] = offset;
+        if (address && Options_.PrintAddresses) {
+            frame["address"] = address;
         }
 
         if (sourceFile) {
@@ -137,7 +139,7 @@ TFlatDiffableProfile::TFlatDiffableProfile(const NProto::NPProf::Profile& profil
         for (ui64 id : sample.location_id()) {
             auto& location = GetPProfField(profile.location(), locations, id);
             auto& mapping = GetPProfField(profile.mapping(), mappings, location.mapping_id());
-            i64 address = location.address() + (i64)mapping.file_offset() - (i64)mapping.memory_start();
+            ui64 address = location.address() + mapping.file_offset() - mapping.memory_start();
 
             if (location.line().empty()) {
                 builder.AddFrame(
@@ -179,29 +181,10 @@ TFlatDiffableProfile::TFlatDiffableProfile(TProfile profile, TFlatDiffableProfil
 
         auto key = sample.GetKey();
 
-        for (TLabel label : key.GetLabels()) {
+        for (TLabel label : key.GetAllLabels()) {
             std::visit([&](auto&& value) {
                 builder.AddLabel(label.GetKey().View(), value);
             }, label.GetValue());
-        }
-
-        {
-            TThread thread = key.GetThread();
-            if (auto id = thread.GetThreadId(); id != 0) {
-                builder.AddLabel("tid", id);
-            }
-            if (auto id = thread.GetThreadName(); id != 0) {
-                builder.AddLabel("thread_comm", id);
-            }
-            if (auto id = thread.GetProcessId(); id != 0) {
-                builder.AddLabel("pid", id);
-            }
-            if (auto id = thread.GetProcessName(); id != 0) {
-                builder.AddLabel("process_comm", id);
-            }
-            for (auto id : thread.GetContainers()) {
-                builder.AddLabel("workload", id);
-            }
         }
 
         for (TStack stack : key.GetStacks()) {
@@ -211,7 +194,7 @@ TFlatDiffableProfile::TFlatDiffableProfile(TProfile profile, TFlatDiffableProfil
                     builder.AddFrame(
                         frame.GetBinary().GetBuildId().View(),
                         frame.GetBinary().GetPath().View(),
-                        frame.GetBinaryOffset()
+                        frame.GetAddress()
                     );
 
                 } else {
@@ -219,7 +202,7 @@ TFlatDiffableProfile::TFlatDiffableProfile(TProfile profile, TFlatDiffableProfil
                         builder.AddFrame(
                             frame.GetBinary().GetBuildId().View(),
                             frame.GetBinary().GetPath().View(),
-                            frame.GetBinaryOffset(),
+                            frame.GetAddress(),
                             line.GetFunction().GetFileName().View(),
                             line.GetFunction().GetName().View(),
                             line.GetLine()

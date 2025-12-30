@@ -313,29 +313,17 @@ public:
         , InlineChains_{*Profile_.InlineChains().GetPastTheEndIndex()}
         , SourceLines_{*Profile_.SourceLines().GetPastTheEndIndex()}
         , Functions_{*Profile_.Functions().GetPastTheEndIndex()}
-        , Threads_{*Profile_.Threads().GetPastTheEndIndex()}
+        , LabelGroups_{*Profile_.LabelGroups().GetPastTheEndIndex()}
         , Labels_{*Profile_.Labels().GetPastTheEndIndex()}
     {}
 
     void Merge() {
-        MergeFeatures();
         MergeMetadata();
         MergeBinaries();
         MergeSamples();
     }
 
 private:
-    void MergeFeatures() {
-        auto&& prev = Builder_.Features().GetProto();
-        auto&& curr = Profile_.GetFeatures();
-
-        if (IsFirstProfile_) {
-            prev.set_has_skewed_binary_offsets(curr.has_skewed_binary_offsets());
-        } else {
-            Y_ENSURE(prev.has_skewed_binary_offsets() == curr.has_skewed_binary_offsets());
-        }
-    }
-
     void MergeMetadata() {
         auto&& prev = Builder_.Metadata().GetProto();
         auto&& curr = Profile_.GetMetadata();
@@ -400,7 +388,7 @@ private:
         return SampleKeys_.TryMap(key.GetIndex(), [&key, this] {
             auto builder = Builder_.AddSampleKey();
 
-            builder.SetThread(MapThread(key.GetThread()));
+            builder.SetLabelGroup(MapLabelGroup(key.GetLabelGroup()));
 
             for (TStack stack : key.GetStacks()) {
                 builder.AddStack(MapStack(stack));
@@ -416,32 +404,12 @@ private:
         });
     }
 
-    TThreadId MapThread(TThread thread) {
-        return Threads_.TryMap(thread.GetIndex(), [&thread, this] {
-            auto builder = Builder_.AddThread();
+    TLabelGroupId MapLabelGroup(TLabelGroup labelGroup) {
+        return LabelGroups_.TryMap(labelGroup.GetIndex(), [&labelGroup, this] {
+            auto builder = Builder_.AddLabelGroup();
 
-            if (!Policy_.IgnoreThreadIds()) {
-                builder.SetThreadId(thread.GetThreadId());
-            }
-            if (!Policy_.IgnoreProcessIds()) {
-                builder.SetProcessId(thread.GetProcessId());
-            }
-
-            if (!Policy_.IgnoreThreadNames()) {
-                if (Policy_.CleanupThreadNames()) {
-                    TStringId sanitized = SanitizeThreadName(thread.GetThreadName());
-                    builder.SetThreadName(sanitized);
-                } else {
-                    builder.SetThreadName(MapString(thread.GetThreadName()));
-                }
-            }
-
-            if (!Policy_.IgnoreProcessNames()) {
-                builder.SetProcessName(MapString(thread.GetProcessName()));
-            }
-
-            for (TStringRef container : thread.GetContainers()) {
-                builder.AddContainerName(MapString(container));
+            for (auto&& label : labelGroup.GetLabels()) {
+                builder.AddLabel(MapLabel(label));
             }
 
             return builder.Finish();
@@ -487,8 +455,6 @@ private:
         return Stacks_.TryMap(stack.GetIndex(), [&, this] {
             auto builder = Builder_.AddStack();
 
-            builder.SetKind(stack.GetKind());
-            builder.SetRuntimeName(MapString(stack.GetRuntimeName()));
             builder.SetTopFrame(MapStackFrame(stack.GetTopFrame()));
             builder.SetStackSegment(MapStackSegment(stack.GetStackSegment()));
 
@@ -514,7 +480,7 @@ private:
 
             if (!Policy_.MergeBinaries()) {
                 builder.SetBinary(MapBinary(frame.GetBinary()));
-                builder.SetBinaryOffset(frame.GetBinaryOffset());
+                builder.SetAddress(frame.GetAddress());
             }
             builder.SetInlineChain(MapInlineChain(frame.GetInlineChain()));
 
@@ -529,6 +495,7 @@ private:
             builder.SetBuildId(MapString(binary.GetBuildId()));
             builder.SetPath(MapString(binary.GetPath()));
             builder.SetIgnoreBinaryPaths(Policy_.IgnoreBinaryPaths());
+            builder.SetHasSkewedAddresses(binary.HasSkewedAddresses());
 
             return builder.Finish();
         });
@@ -592,7 +559,7 @@ private:
     TIndexRemapping<TInlineChainId> InlineChains_;
     TIndexRemapping<TSourceLineId> SourceLines_;
     TIndexRemapping<TFunctionId> Functions_;
-    TIndexRemapping<TThreadId> Threads_;
+    TIndexRemapping<TLabelGroupId> LabelGroups_;
     TIndexRemapping<TLabelId> Labels_;
 };
 

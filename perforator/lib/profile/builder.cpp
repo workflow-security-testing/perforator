@@ -1,4 +1,5 @@
 #include "builder.h"
+#include "profile.h"
 
 #include <absl/container/flat_hash_map.h>
 
@@ -101,6 +102,8 @@ private:
 };
 
 class TProfileBuilder::TImpl {
+    friend class TProfileBuilder::TSimpleSampleKeyBuilder;
+
 public:
     TImpl(TProfileBuilder& owner, NProto::NProfile::Profile& profile)
         : Owner_{owner}
@@ -111,10 +114,6 @@ public:
 
     TMetadataBuilder Metadata() {
         return TMetadataBuilder{Owner_, *Profile_.mutable_metadata()};
-    }
-
-    TFeaturesBuilder Features() {
-        return TFeaturesBuilder{Owner_, *Profile_.mutable_features()};
     }
 
     TStringId AddString(TStringBuf string) {
@@ -188,12 +187,12 @@ public:
         return TLabelId::FromInternalIndex((*id << 1) | 1);
     }
 
-    TThreadBuilder AddThread() {
+    TLabelGroupBuilder AddLabelGroup() {
         return {Owner_};
     }
 
-    TThreadId AddThread(const TThreadInfo& info) {
-        return FetchHashedLossy(ThreadHashes_, info);
+    TLabelGroupId AddLabelGroup(const TLabelGroupInfo& info) {
+        return FetchHashedLossy(LabelGroupHashes_, info);
     }
 
     TBinaryBuilder AddBinary() {
@@ -240,10 +239,6 @@ public:
         return {Owner_};
     }
 
-    TSimpleStackBuilder AddSimpleStack() {
-        return {Owner_};
-    }
-
     TStackId AddStack(const TStackInfo& info) {
         return Fetch(Stacks_, info);
     }
@@ -258,6 +253,10 @@ public:
             SampleByKeys_.resize(1 + idx * 2, TSampleId::Invalid());
         }
         return id;
+    }
+
+    TSimpleSampleKeyBuilder AddSimpleSampleKey() {
+        return {Owner_};
     }
 
     TSampleBuilder AddSample() {
@@ -282,13 +281,20 @@ public:
 private:
     void InitializeProfile() {
         AddString("");
-        FetchHashedLossy(ThreadHashes_, TThreadInfo{});
+        FetchHashedLossy(LabelGroupHashes_, TLabelGroupInfo{});
         Fetch(Binaries_, TBinaryInfo{});
         Fetch(Functions_, TFunctionInfo{});
         FetchHashedLossy(InlineChainHashes_, TInlineChainInfo{});
         FetchHashedLossy(StackSegmentHashes_, TStackSegmentInfo{});
         Fetch(Stacks_, TStackInfo{});
         Fetch(StackFrames_, TStackFrameInfo{});
+
+        auto wellKnownEnumDescriptor = NProto::NProfile::WellKnownLabel_descriptor();
+        for (int i = 0; i < wellKnownEnumDescriptor->value_count(); ++i) {
+            WellKnownLabelKeyIds_.emplace(AddString(
+                wellKnownEnumDescriptor->value(i)->options().GetExtension(NProto::NProfile::label_key)
+            ));
+        }
     }
 
     TSampleId PrepareSample(const TSampleInfo& sample) {
@@ -413,15 +419,12 @@ private:
         CheckedAddAt(labels.mutable_value(), id, info.Value);
     }
 
-    void FillEntityAt(const TThreadInfo& info, TThreadId id) {
-        auto& threads = *Profile_.mutable_threads();
-        CheckedAddAt(threads.mutable_thread_id(), id, info.ThreadId);
-        CheckedAddAt(threads.mutable_process_id(), id, info.ProcessId);
-        CheckedAddAt(threads.mutable_thread_name(), id, *info.ThreadNameIdx);
-        CheckedAddAt(threads.mutable_process_name(), id, *info.ProcessNameIdx);
-        CheckedAddAt(threads.mutable_container_offset(), id, threads.container_names_size());
-        for (TStringId container : info.ContainerIdx) {
-            threads.add_container_names(*container);
+    void FillEntityAt(const TLabelGroupInfo& info, TLabelGroupId id) {
+        auto& labelGroups = *Profile_.mutable_label_groups();
+
+        CheckedAddAt(labelGroups.mutable_packed_label_ids_offset(), id, labelGroups.packed_label_ids_size());
+        for (const TLabelId& frame : info.Labels) {
+            labelGroups.add_packed_label_ids(*frame);
         }
     }
 
@@ -429,6 +432,7 @@ private:
         auto& binaries = *Profile_.mutable_binaries();
         CheckedAddAt(binaries.mutable_build_id(), id, *info.BuildId);
         CheckedAddAt(binaries.mutable_path(), id, *info.Path);
+        CheckedAddAt(binaries.mutable_has_skewed_addresses(), id, info.HasSkewedAddresses);
     }
 
     void FillEntityAt(const TFunctionInfo& info, TFunctionId id) {
@@ -441,51 +445,49 @@ private:
 
     void FillEntityAt(const TInlineChainInfo& info, TInlineChainId id) {
         auto& chains = *Profile_.mutable_inline_chains();
-        CheckedAddAt(chains.mutable_offset(), id, chains.function_id_size());
+        CheckedAddAt(chains.mutable_lines_offset(), id, chains.lines().function_id_size());
         for (const TSourceLineInfo& line : info.Lines) {
-            chains.add_function_id(*line.Function);
-            chains.add_line(line.Line);
-            chains.add_column(line.Column);
+            chains.mutable_lines()->add_function_id(*line.Function);
+            chains.mutable_lines()->add_line(line.Line);
+            chains.mutable_lines()->add_column(line.Column);
         }
     }
 
     void FillEntityAt(const TStackFrameInfo& info, TStackFrameId id) {
         auto& frames = *Profile_.mutable_stack_frames();
         CheckedAddAt(frames.mutable_binary_id(), id, *info.Binary);
-        CheckedAddAt(frames.mutable_binary_offset(), id, info.BinaryOffset);
+        CheckedAddAt(frames.mutable_address(), id, info.Address);
         CheckedAddAt(frames.mutable_inline_chain_id(), id, *info.InlineChain);
     }
 
     void FillEntityAt(const TStackSegmentInfo& info, TStackSegmentId id) {
         auto& segments = *Profile_.mutable_stack_segments();
 
-        CheckedAddAt(segments.mutable_offset(), id, segments.frame_id_size());
+        CheckedAddAt(segments.mutable_frame_ids_offset(), id, segments.frame_ids_size());
         for (const TStackFrameId& frame : info.Stack) {
-            segments.add_frame_id(*frame);
+            segments.add_frame_ids(*frame);
         }
     }
 
     void FillEntityAt(const TStackInfo& info, TStackId id) {
         auto& stacks = *Profile_.mutable_stacks();
 
-        CheckedAddAt(stacks.mutable_kind(), id, info.Kind);
-        CheckedAddAt(stacks.mutable_runtime_name(), id, *info.RuntimeName);
         CheckedAddAt(stacks.mutable_top_frame_id(), id, *info.TopFrame);
         CheckedAddAt(stacks.mutable_stack_segment_id(), id, *info.StackSegment);
     }
 
     void FillEntityAt(const TSampleKeyInfo& info, TSampleKeyId id) {
         auto& keys = *Profile_.mutable_sample_keys();
-        CheckedAddAt(keys.mutable_threads()->mutable_thread_id(), id, *info.Thread);
+        CheckedAddAt(keys.mutable_label_group_id(), id, *info.LabelGroup);
 
-        CheckedAddAt(keys.mutable_stacks()->mutable_first_stack_id(), id, keys.stacks().stack_id_size());
+        CheckedAddAt(keys.mutable_stacks()->mutable_stack_ids_offset(), id, keys.stacks().stack_ids_size());
         for (const TStackId& stack : info.Stacks) {
-            keys.mutable_stacks()->add_stack_id(*stack);
+            keys.mutable_stacks()->add_stack_ids(*stack);
         }
 
-        CheckedAddAt(keys.mutable_labels()->mutable_first_label_id(), id, keys.labels().packed_label_id_size());
-        for (auto&& label : info.Labels) {
-            keys.mutable_labels()->add_packed_label_id(*label);
+        CheckedAddAt(keys.mutable_labels()->mutable_packed_label_ids_offset(), id, keys.labels().packed_label_ids_size());
+        for (const TLabelId& label : info.Labels) {
+            keys.mutable_labels()->add_packed_label_ids(*label);
         }
     }
 
@@ -505,7 +507,7 @@ private:
     absl::flat_hash_map<TValueTypeInfo, TValueTypeId> ValueTypes_;
     absl::flat_hash_map<TStringLabelInfo, TLabelId> StringLabels_;
     absl::flat_hash_map<TNumberLabelInfo, TLabelId> NumberLabels_;
-    absl::flat_hash_map<ui64, TThreadId> ThreadHashes_;
+    absl::flat_hash_map<ui64, TLabelGroupId> LabelGroupHashes_;
     absl::flat_hash_map<TBinaryInfo, TBinaryId> Binaries_;
     absl::flat_hash_map<TFunctionInfo, TFunctionId> Functions_;
     absl::flat_hash_map<ui64, TInlineChainId> InlineChainHashes_;
@@ -515,6 +517,7 @@ private:
     absl::flat_hash_map<ui64, TSampleKeyId> SampleKeyHashes_;
     TVector<TSampleId> SampleByKeys_;
     TVector<ui128> ValuesSum_;
+    absl::flat_hash_set<TStringId> WellKnownLabelKeyIds_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -528,10 +531,6 @@ TProfileBuilder::~TProfileBuilder() = default;
 
 TProfileBuilder::TMetadataBuilder TProfileBuilder::Metadata() {
     return Impl_->Metadata();
-}
-
-TProfileBuilder::TFeaturesBuilder TProfileBuilder::Features() {
-    return Impl_->Features();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -580,12 +579,12 @@ TLabelId TProfileBuilder::AddNumericLabel(TStringId key, i64 value) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-TProfileBuilder::TThreadBuilder TProfileBuilder::AddThread() {
-    return Impl_->AddThread();
+TProfileBuilder::TLabelGroupBuilder TProfileBuilder::AddLabelGroup() {
+    return Impl_->AddLabelGroup();
 }
 
-TThreadId TProfileBuilder::AddThread(const TThreadInfo& info) {
-    return Impl_->AddThread(info);
+TLabelGroupId TProfileBuilder::AddLabelGroup(const TLabelGroupInfo& info) {
+    return Impl_->AddLabelGroup(info);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -644,10 +643,6 @@ TProfileBuilder::TStackBuilder TProfileBuilder::AddStack() {
     return Impl_->AddStack();
 }
 
-TProfileBuilder::TSimpleStackBuilder TProfileBuilder::AddSimpleStack() {
-    return Impl_->AddSimpleStack();
-}
-
 TStackId TProfileBuilder::AddStack(const TStackInfo& info) {
     return Impl_->AddStack(info);
 }
@@ -660,6 +655,10 @@ TProfileBuilder::TSampleKeyBuilder TProfileBuilder::AddSampleKey() {
 
 TSampleKeyId TProfileBuilder::AddSampleKey(const TSampleKeyInfo& info) {
     return Impl_->AddSampleKey(info);
+}
+
+TProfileBuilder::TSimpleSampleKeyBuilder TProfileBuilder::AddSimpleSampleKey() {
+    return Impl_->AddSimpleSampleKey();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -676,6 +675,40 @@ TSampleId TProfileBuilder::AddSample(const TSampleInfo& info) {
 
 NProto::NProfile::Profile* TProfileBuilder::Finish() && {
     return Impl_->Finish();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+TProfileBuilder::TSimpleSampleKeyBuilder& TProfileBuilder::TSimpleSampleKeyBuilder::AddLabel(TLabelId label) {
+    if (Builder_.Impl_->WellKnownLabelKeyIds_.contains(TLabel{&Builder_.Impl_->Profile_, label}.GetKey().GetIndex())) {
+        LabelGroup_.Labels.push_back(label);
+    } else {
+        KeyBuilder_.AddLabel(label);
+    }
+    return *this;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+TProfileBuilder::TSimpleSampleKeyBuilder& TProfileBuilder::TSimpleSampleKeyBuilder::AddFrame(TStackFrameId frame) {
+    if (TopFrame_ == TStackFrameId::Invalid()) {
+        TopFrame_ = frame;
+    } else if (
+        TStackFrame{&Builder_.Impl_->Profile_, TopFrame_}.GetBinary().GetBuildId().GetIndex()
+        != TStackFrame{&Builder_.Impl_->Profile_, frame}.GetBinary().GetBuildId().GetIndex()
+    ) {
+        auto builder = Builder_.AddStack();
+        builder.SetTopFrame(TopFrame_);
+        if (!StackSegment_.Stack.empty()) {
+            builder.SetStackSegment(Builder_.AddStackSegment(StackSegment_));
+            StackSegment_.Stack.clear();
+        }
+        KeyBuilder_.AddStack(builder.Finish());
+        TopFrame_ = frame;
+    } else {
+        StackSegment_.Stack.push_back(frame);
+    }
+    return *this;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

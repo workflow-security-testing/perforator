@@ -116,58 +116,6 @@ private:
     TCompactIntegerMap<ui64, TRemappedIndex> Mapping_;
 };
 
-class TThreadInfoParser {
-public:
-    struct TLabelKeys {
-        static constexpr TStringBuf ThreadId = "tid";
-        static constexpr TStringBuf ProcessId = "pid";
-        static constexpr TStringBuf ProcessName = "process_comm";
-        static constexpr TStringBuf ThreadName = "thread_comm";
-        static constexpr TStringBuf ThreadNameDeprecated = "comm";
-        static constexpr TStringBuf WorkloadName = "workload";
-
-        static inline THashSet<TStringBuf> AllKeys{
-            ThreadId,
-            ProcessId,
-            ProcessName,
-            ThreadName,
-            ThreadNameDeprecated,
-            WorkloadName,
-        };
-    };
-
-public:
-    template<typename F>
-    static inline bool Consume(TProfileBuilder::TThreadBuilder& builder, const TStringBuf& key, i64 num, i64 str, F&& mapString) {
-        if (key == TLabelKeys::ThreadId) {
-            builder.SetThreadId(num);
-            return true;
-        }
-
-        if (key == TLabelKeys::ProcessId) {
-            builder.SetProcessId(num);
-            return true;
-        }
-
-        if (key == TLabelKeys::ProcessName) {
-            builder.SetProcessName(mapString(str));
-            return true;
-        }
-
-        if (key == TLabelKeys::ThreadName || key == TLabelKeys::ThreadNameDeprecated) {
-            builder.SetThreadName(mapString(str));
-            return true;
-        }
-
-        if (key == TLabelKeys::WorkloadName) {
-            builder.AddContainerName(mapString(str));
-            return true;
-        }
-
-        return false;
-    }
-};
-
 // We could parse pprof data from a stream without buffering, but that would require a specific serialization order
 // to handle field dependencies. However, the order produced by the standard pprof tooling is not suitable for this.
 // An alternative is to build the profile using the same IDs, which would bypass the builder's deduplication logic.
@@ -177,9 +125,6 @@ public:
     explicit TFromPProfBytesConverterContext(TStringBuf from Y_LIFETIME_BOUND, NProto::NProfile::Profile* to)
         : From_(from)
         , Builder_(to)
-        , Profile_(to)
-        , KernelBinaryId_(TBinaryId::Invalid())
-        , PythonBinaryId_(TBinaryId::Invalid())
     {}
 
     void Convert() && {
@@ -212,37 +157,10 @@ private:
         ValueTypeMapping_.push_back(Builder_.AddValueType(StringMapping_.at(type), StringMapping_.at(unit)));
     }
 
-    struct TStacks {
-        bool InsideKernel = true;
-        TProfileBuilder::TSimpleStackBuilder Kernel;
-        TProfileBuilder::TSimpleStackBuilder User;
-        TMaybe<TProfileBuilder::TSimpleStackBuilder> Python;
-    };
-
-    void ParseSampleLocationId(NInPlaceProto::TRegionParser& parent, TStacks& stacks) {
-        auto handle = [&](i64 value) {
+    void ParseSampleLocationId(NInPlaceProto::TRegionParser& parent, TProfileBuilder::TSimpleSampleKeyBuilder& keyBuilder) {
+        auto handle = [&](ui64 value) {
             TStackFrameId frame = LocationMapping_->GetNewIndex(value);
-
-            auto binaryId = Profile_.StackFrames().Get(frame).GetBinary().GetIndex();
-
-            if (binaryId.GetInternalIndex() == 0) {
-                (stacks.InsideKernel ? stacks.Kernel : stacks.User).AddFrame(frame);
-            } else if (binaryId == PythonBinaryId_) {
-                if (!stacks.Python) {
-                    stacks.Python.ConstructInPlace(Builder_
-                        .AddSimpleStack()
-                        .SetKind(NProto::NProfile::StackKind::Other)
-                        .SetRuntimeName(Builder_.AddString("python"))
-                    );
-                }
-                stacks.Python->AddFrame(frame);
-            } else if (binaryId == KernelBinaryId_) {
-                Y_ENSURE(stacks.InsideKernel, "Unexpected mixed userspace & kernelspace stack");
-                stacks.Kernel.AddFrame(frame);
-            } else {
-                stacks.InsideKernel = false;
-                stacks.User.AddFrame(frame);
-            }
+            keyBuilder.AddFrame(frame);
         };
 
         if (parent.GetWireType() == google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
@@ -272,7 +190,7 @@ private:
         }
     }
 
-    void ParseSampleLabel(NInPlaceProto::TRegionParser& parent, TProfileBuilder::TSampleKeyBuilder& keyBuilder, TProfileBuilder::TThreadBuilder& threadBuilder) {
+    void ParseSampleLabel(NInPlaceProto::TRegionParser& parent, TProfileBuilder::TSimpleSampleKeyBuilder& keyBuilder) {
         using NProto::NPProf::Label;
         NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<Label>(parent.GetBytesAsBuf())};
 
@@ -299,11 +217,6 @@ private:
         Y_ENSURE(!parser.IsCorrupted());
 
         auto keyId = StringMapping_.at(key);
-        auto keyStr = Profile_.Strings().Get(keyId).View();
-
-        if (TThreadInfoParser::Consume(threadBuilder, keyStr, num, str, [&](i64 str) { return StringMapping_.at(str); })) {
-            return;
-        }
 
         TLabelId id = TLabelId::Invalid();
         // TODO(ayles): Shouldn't this be reversed?
@@ -320,27 +233,21 @@ private:
         using NProto::NPProf::Sample;
         NInPlaceProto::TRegionParser parser{NInPlaceProto::AsSerialized<Sample>(parent.GetBytesAsBuf())};
 
-        auto keyBuilder = Builder_.AddSampleKey();
-        auto threadBuilder = Builder_.AddThread();
+        auto keyBuilder = Builder_.AddSimpleSampleKey();
         auto sampleBuilder = Builder_.AddSample();
-
-        TStacks stacks{
-            .Kernel = Builder_.AddSimpleStack().SetKind(NProto::NProfile::StackKind::Kernelspace),
-            .User = Builder_.AddSimpleStack().SetKind(NProto::NProfile::StackKind::Userspace),
-        };
 
         size_t valueIndex = 0;
 
         while (ui32 fieldNumber = parser.NextFieldNumber()) {
             switch (fieldNumber) {
                 case Sample::kLocationIdFieldNumber:
-                    ParseSampleLocationId(parser, stacks);
+                    ParseSampleLocationId(parser, keyBuilder);
                     break;
                 case Sample::kValueFieldNumber:
                     ParseSampleValue(parser, sampleBuilder, valueIndex);
                     break;
                 case Sample::kLabelFieldNumber:
-                    ParseSampleLabel(parser, keyBuilder, threadBuilder);
+                    ParseSampleLabel(parser, keyBuilder);
                     break;
                 default:
                     parser.SkipField();
@@ -348,18 +255,6 @@ private:
         }
 
         Y_ENSURE(!parser.IsCorrupted());
-
-        if (stacks.Python) {
-            keyBuilder.AddStack(stacks.Python->Finish());
-        }
-        if (!stacks.Kernel.Empty()) {
-            keyBuilder.AddStack(stacks.Kernel.Finish());
-        }
-        if (!stacks.User.Empty()) {
-            keyBuilder.AddStack(stacks.User.Finish());
-        }
-
-        keyBuilder.SetThread(threadBuilder.Finish());
 
         sampleBuilder.SetSampleKey(keyBuilder.Finish());
         sampleBuilder.Finish();
@@ -414,17 +309,7 @@ private:
 
         auto binaryId = builder.Finish();
         BinaryMapping_->Add(id, (ui32)0, binaryId);
-        BinaryOffsetMap_->EmplaceUnique(id, fileOffset - memoryStart);
-
-        auto pathString = Profile_.Strings().Get(path);
-        if (pathString == KernelSpecialMapping) {
-            Y_ENSURE(!KernelBinaryId_.IsValid(), "Found more than one kernel mapping");
-            KernelBinaryId_ = binaryId;
-        }
-        if (pathString == PythonSpecialMapping) {
-            Y_ENSURE(!PythonBinaryId_.IsValid(), "Found more than one python mapping");
-            PythonBinaryId_ = binaryId;
-        }
+        AddressAdjustmentMap_->EmplaceUnique(id, fileOffset - memoryStart);
     }
 
     void ParseFunction(NInPlaceProto::TRegionParser& parent) {
@@ -524,9 +409,9 @@ private:
         if (mappingId) {
             auto binaryId = BinaryMapping_->GetNewIndex(mappingId);
             stackFrameBuilder.SetBinary(binaryId);
-            stackFrameBuilder.SetBinaryOffset(address + BinaryOffsetMap_->At(mappingId));
+            stackFrameBuilder.SetAddress(address + AddressAdjustmentMap_->At(mappingId));
         } else {
-            stackFrameBuilder.SetBinaryOffset(address);
+            stackFrameBuilder.SetAddress(address);
         }
 
         stackFrameBuilder.SetInlineChain(inlineChainBuilder.Finish());
@@ -619,7 +504,7 @@ private:
         StringMapping_.reserve(ranges[Profile::kStringTableFieldNumber].Count);
         ValueTypeMapping_.reserve(ranges[Profile::kSampleTypeFieldNumber].Count);
 
-        BinaryOffsetMap_.ConstructInPlace(ranges[Profile::kMappingFieldNumber].Count);
+        AddressAdjustmentMap_.ConstructInPlace(ranges[Profile::kMappingFieldNumber].Count);
         BinaryMapping_.ConstructInPlace(ranges[Profile::kMappingFieldNumber].Count);
         FunctionMapping_.ConstructInPlace(ranges[Profile::kFunctionFieldNumber].Count);
         LocationMapping_.ConstructInPlace(ranges[Profile::kLocationFieldNumber].Count);
@@ -651,16 +536,12 @@ private:
 private:
     TStringBuf From_;
     TProfileBuilder Builder_;
-    TProfile Profile_;
     TVector<TStringId> StringMapping_;
     TVector<TValueTypeId> ValueTypeMapping_;
-    TMaybe<TCompactIntegerMap<ui64, ui64>> BinaryOffsetMap_;
+    TMaybe<TCompactIntegerMap<ui64, ui64>> AddressAdjustmentMap_;
     TMaybe<NDetail::TIndexedEntityRemapping<TBinaryId>> BinaryMapping_;
     TMaybe<NDetail::TIndexedEntityRemapping<TFunctionId>> FunctionMapping_;
     TMaybe<NDetail::TIndexedEntityRemapping<TStackFrameId>> LocationMapping_;
-
-    TBinaryId KernelBinaryId_;
-    TBinaryId PythonBinaryId_;
 };
 
 using google::protobuf::internal::WireFormatLite;
@@ -778,21 +659,8 @@ public:
     void WriteStrings() {
         using NProto::NPProf::Profile;
 
-        i64 stringIndex = 0;
-
         for (auto&& str : Profile_.Strings()) {
-            if (TThreadInfoParser::TLabelKeys::AllKeys.contains(str.View())) {
-                WellKnownStringIds_[str.View()] = stringIndex;
-            }
             TValueTraits<Profile::kStringTableFieldNumber, WireFormatLite::TYPE_STRING>::Write(str.View(), Out_);
-            stringIndex++;
-        }
-
-        for (auto&& str : TThreadInfoParser::TLabelKeys::AllKeys) {
-            if (!WellKnownStringIds_.contains(str)) {
-                WellKnownStringIds_[str] = stringIndex++;
-                TValueTraits<Profile::kStringTableFieldNumber, WireFormatLite::TYPE_STRING>::Write(str, Out_);
-            }
         }
     }
 
@@ -868,7 +736,7 @@ public:
             std::tuple fields{
                 TValue<Location::kIdFieldNumber, WireFormatLite::TYPE_UINT64>{i + 1},
                 TValue<Location::kMappingIdFieldNumber, WireFormatLite::TYPE_UINT64>{mappingId},
-                TValue<Location::kAddressFieldNumber, WireFormatLite::TYPE_UINT64>{mappingId ? frame.GetBinaryOffset() + mappingId * fakeMappingSize : frame.GetBinaryOffset()},
+                TValue<Location::kAddressFieldNumber, WireFormatLite::TYPE_UINT64>{mappingId ? frame.GetAddress() + mappingId * fakeMappingSize : frame.GetAddress()},
             };
 
             WireFormatLite::WriteTag(Profile::kLocationFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
@@ -939,32 +807,12 @@ public:
             };
 
             auto visitLabels = [&](auto&& visitor) {
-                for (auto&& label : sample.GetKey().GetLabels()) {
+                for (auto&& label : sample.GetKey().GetAllLabels()) {
                     if (label.IsString()) {
                         visitor(strLabelFields(*label.GetKey().GetIndex(), *label.GetString().GetIndex()));
                     } else {
                         visitor(numLabelFields(*label.GetKey().GetIndex(), label.GetNumber()));
                     }
-                }
-
-                auto thread = sample.GetKey().GetThread();
-
-                using TKeys = TThreadInfoParser::TLabelKeys;
-
-                if (auto pid = thread.GetProcessId()) {
-                    visitor(numLabelFields(WellKnownStringIds_.at(TKeys::ProcessId), pid));
-                }
-                if (auto tid = thread.GetThreadId()) {
-                    visitor(numLabelFields(WellKnownStringIds_.at(TKeys::ThreadId), tid));
-                }
-                if (auto name = thread.GetProcessName()) {
-                    visitor(strLabelFields(WellKnownStringIds_.at(TKeys::ProcessName), *name.GetIndex()));
-                }
-                if (auto name = thread.GetThreadName()) {
-                    visitor(strLabelFields(WellKnownStringIds_.at(TKeys::ThreadName), *name.GetIndex()));
-                }
-                for (i32 i = 0; i < thread.GetContainerCount(); ++i) {
-                    visitor(strLabelFields(WellKnownStringIds_.at(TKeys::WorkloadName), *thread.GetContainer(i).GetIndex()));
                 }
             };
 
@@ -1027,7 +875,6 @@ public:
 private:
     TProfile Profile_;
     google::protobuf::io::CodedOutputStream* Out_;
-    THashMap<TString, i64> WellKnownStringIds_;
 };
 
 class TFromPProfConverterContext {
@@ -1141,12 +988,12 @@ private:
             if (location.mapping_id()) {
                 auto [mappingId, binaryId] = BinaryMapping_.GetPosition(location.mapping_id());
                 auto&& mapping = OldProfile_.mapping(mappingId);
-                i64 binaryOffset = location.address() + (i64)mapping.file_offset() - (i64)mapping.memory_start();
+                ui64 address = location.address() + mapping.file_offset() - mapping.memory_start();
 
                 frame.SetBinary(binaryId);
-                frame.SetBinaryOffset(binaryOffset);
+                frame.SetAddress(address);
             } else {
-                frame.SetBinaryOffset(location.address());
+                frame.SetAddress(location.address());
             }
 
             auto chain = Builder_.AddInlineChain();
@@ -1183,7 +1030,7 @@ private:
     }
 
     void ConvertSample(const NProto::NPProf::Sample& sample) {
-        auto keyBuilder = Builder_.AddSampleKey();
+        auto keyBuilder = Builder_.AddSimpleSampleKey();
         ConvertSampleStack(keyBuilder, sample);
         ConvertSampleLabels(keyBuilder, sample);
 
@@ -1193,55 +1040,10 @@ private:
         sampleBuilder.Finish();
     }
 
-    void ConvertSampleStack(TProfileBuilder::TSampleKeyBuilder& builder, const NProto::NPProf::Sample& sample) {
-        auto kernelStack = Builder_
-            .AddSimpleStack()
-            .SetKind(NProto::NProfile::StackKind::Kernelspace);
-
-        auto userStack = Builder_
-            .AddSimpleStack()
-            .SetKind(NProto::NProfile::StackKind::Userspace);
-
-        // Python needs special treatment here. We began to support multiple
-        // stacks in the old pprof format for Python (the first interpreted
-        // language we supported), but we implemented a rather unsatisfactory
-        // workaround by storing Python frames immediately after the main stack.
-        // Therefore, Python was treated differently due to historical reasons
-        // in order to preserve backward compatibility.
-        TMaybe<TProfileBuilder::TSimpleStackBuilder> pythonStack;
-
-        bool insideKernel = true;
+    void ConvertSampleStack(TProfileBuilder::TSimpleSampleKeyBuilder& builder, const NProto::NPProf::Sample& sample) {
         for (ui64 location : sample.location_id()) {
             TStackFrameId frame = LocationMapping_.GetNewIndex(location);
-
-            if (OldMissingLocationIds_.Contains(location)) {
-                (insideKernel ? kernelStack : userStack).AddFrame(frame);
-            } else if (OldPythonLocationIds_.Contains(location)) {
-                if (!pythonStack) {
-                    pythonStack.ConstructInPlace(Builder_
-                        .AddSimpleStack()
-                        .SetKind(NProto::NProfile::StackKind::Other)
-                        .SetRuntimeName(Builder_.AddString("python"))
-                    );
-                }
-                pythonStack->AddFrame(frame);
-            } else if (OldKernelLocationIds_.Contains(location)) {
-                Y_ENSURE(insideKernel, "Unexpected mixed userspace & kernelspace stack");
-                kernelStack.AddFrame(frame);
-            } else {
-                insideKernel = false;
-                userStack.AddFrame(frame);
-            }
-        }
-
-        if (pythonStack) {
-            builder.AddStack(pythonStack->Finish());
-        }
-        if (!kernelStack.Empty()) {
-            builder.AddStack(kernelStack.Finish());
-        }
-        if (!userStack.Empty()) {
-            builder.AddStack(userStack.Finish());
+            builder.AddFrame(frame);
         }
     }
 
@@ -1265,20 +1067,8 @@ private:
         }
     }
 
-    void ConvertSampleLabels(TProfileBuilder::TSampleKeyBuilder& keyBuilder, const NProto::NPProf::Sample& sample) {
-        auto threadBuilder = Builder_.AddThread();
-
+    void ConvertSampleLabels(TProfileBuilder::TSimpleSampleKeyBuilder& keyBuilder, const NProto::NPProf::Sample& sample) {
         for (auto&& label : sample.label()) {
-            if (TThreadInfoParser::Consume(
-                threadBuilder,
-                OldProfile_.string_table(label.key()),
-                label.num(),
-                label.str(),
-                [&](i64 str) { return ConvertString(str); }
-            )) {
-                continue;
-            }
-
             TLabelId id = TLabelId::Invalid();
             if (0 != label.num()) {
                 id = Builder_.AddNumericLabel(ConvertString(label.key()), label.num());
@@ -1287,8 +1077,6 @@ private:
             }
             keyBuilder.AddLabel(id);
         }
-
-        keyBuilder.SetThread(threadBuilder.Finish());
     }
 
     void ConvertComments() {
@@ -1345,11 +1133,6 @@ private:
         for (auto str : SourceProfile_.Strings()) {
             TStringBuf view = str.View();
 
-            // We need to collect ids of some well-known strings, for example, process info label keys.
-            if (IsWellKnownString(view)) {
-                WellKnownStringIds_.try_emplace(view, OldProfile_.string_table_size());
-            }
-
             OldProfile_.add_string_table(view);
         }
 
@@ -1357,17 +1140,8 @@ private:
         Y_ENSURE(OldProfile_.string_table(0).empty());
     }
 
-    bool IsWellKnownString(TStringBuf str) const {
-        return TThreadInfoParser::TLabelKeys::AllKeys.contains(str);
-    }
-
     int GetStringIndex(TStringBuf key) {
-        if (auto ptr = WellKnownStringIds_.FindPtr(key)) {
-            return *ptr;
-        }
-
         int id = OldProfile_.string_table_size();
-        WellKnownStringIds_[key] = id;
         *OldProfile_.add_string_table() = key;
         return id;
     }
@@ -1387,7 +1161,7 @@ private:
     }
 
     void ConvertMappings() {
-        const auto binaries = SourceProfile_.Binaries();
+        auto binaries = SourceProfile_.Binaries();
 
         OldProfile_.mutable_mapping()->Reserve(binaries.Size());
         for (auto [i, binary] : Enumerate(binaries)) {
@@ -1411,7 +1185,7 @@ private:
     }
 
     void ConvertFunctions() {
-        const auto functions = SourceProfile_.Functions();
+        auto functions = SourceProfile_.Functions();
 
         OldProfile_.mutable_function()->Reserve(functions.Size());
         for (auto [i, func] : Enumerate(functions)) {
@@ -1430,7 +1204,7 @@ private:
     }
 
     void ConvertLocations() {
-        const auto frames = SourceProfile_.StackFrames();
+        auto frames = SourceProfile_.StackFrames();
 
         // We add first null location as the "unknown" location and shift location ids by one.
         // pprof expects that Profile.sample.location_id are non-zero.
@@ -1440,9 +1214,7 @@ private:
             location->set_id(i + 1);
 
             auto inlineChain = frame.GetInlineChain();
-            for (i32 i = 0; i < inlineChain.GetLineCount(); ++i) {
-                auto sourceLine = inlineChain.GetLine(i);
-
+            for (auto&& sourceLine : inlineChain.GetLines()) {
                 NProto::NPProf::Line* line = location->add_line();
                 line->set_function_id(*sourceLine.GetFunction().GetIndex());
                 line->set_line(sourceLine.GetLine());
@@ -1450,118 +1222,53 @@ private:
             }
 
             ui32 binaryId = *frame.GetBinary().GetIndex();
-            i64 binaryOffset = frame.GetBinaryOffset();;
+            ui64 address = frame.GetAddress();;
             if (binaryId == 0) {
                 location->set_mapping_id(0);
-                location->set_address(binaryOffset);
+                location->set_address(address);
             } else {
                 const NProto::NPProf::Mapping& mapping = OldProfile_.mapping(binaryId - 1);
 
                 // We need to build artificial address value.
                 // See symmetric conversion in TConverterContext::ConvertLocations.
-                i64 address = binaryOffset - (i64)mapping.file_offset() + (i64)mapping.memory_start();
-                Y_ENSURE(address > 0);
+                ui64 adjustedAddress = address - mapping.file_offset() + mapping.memory_start();
+                Y_ENSURE(adjustedAddress > 0);
 
                 location->set_mapping_id(binaryId);
-                location->set_address(address);
+                location->set_address(adjustedAddress);
             }
         }
     }
 
     void ConvertSamples() {
-        const auto samples = SourceProfile_.Samples();
-
-        for (TSample newSample : samples) {
+        for (auto&& newSample : SourceProfile_.Samples()) {
             NProto::NPProf::Sample* oldSample = OldProfile_.add_sample();
 
             // Fill Sample.value
-            for (i32 i = 0; i < newSample.GetValueCount(); ++i) {
-                oldSample->add_value(newSample.GetValue(i));
+            for (auto&& value : newSample.GetValues()) {
+                oldSample->add_value(value);
             }
 
             // Fill Sample.stack
-            IterateSampleStacks(newSample.GetKey(), [&, this](const TStack& stack) {
-                ConvertSampleStack(oldSample, stack);
-            });
+            ConvertSampleFrames(oldSample, newSample.GetKey());
 
             // Fill Sample.labels
-            ConvertSampleThreadInfo(oldSample, newSample.GetKey().GetThread());
             ConvertSampleLabels(oldSample, newSample.GetKey());
         }
     }
 
-    // This function is a bit complex. We try to restore the natural order of stacks.
-    void IterateSampleStacks(const TSampleKey& key, TFunctionRef<void(const TStack& stack)> consumer) {
-        TMaybe<i32> kstackId;
-        TMaybe<i32> ustackId;
-
-        for (i32 i = 0; i < key.GetStackCount(); ++i) {
-            auto&& stack = key.GetStack(i);
-            switch (stack.GetKind()) {
-            case NPerforator::NProto::NProfile::StackKind::Userspace:
-                Y_ENSURE(ustackId.Empty(), "Multiple userspace stacks in one sample are not supported");
-                ustackId = i;
-                break;
-
-            case NPerforator::NProto::NProfile::StackKind::Kernelspace:
-                Y_ENSURE(kstackId.Empty(), "Multiple kernelspace stacks in one sample are not supported");
-                kstackId = i;
-                break;
-
-            case NPerforator::NProto::NProfile::StackKind::Other:
-                break;
-
-            default:
-                Y_ENSURE(false, "Unsupported stack kind " << StackKind_Name(stack.GetKind()));
+    void ConvertSampleFrames(NProto::NPProf::Sample* sample, const TSampleKey& key) {
+        for (auto&& stack : key.GetStacks()) {
+            for (auto&& frame : stack.GetFrames()) {
+                // We shift location ids by 1 because pprof does not support zero location ids.
+                // See corresponding comment inside ConvertLocations.
+                sample->add_location_id(*frame.GetIndex() + 1);
             }
-        }
-
-        for (i32 i = 0; i < key.GetStackCount(); ++i) {
-            auto&& stack = key.GetStack(i);
-            if (stack.GetKind() == NPerforator::NProto::NProfile::StackKind::Other) {
-                consumer(stack);
-            }
-        }
-        if (kstackId) {
-            consumer(key.GetStack(*kstackId));
-        }
-        if (ustackId) {
-            consumer(key.GetStack(*ustackId));
-        }
-    }
-
-    void ConvertSampleStack(NProto::NPProf::Sample* sample, TStack stack) {
-        for (i32 i = 0; i < stack.GetFrameCount(); ++i) {
-            // We shift location ids by 1 because pprof does not support zero location ids.
-            // See corresponding comment inside ConvertLocations.
-            sample->add_location_id(*stack.GetFrame(i).GetIndex() + 1);
-        }
-    }
-
-    void ConvertSampleThreadInfo(NProto::NPProf::Sample* sample, TThread thread) {
-        using TKeys = TThreadInfoParser::TLabelKeys;
-
-        if (auto pid = thread.GetProcessId()) {
-            AddNumberLabel(sample, TKeys::ProcessId, pid);
-        }
-        if (auto tid = thread.GetThreadId()) {
-            AddNumberLabel(sample, TKeys::ThreadId, tid);
-        }
-        if (auto name = thread.GetProcessName()) {
-            AddStringIdxLabel(sample, TKeys::ProcessName, name);
-        }
-        if (auto name = thread.GetThreadName()) {
-            AddStringIdxLabel(sample, TKeys::ThreadName, name);
-        }
-        for (i32 i = 0; i < thread.GetContainerCount(); ++i) {
-            AddStringIdxLabel(sample, TKeys::WorkloadName, thread.GetContainer(i));
         }
     }
 
     void ConvertSampleLabels(NProto::NPProf::Sample* sample, TSampleKey key) {
-        for (i32 i = 0; i < key.GetLabelCount(); ++i) {
-            TLabel newLabel = key.GetLabel(i);
-
+        for (auto&& newLabel : key.GetAllLabels()) {
             auto* label = sample->add_label();
             if (newLabel.IsNumber()) {
                 label->set_key(*newLabel.GetKey().GetIndex());
@@ -1590,7 +1297,6 @@ private:
 private:
     const NProfile::TProfile SourceProfile_;
     NProto::NPProf::Profile& OldProfile_;
-    THashMap<TString, int> WellKnownStringIds_;
 };
 
 } // namespace NDetail

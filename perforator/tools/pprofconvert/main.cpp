@@ -93,7 +93,7 @@ TString DebugDump(NPerforator::NProfile::TStackFrame frame) {
     }
 
     builder << "@<" << frame.GetBinary().GetBuildId().View();
-    i64 offset = frame.GetBinaryOffset();
+    ui64 offset = frame.GetAddress();
     if (offset >= 0) {
         builder << '+';
     }
@@ -103,13 +103,8 @@ TString DebugDump(NPerforator::NProfile::TStackFrame frame) {
 }
 
 TString DebugDump(NPerforator::NProfile::TStack stack) {
-    if (stack.GetKind() == NPerforator::NProto::NProfile::Other) {
-        return "<REMOVED>";
-    }
-
     TStringBuilder builder;
-    builder << StackKind_Name(stack.GetKind()) << ":";
-    builder << stack.GetRuntimeName().View() << "[";
+    builder << "[";
     for (auto [i, frame] : Enumerate(stack.GetFrames())) {
         if (i != 0) {
             builder << DebugDump(frame) << ",";
@@ -260,7 +255,7 @@ int main(int argc, const char* argv[]) {
 
         ui64 total = 0;
         ui64 zero = 0;
-        for (ui32 id : profile.sample_keys().stacks().stack_id()) {
+        for (ui32 id : profile.sample_keys().stacks().stack_ids()) {
             if (id == 0) {
                 ++zero;
             }
@@ -269,8 +264,9 @@ int main(int argc, const char* argv[]) {
         Cerr << "Found " << zero << " / " << total << " zero locations" << Endl;
 
         Cerr << "Parsed profile" << Endl;
-        arrstats("samples.labels.first_label_id", profile.sample_keys().labels().first_label_id());
-        arrstats("samples.labels.packed_label_id", profile.sample_keys().labels().packed_label_id());
+        arrstats("samples.labels.labels.packed_label_ids_offset", profile.sample_keys().labels().packed_label_ids_offset());
+        arrstats("samples.labels.labels.packed_label_ids", profile.sample_keys().labels().packed_label_ids());
+        arrstats("samples.labels.label_group_id", profile.sample_keys().label_group_id());
 
         volatile bool loop = true;
         while (loop) {
@@ -417,7 +413,7 @@ int main(int argc, const char* argv[]) {
             merger.Add(profile);
             Cerr << "Merged profile #" << cnt++ << Endl;
 
-            int size = merged.stack_segments().offset_size();
+            int size = merged.stack_segments().frame_ids_offset_size();
             int delta = size - prevSize;
 
             Cout
@@ -425,7 +421,7 @@ int main(int argc, const char* argv[]) {
                 << '\t' << size
                 << '\t' << delta
                 << '\t' << Prec(size * 1.0 / cnt, PREC_POINT_DIGITS, 2)
-                << '\t' << Prec(delta * 100.0 / profile.stack_segments().offset_size(), PREC_POINT_DIGITS, 2) << "% new stack segments"
+                << '\t' << Prec(delta * 100.0 / profile.stack_segments().frame_ids_offset_size(), PREC_POINT_DIGITS, 2) << "% new stack segments"
                 << Endl;
             prevSize = size;
         }
@@ -528,32 +524,6 @@ int main(int argc, const char* argv[]) {
             weights[DebugDump(stack)] += value;
         });
 
-        THashMap<NPerforator::NProto::NProfile::StackKind, double> commonWeight;
-        THashMap<NPerforator::NProto::NProfile::StackKind, double> totalWeight;
-        THashMap<NPerforator::NProto::NProfile::StackKind, ui64> uniqueStacks;
-        iterateStackValues(profiles[1], [&](NPerforator::NProfile::TStack stack, ui64 value) {
-            auto kind = stack.GetKind();
-
-            TString key = DebugDump(stack);
-            auto it = weights.find(key);
-            if (it != weights.end()) {
-                commonWeight[kind] += value;
-            } else {
-                if (uniqueStacks[kind]++ < 5) {
-                    Cout << Hex(MultiHash(key)) << ": " << key << Endl;
-                    /*
-                    NJson::TJsonWriter writer{&Cout, NJson::TJsonWriterConfig{
-                        .FormatOutput = false,
-                        .Unbuffered = true,
-                    }};
-                    stack.DumpJson(writer);
-                    Cout << Endl;
-                    */
-                }
-            }
-            totalWeight[kind] += value;
-        });
-
         ui32 commonStacks = 0;
         ui32 totalStacks = 0;
         for (auto stack : profiles[1].Stacks()) {
@@ -563,10 +533,6 @@ int main(int argc, const char* argv[]) {
         }
 
         Cerr << commonStacks << " / " << totalStacks << " common stacks" << Endl;
-        for (auto [kind, _] : commonWeight) {
-            Cerr << NPerforator::NProto::NProfile::StackKind_Name(kind) << ":\n";
-            Cerr << '\t' << commonWeight[kind] << " / " << totalWeight[kind] << " (" << Prec(commonWeight[kind] * 100.0 / totalWeight[kind], PREC_NDIGITS, 8) << "% common samples)" << Endl;
-        }
     }
 
     if (argv[1] == "dump-diffable"sv) {

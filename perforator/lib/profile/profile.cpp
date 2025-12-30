@@ -16,10 +16,6 @@ const NProto::NProfile::Metadata& TProfile::GetMetadata() const {
     return Profile_->metadata();
 }
 
-const NProto::NProfile::Features& TProfile::GetFeatures() const {
-    return Profile_->features();
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NPerforator::NProfile

@@ -75,28 +75,19 @@ private:
         RequireStringArray(labels.key());
     }
 
-    void VisitThreads(const NProto::NProfile::Threads& threads) override {
-        RequireCongruentContainers(
-            threads.thread_id(),
-            threads.process_id(),
-            threads.thread_name(),
-            threads.process_name(),
-            threads.container_offset()
-        );
+    void VisitLabelGroups(const NProto::NProfile::LabelGroups& labelGroups) override {
+        RequireFlattenedArray(labelGroups.packed_label_ids_offset(), labelGroups.packed_label_ids());
 
-        // Check that the first thread is empty.
-        Y_ENSURE(threads.thread_id_size() > 0);
-        Y_ENSURE(threads.thread_id(0) == 0);
-        Y_ENSURE(threads.process_id(0) == 0);
-        Y_ENSURE(threads.thread_name(0) == 0);
-        Y_ENSURE(threads.process_name(0) == 0);
-        Y_ENSURE(threads.container_offset(0) == 0);
-        Y_ENSURE(threads.container_offset().size() == 1 || threads.container_offset(1) == 0);
-
-        RequireStringArray(threads.thread_name());
-        RequireStringArray(threads.process_name());
-        RequireFlattenedArray(threads.container_offset(), threads.container_names());
-        RequireStringArray(threads.container_names());
+        // Packed labels require custom checks.
+        for (ui32 label : labelGroups.packed_label_ids()) {
+            bool isNumber = label & 1;
+            ui32 labelIndex = label >> 1;
+            if (isNumber) {
+                Y_ENSURE(labelIndex < (ui32)Profile_.labels().numbers().key_size());
+            } else {
+                Y_ENSURE(labelIndex < (ui32)Profile_.labels().strings().key_size());
+            }
+        }
     }
 
     void VisitBinaries(const NProto::NProfile::Binaries& binaries) override {
@@ -130,75 +121,63 @@ private:
     }
 
     void VisitInlineChains(const NProto::NProfile::InlineChains& inlineChains) override {
-        RequireFlattenedArray(inlineChains.offset(), inlineChains.function_id());
+        RequireFlattenedArray(inlineChains.lines_offset(), inlineChains.lines().function_id());
 
         RequireCongruentContainers(
-            inlineChains.function_id(),
-            inlineChains.line(),
-            inlineChains.column()
+            inlineChains.lines().function_id(),
+            inlineChains.lines().line(),
+            inlineChains.lines().column()
         );
 
-        ExpectEntityArray(inlineChains.function_id(), Profile_.functions().name(), "function");
+        ExpectEntityArray(inlineChains.lines().function_id(), Profile_.functions().name(), "function");
 
         // Check that the first inline chain is empty.
-        Y_ENSURE(inlineChains.offset(0) == 0);
-        Y_ENSURE(inlineChains.offset_size() == 1 || inlineChains.offset(1) == 0);
+        Y_ENSURE(inlineChains.lines_offset(0) == 0);
+        Y_ENSURE(inlineChains.lines_offset_size() == 1 || inlineChains.lines_offset(1) == 0);
     }
 
     void VisitStackFrames(const NProto::NProfile::StackFrames& stackFrames) override {
         RequireCongruentContainers(
             stackFrames.binary_id(),
-            stackFrames.binary_offset(),
+            stackFrames.address(),
             stackFrames.inline_chain_id()
         );
 
         // Check that the first stack frame is empty.
         Y_ENSURE(stackFrames.binary_id_size() > 0);
         Y_ENSURE(stackFrames.binary_id(0) == 0);
-        Y_ENSURE(stackFrames.binary_offset(0) == 0);
+        Y_ENSURE(stackFrames.address(0) == 0);
         Y_ENSURE(stackFrames.inline_chain_id(0) == 0);
 
         ExpectEntityArray(stackFrames.binary_id(), Profile_.binaries().build_id(), "binary");
-        ExpectEntityArray(stackFrames.inline_chain_id(), Profile_.inline_chains().offset(), "inline_chain");
+        ExpectEntityArray(stackFrames.inline_chain_id(), Profile_.inline_chains().lines_offset(), "inline_chain");
     }
 
     void VisitStackSegments(const NProto::NProfile::StackSegments& stackSegments) override {
-        RequireFlattenedArray(stackSegments.offset(), stackSegments.frame_id());
-        ExpectEntityArray(stackSegments.frame_id(), Profile_.stack_frames().binary_id(), "stack_frame");
+        RequireFlattenedArray(stackSegments.frame_ids_offset(), stackSegments.frame_ids());
+        ExpectEntityArray(stackSegments.frame_ids(), Profile_.stack_frames().binary_id(), "stack_frame");
 
         // Check that the first stack frame is empty.
-        Y_ENSURE(stackSegments.offset(0) == 0);
-        Y_ENSURE(stackSegments.offset_size() == 1 || stackSegments.offset(1) == 0);
+        Y_ENSURE(stackSegments.frame_ids_offset(0) == 0);
+        Y_ENSURE(stackSegments.frame_ids_offset_size() == 1 || stackSegments.frame_ids_offset(1) == 0);
     }
 
     void VisitStacks(const NProto::NProfile::Stacks& stacks) override {
-        RequireStringArray(stacks.runtime_name());
         ExpectEntityArray(stacks.top_frame_id(), Profile_.stack_frames().binary_id(), "stack_frame");
-        ExpectEntityArray(stacks.stack_segment_id(), Profile_.stack_segments().offset(), "stack_segment");
+        ExpectEntityArray(stacks.stack_segment_id(), Profile_.stack_segments().frame_ids_offset(), "stack_segment");
     }
 
     void VisitSampleKeys(const NProto::NProfile::SampleKeys& keys) override {
         RequireCongruentContainers(
-            keys.stacks().first_stack_id(),
-            keys.labels().first_label_id(),
-            keys.threads().thread_id()
+            keys.stacks().stack_ids_offset(),
+            keys.labels().packed_label_ids_offset(),
+            keys.label_group_id()
         );
 
-        RequireFlattenedArray(keys.labels().first_label_id(), keys.labels().packed_label_id());
-        RequireFlattenedArray(keys.stacks().first_stack_id(), keys.stacks().stack_id());
-        ExpectEntityArray(keys.stacks().stack_id(), Profile_.stacks().kind(), "stack");
-        ExpectEntityArray(keys.threads().thread_id(), Profile_.threads().thread_id(), "thread");
-
-        // Packed labels require custom checks.
-        for (ui32 label : keys.labels().packed_label_id()) {
-            bool isNumber = label & 1;
-            ui32 labelIndex = label >> 1;
-            if (isNumber) {
-                Y_ENSURE(labelIndex < (ui32)Profile_.labels().numbers().key_size());
-            } else {
-                Y_ENSURE(labelIndex < (ui32)Profile_.labels().strings().key_size());
-            }
-        }
+        RequireFlattenedArray(keys.labels().packed_label_ids_offset(), keys.labels().packed_label_ids());
+        RequireFlattenedArray(keys.stacks().stack_ids_offset(), keys.stacks().stack_ids());
+        ExpectEntityArray(keys.stacks().stack_ids(), Profile_.stacks().stack_segment_id(), "stack");
+        ExpectEntityArray(keys.label_group_id(), Profile_.label_groups().packed_label_ids_offset(), "label_group");
     }
 
     void VisitSamples(const NProto::NProfile::Samples& samples) override {
@@ -214,7 +193,7 @@ private:
 
         ExpectEntityArray(
             samples.key(),
-            Profile_.sample_keys().stacks().first_stack_id(),
+            Profile_.sample_keys().stacks().stack_ids_offset(),
             "sample_keys"
         );
     }

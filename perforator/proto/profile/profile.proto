@@ -66,23 +66,41 @@ package NPerforator.NProto.NProfile;
 
 option go_package = "github.com/yandex/perforator/perforator/proto/profile";
 
+import "google/protobuf/descriptor.proto";
 import "google/protobuf/timestamp.proto";
+
+extend google.protobuf.EnumValueOptions {
+    optional string label_key = 50123;
+    repeated string deprecated_label_key = 50124;
+}
+
+// WellKnownLabel provides a set of conventional string keys for profile labels.
+// Using these keys allows various tools (e.g., UIs, analysis scripts) to
+// reliably identify and process common metadata.
+//
+// To ensure compatibility, use these keys for the corresponding data in your profile.
+// For example, the process ID should be labeled with the key "pid".
+enum WellKnownLabel {
+    ProcessId = 0       [(label_key) = "pid"];
+    ThreadId = 1        [(label_key) = "tid"];
+    ThreadCommand = 2   [(label_key) = "thread_comm", (deprecated_label_key) = "comm"];
+    ProcessCommand = 3  [(label_key) = "process_comm"];
+    Workload = 4        [(label_key) = "workload"];
+}
 
 // SampleStacks represents the stack trace information for a sample.
 message SampleStacks {
-    reserved 1, 2;
-
-    // Offsets into stack_id array for each sample.
-    repeated uint32 first_stack_id = 3;
-    // IDs of stacks associated with each sample. References Profile.Stacks.
-    repeated uint32 stack_id = 4;
+    // Offsets into stack_ids array for each sample.
+    repeated uint32 stack_ids_offset = 1;
+    // IDs of stacks associated with each sample. References Profile.stacks.
+    repeated uint32 stack_ids = 2;
 }
 
 // ValueType describes the semantics and measurement units of a value.
 message ValueType {
-    // Type of the value. References Profile.StringTable.
+    // Type of the value. References Profile.strtab.
     uint32 type = 1;
-    // Measurement unit. References Profile.StringTable.
+    // Measurement unit. References Profile.strtab.
     uint32 unit = 2;
 }
 
@@ -108,28 +126,32 @@ message SampleValues {
     optional uint128 value_sum = 3;
 }
 
-// SampleThreads contains thread information for samples.
-message SampleThreads {
-    // IDs of threads where samples were taken. References Profile.Threads.
-    repeated uint32 thread_id = 1;
-}
-
 // SampleLabels stores labels associated with samples.
 //
 // NOTE: Each sample can reference multiple labels.
 // In order to handle this without nested arrays,
-// we use two-level structure. First array (first_label_id) is indexed
-// with sample ids and contains offsets into second array – packed_label_id.
+// we use two-level structure. First array (packed_label_ids_offset) is indexed
+// with sample ids and contains offsets into second array – packed_label_ids.
 // So, sample[i] label IDs are stored in subslice
-// packed_label_id[first_label_id[i] : first_label_id[i+1]].
+// packed_label_ids[packed_label_ids_offset[i] : packed_label_ids_offset[i+1]].
 //
 // We use this technique extensively to keel number of allocations
 // that are required to parse a profile constant.
 message SampleLabels {
-    // Index of the first sample label inside packed_label_id array.
-    repeated uint32 first_label_id = 1;
+    // Index of the first sample label inside packed_label_ids array.
+    repeated uint32 packed_label_ids_offset = 1;
     // Packed label IDs where each element is (label_id << 1) | (is_number ? 1 : 0).
-    repeated uint32 packed_label_id = 2;
+    repeated uint32 packed_label_ids = 2;
+}
+
+// LabelGroups are used for profile size optimization.
+// We mainly store well-known labels here, as they often tend to be less volatile
+// in their values set.
+message LabelGroups {
+    // Index of the first label inside packed_label_ids array.
+    repeated uint32 packed_label_ids_offset = 1;
+    // Packed label IDs. Refer to SampleLabels.packed_label_ids comment for description.
+    repeated uint32 packed_label_ids = 2;
 }
 
 // SampleTimestamps contains timing information for samples.
@@ -142,7 +164,7 @@ message SampleTimestamps {
 
 // Samples represents all collected profile samples.
 message Samples {
-    // References to sample keys in Profile.SampleKeys.
+    // References to sample keys in Profile.sample_keys.
     repeated uint32 key = 1;
     // Measured values for each sample.
     repeated SampleValues values = 2;
@@ -152,80 +174,58 @@ message Samples {
 
 // SampleKeys groups all metadata about samples.
 message SampleKeys {
-    // Sample stack traces.
+    // Key references multiple stacks.
     SampleStacks stacks = 1;
+
     // Labels associated with samples.
     SampleLabels labels = 2;
-    // Process & thread information.
-    SampleThreads threads = 3;
-}
 
-enum StackKind {
-    // This value should never be used.
-    Unknown = 0;
-    // This is a primary userspace stack, often consisting of native frames.
-    Userspace = 1;
-    // This is a primary kernelspace stack, often consisting of native frames.
-    Kernelspace = 2;
-    // This is an alternative stack whose semantics are determined by the
-    // @runtime_name field of the stack.
-    //
-    // We store stacks from interpreted languages this way. Such stacks consist
-    // of frames from a language that cannot be unwound directly using
-    // the native unwinding algorithm. Native stacks of interpreted languages
-    // show the internals of the interpreter, not the actual interpreted code
-    // that is executed. However, sometimes we can associate language-specific
-    // frames with a native stack.
-    //
-    // We also store LBR stacks for sPGO profiles among other stacks using kind
-    // Other and runtime_name "lbr".
-    Other = 3;
-};
+    // Label group id associated with samples.
+    repeated uint32 label_group_id = 3;
+}
 
 // Stacks represents call stack information.
 // Stacks are expected to be stored in non-natural order:
 // First stack address is the most nested one.
 message Stacks {
-    reserved 1, 2;
-
-    // Origin of this stack. A sample can reference
-    // multiple stacks of different kinds.
-    // NOTE: When @kind is not equal to StackKind.Other, @runtime_name should be empty.
-    repeated StackKind kind = 3;
-    // Human-readable name of the language or runtime this stack belongs to.
-    // For example, "v8", "hotspot" or "cpython". Often this should be a name
-    // of the sub-profiler that generated the stack.
-    // NOTE: When @runtime_name is not empty, @kind should be set to StackKind.Other.
-    // References Profile.strtab.
-    repeated uint32 runtime_name = 4;
     // Top of the stack, the most nested frame. We store stacks separated into
     // two components: top frame and the rest frames. There is a lot of unique
     // top frames (for each instruction in the binary in the extreme case), but
-    // there are not many call stacks. References Profile.StackFrames.
-    repeated uint32 top_frame_id = 5;
+    // there are not many call stacks. References Profile.stack_frames.
+    repeated uint32 top_frame_id = 1;
     // ID if the rest of the stack (frames from 1 to the end).
-    // References Profile.StackSegments.
-    repeated uint32 stack_segment_id = 6;
+    // References Profile.stack_segments.
+    repeated uint32 stack_segment_id = 2;
 }
 
 // StackSegments represents different arrays of stack frames.
 message StackSegments {
-    // Offsets into address_id array for each stack
-    repeated uint32 offset = 1;
-    // IDs of frames in each stack. References Profile.StackFrames.
-    repeated uint32 frame_id = 2;
+    // Offsets into frame_ids array for each stack
+    repeated uint32 frame_ids_offset = 1;
+    // IDs of frames in each stack. References Profile.stack_frames.
+    repeated uint32 frame_ids = 2;
 }
 
 // StackFrames contains information about individual frames in stacks.
 message StackFrames {
     // IDs of binaries containing the stack frame.
     repeated uint32 binary_id = 1;
-    // Offsets within respective binaries.
-    repeated int64 binary_offset = 2;
+    // Addresses whose interpretation depends on corresponding binary's features.
+    repeated uint64 address = 2;
     // IDs of inline function chains.
     // Inline chain is a result of symbolization,
     // so inline_chain_id is expected to be zero for non-symbolized addresses.
     repeated uint32 inline_chain_id = 3;
+}
+
+// Lines represent source line information.
+message Lines {
+    // IDs of function for the line. References Profile.functions.
+    repeated uint32 function_id = 1;
+    // Source code lines.
+    repeated uint32 line = 2;
+    // Source code columns.
+    repeated uint32 column = 3;
 }
 
 // InlineChains represents chains of probably inlined source locations.
@@ -240,14 +240,11 @@ message StackFrames {
 // This can look somewhat unnatural, but it is the order most tools and formats
 // expect (for example, pprof).
 message InlineChains {
-    // Offsets into line arrays.
-    repeated uint32 offset = 1;
-    // IDs of functions in the chain. References Profile.functions.
-    repeated uint32 function_id = 2;
-    // Source code lines.
-    repeated uint32 line = 3;
-    // Source code columns.
-    repeated uint32 column = 4;
+    // Offsets into lines array.
+    repeated uint32 lines_offset = 1;
+
+    // Nested offset of lines for each inline chain.
+    Lines lines = 2;
 }
 
 // Functions contains information about program functions.
@@ -256,7 +253,7 @@ message Functions {
     repeated uint32 name = 1;
     // System-level names. References Profile.strtab.
     repeated uint32 system_name = 2;
-    // Source file names. Rreferences Profile.strtab.
+    // Source file names. References Profile.strtab.
     repeated uint32 filename = 3;
     // Starting line numbers in source files.
     repeated uint32 start_line = 4;
@@ -268,22 +265,22 @@ message Binaries {
     repeated uint32 build_id = 1;
     // Filesystem paths to binaries. References Profile.strtab.
     repeated uint32 path = 2;
-}
 
-// Threads contains information about processes and threads.
-message Threads {
-    // Process identifiers.
-    repeated uint32 process_id = 1;
-    // Thread identifiers.
-    repeated uint32 thread_id = 2;
-    // Process names. References Profile.strtab.
-    repeated uint32 process_name = 3;
-    // Thread names. References Profile.strtab.
-    repeated uint32 thread_name = 4;
-    // Offsets into container names flattened array.
-    repeated uint32 container_offset = 5;
-    // Container names. References Profile.strtab.
-    repeated uint32 container_names = 6;
+    // If true, addresses should be adjusted by
+    // p_vaddr value of the first PT_LOAD ELF program header.
+    //
+    // pprof stores process mappings instead of binaries, and it is pretty
+    // difficult to handle them correctly. pprof tries to handle this using a
+    // few heuristics on the symbolization side. For example,
+    // https://github.com/google/pprof/blob/main/internal/binutils/binutils.go#L592.
+    //
+    // We take different approach. StackFrames.address is actually address
+    // inside address space of the binary specified by build_id.
+    // This allows us to simlify symbolization.
+    //
+    // However, we have to enable this feature for profiles converted from
+    // pprof, because there is no way to adjust addresses without parsing ELF.
+    repeated bool has_skewed_addresses = 3;
 }
 
 // StringTable implements efficient string storage.
@@ -292,6 +289,7 @@ message StringTable {
     // For better compression, individual strings should be sorted, if possible.
     // There should be no null terminators between strings.
     bytes strings = 1;
+
     // Starting positions of strings in the data.
     repeated uint32 offset = 2;
     // Lengths of individual strings.
@@ -328,25 +326,6 @@ message Comments {
     repeated uint32 comment = 1;
 }
 
-// Features contains profile-wide feature flags.
-message Features {
-    // If true, addresses in binary_addresses should be adjusted by
-    // p_vaddr value of the first PT_LOAD ELF program header.
-    //
-    // pprof stores process mappings instead of binaries, and it is pretty
-    // difficult to handle them correctly. pprof tries to handle this using a
-    // few heuristics on the symbolization side. For example,
-    // https://github.com/google/pprof/blob/main/internal/binutils/binutils.go#L592.
-    //
-    // We take different approach. Each address inside Profile.addresses is
-    // defined as buildID+offset, where offset is an address inside address
-    // space of the binary. This allows us to simlify symbolization.
-    //
-    // However, we have to enable this feature for profiles converted from
-    // pprof, because there is no way to adjust addresses without parsing ELF.
-    optional bool has_skewed_binary_offsets = 1;
-}
-
 // Metadata contains profile-wide metadata
 message Metadata {
     // Host where profile was collected. References Profile.strtab.
@@ -355,18 +334,9 @@ message Metadata {
     google.protobuf.Timestamp timestamp = 2;
     // Profile duration in nanoseconds.
     int64 duration_nanoseconds = 3;
-    // Type of events being sampled (e.g., "cpu,cycles" or "heap,bytes").
-    ValueType period_type = 4;
-    // Sampling period specification.
-    oneof period_value {
-        // Number of events between samples.
-        int64 period = 5;
-        // Samples per second.
-        int64 frequency = 6;
-    }
     // Preferred sample value type. References Profile.strtab.
     // Defaults to last sample value if unset.
-    uint32 default_sample_type = 7;
+    uint32 default_sample_type = 4;
 }
 
 // Profile is the root message containing all profile data.
@@ -392,19 +362,15 @@ message Profile {
     Functions functions = 7;
     // binaries -> []
     Binaries binaries = 8;
-    // threads -> []
-    Threads threads = 9;
     // labels -> []
     Labels labels = 10;
+
+    LabelGroups label_groups = 12;
 
     // Additional profile metadata.
     // Comments are for informational purposes only and
     // must not affect the interpretation of the profile.
     Comments comments = 101;
-    // Profile feature flags.
-    // They can affect the profile interpretation
-    // and can be used to implement graceful migrations.
-    Features features = 102;
     // Optional profile metadata.
     optional Metadata metadata = 103;
 }

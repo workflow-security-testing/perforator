@@ -102,7 +102,7 @@ Y_DEFINE_STRONG_INDEX_TAG(TStackSegmentId);
 Y_DEFINE_STRONG_INDEX_TAG(TInlineChainId);
 Y_DEFINE_STRONG_INDEX_TAG(TSourceLineId);
 Y_DEFINE_STRONG_INDEX_TAG(TFunctionId);
-Y_DEFINE_STRONG_INDEX_TAG(TThreadId);
+Y_DEFINE_STRONG_INDEX_TAG(TLabelGroupId);
 Y_DEFINE_STRONG_INDEX_TAG(TLabelId);
 
 ////////////////////////////////////////////////////////////////////////////////
