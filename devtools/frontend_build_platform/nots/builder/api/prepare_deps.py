@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 
 import library.python.fs
-from build.plugins.lib.nots.package_manager import get_package_manager_type, BaseLockfile
+from build.plugins.lib.nots.package_manager import PackageManager, Lockfile
 from yalibrary.fetcher.uri_parser import parse_resource_uri
 
 from .models import BaseOptions
@@ -21,8 +21,6 @@ class PrepareDepsOptions(BaseOptions):
 
 
 def prepare_deps(args: PrepareDepsOptions):
-    PackageManager = get_package_manager_type(args.pm_type)
-
     pm = PackageManager(
         build_root=args.arcadia_build_root,
         build_path=args.bindir,
@@ -44,7 +42,7 @@ def _get_resource_path(args: PrepareDepsOptions, pkg) -> str:
     return os.path.join(args.resource_root, "http", parsed_uri.resource_id, "resource")
 
 
-def _copy_tarballs(args: PrepareDepsOptions, lf: BaseLockfile):
+def _copy_tarballs(args: PrepareDepsOptions, lf: Lockfile):
     # Tarballs can be used several times in a single pnpm-lock.yaml by different keys
     # We need to remove duplicates
     tarball_paths = {pkg.tarball_path: pkg for pkg in lf.get_packages_meta()}

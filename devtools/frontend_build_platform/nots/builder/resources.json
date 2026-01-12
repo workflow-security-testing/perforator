@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-12-18T17:00:07Z",
+    "created": "2026-01-12T05:14:51.940Z",
     "pr": {
-      "id": 11133789,
+      "id": 11264344,
       "author": "zaverden",
-      "summary": "conf: skip resolution.type == directory when parsing lockfile"
+      "summary": "chore(conf): merge package_manager.base and package_manager/pnpm"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10673539657"
+      "uri": "sbr:10773101675"
     },
     "darwin-arm64": {
-      "uri": "sbr:10673538009"
+      "uri": "sbr:10773100748"
     },
     "linux": {
-      "uri": "sbr:10673543430"
+      "uri": "sbr:10773103431"
     },
     "linux-aarch64": {
-      "uri": "sbr:10673541606"
+      "uri": "sbr:10773102445"
     }
   }
 }
