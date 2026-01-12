@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/plain"
 	"github.com/segmentio/kafka-go/sasl/scram"
 
 	"github.com/yandex/perforator/perforator/pkg/certifi"
@@ -15,13 +16,14 @@ import (
 )
 
 type Config struct {
-	Topic        string                  `yaml:"topic"`
-	Brokers      []string                `yaml:"brokers"`
-	User         string                  `yaml:"user"`
-	PasswordEnv  string                  `yaml:"password_env"`
-	WriteTimeout time.Duration           `yaml:"message_timeout"`
-	Retries      int                     `yaml:"retries"`
-	TLS          certifi.ClientTLSConfig `yaml:"tls"`
+	Topic         string                  `yaml:"topic"`
+	Brokers       []string                `yaml:"brokers"`
+	User          string                  `yaml:"user"`
+	PasswordEnv   string                  `yaml:"password_env"`
+	SASLMechanism string                  `yaml:"sasl_mechanism"`
+	WriteTimeout  time.Duration           `yaml:"message_timeout"`
+	Retries       int                     `yaml:"retries"`
+	TLS           certifi.ClientTLSConfig `yaml:"tls"`
 }
 
 func (cfg *Config) FillDefault() {
@@ -51,11 +53,21 @@ func NewKafkaWriter(ctx context.Context, l xlog.Logger, cfg *Config) (*kafka.Wri
 		if password == "" {
 			return nil, fmt.Errorf("kafka password environment variable %s is not set", cfg.PasswordEnv)
 		}
-		mechanism, err := scram.Mechanism(scram.SHA512, cfg.User, password)
-		if err != nil {
-			return nil, fmt.Errorf("unable to init scram: %w", err)
+		switch cfg.SASLMechanism {
+		case scram.SHA512.Name():
+			mechanism, err := scram.Mechanism(scram.SHA512, cfg.User, password)
+			if err != nil {
+				return nil, fmt.Errorf("unable to init scram: %w", err)
+			}
+			kafkaTransport.SASL = mechanism
+		case plain.Mechanism{}.Name(), "":
+			kafkaTransport.SASL = plain.Mechanism{
+				Username: cfg.User,
+				Password: password,
+			}
+		default:
+			return nil, errors.New("unknown SASL mechanism")
 		}
-		kafkaTransport.SASL = mechanism
 	}
 
 	if cfg.TLS.Enabled {
