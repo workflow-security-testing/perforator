@@ -687,10 +687,13 @@ func (s *PerforatorServer) parseProfileQuery(query *perforator.ProfileQuery) (*m
 		selector.Matchers = append(selector.Matchers, s.defaultEventTypeMatcher())
 	}
 
-	selector.Matchers = append(
-		selector.Matchers,
-		s.buildExcludeProfilerVersionMatcher(),
-	)
+	if s.c.ProfileBlacklist != nil && len(s.c.ProfileBlacklist.ProfilerVersions) > 0 {
+		selector.Matchers = append(
+			selector.Matchers,
+			s.buildExcludeProfilerVersionMatcher(),
+		)
+	}
+
 	selector = enrichCPOIDMatcher(selector)
 
 	return &meta.ProfileQuery{

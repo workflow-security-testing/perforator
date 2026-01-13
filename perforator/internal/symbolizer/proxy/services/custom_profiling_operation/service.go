@@ -88,9 +88,6 @@ func (s *APIService) Schedule(ctx context.Context, req *perforator_proto.Schedul
 	if user := auth.UserFromContext(ctx); user != nil {
 		author = user.Login
 	}
-	if author == "" {
-		return nil, status.Errorf(codes.Unauthenticated, "user is unspecified")
-	}
 
 	operation, err := s.operationStorage.InsertOperation(ctx, &custom_profiling_operation.OperationCreateParams{
 		ID:          operationID,

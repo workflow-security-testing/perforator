@@ -117,6 +117,7 @@ func (c *continuousProfilingSampleConsumer) Flush(ctx context.Context) error {
 		}
 	}
 
+	// TODO: hold mutex here
 	for pid, process := range c.p.pids {
 		c.p.log.Info("Flushing process profile", logfield.CurrentNamespacePID(pid))
 		err := process.sampleConsumer.Flush(ctx)

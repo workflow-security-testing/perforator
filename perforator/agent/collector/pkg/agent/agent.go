@@ -12,6 +12,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -64,6 +65,7 @@ type PerforatorAgent struct {
 type targetManipulator interface {
 	TraceSelf(labels map[string]string) (profiler.Closer, error)
 	TraceCgroups(configs []*profiler.CgroupConfig) error
+	TracePid(pid linux.CurrentNamespacePID, opts ...profiler.TraceOption) (profiler.Closer, error)
 }
 
 func NewPerforatorAgent(

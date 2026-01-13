@@ -24,22 +24,30 @@ import (
 	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/library/go/test/yatest"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/agent"
+	agentcpo "github.com/yandex/perforator/perforator/agent/collector/pkg/agent/custom_profiling_operation"
+	profiler_config "github.com/yandex/perforator/perforator/agent/collector/pkg/config"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
 	agent_gateway_client "github.com/yandex/perforator/perforator/internal/agent_gateway/client"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/client/storage"
 	gatewayserver "github.com/yandex/perforator/perforator/internal/agent_gateway/server"
+	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/custom_profiling_operation"
+	storage_service "github.com/yandex/perforator/perforator/internal/agent_gateway/server/storage"
+	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
 	proxyserver "github.com/yandex/perforator/perforator/internal/symbolizer/proxy/server"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/certifi"
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
+	"github.com/yandex/perforator/perforator/pkg/linux/perfevent"
 	"github.com/yandex/perforator/perforator/pkg/postgres"
 	s3client "github.com/yandex/perforator/perforator/pkg/s3"
 	"github.com/yandex/perforator/perforator/pkg/storage/binary"
 	"github.com/yandex/perforator/perforator/pkg/storage/bundle"
 	clustertop "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
-	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
+	custom_profiling_operation_storage "github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
 	"github.com/yandex/perforator/perforator/pkg/storage/databases"
 	"github.com/yandex/perforator/perforator/pkg/storage/microscope"
+	microscope_filter "github.com/yandex/perforator/perforator/pkg/storage/microscope/filter"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile"
 	clickhouse_meta "github.com/yandex/perforator/perforator/pkg/storage/profile/meta/clickhouse"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -83,6 +91,7 @@ type IntegrationTestEnv struct {
 	ProxyServer        *proxyserver.PerforatorServer
 	AgentGatewayServer *gatewayserver.Server
 	Agent              *agent.PerforatorAgent
+	AgentRegistry      xmetrics.Registry
 
 	ProxyGRPCPort           int
 	ProxyHTTPPort           int
@@ -452,6 +461,34 @@ func (s *IntegrationTestEnv) initS3Buckets(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to create bucket %s: %w", bucket, err)
 		}
+
+		if bucket == s.S3Buckets.TaskResultsBucket {
+			// This allows public access to task-results bucket.
+			// This is needed for user to download the profiles or flamegraphs.
+			policy := fmt.Sprintf(`{
+				"Version":"2012-10-17",
+				"Statement":
+					[
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"AWS":["*"]
+							},
+							"Action":["s3:GetObject"],
+							"Resource":["arn:aws:s3:::%s/*"]
+						}
+					]
+				}`,
+				bucket,
+			)
+			_, err = client.PutBucketPolicy(&s3.PutBucketPolicyInput{
+				Bucket: aws.String(bucket),
+				Policy: aws.String(policy),
+			})
+			if err != nil {
+				return fmt.Errorf("failed to set bucket policy for %s: %w", bucket, err)
+			}
+		}
 	}
 
 	return nil
@@ -544,7 +581,7 @@ func (s *IntegrationTestEnv) makeStorageBundleConfig(ctx context.Context) *bundl
 		TaskStorage: &tasks.TasksConfig{
 			StorageType: tasks.Postgres,
 		},
-		CustomProfilingOperationStorage: ptr.T(custom_profiling_operation.Postgres),
+		CustomProfilingOperationStorage: ptr.T(custom_profiling_operation_storage.Postgres),
 		ClusterTopStorage: &clustertop.Config{
 			GenerationsStorage: clustertop.Postgres,
 			AggregationStorage: clustertop.Clickhouse,
@@ -577,13 +614,21 @@ func (s *IntegrationTestEnv) startServices(ctx context.Context) error {
 func (s *IntegrationTestEnv) setupProxyServer(ctx context.Context) error {
 	conf := s.cfg.ProxyConfig
 	conf.StorageConfig = *s.makeStorageBundleConfig(ctx)
+	host, err := s.minioContainer.Host(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get minio host: %w", err)
+	}
+	port, err := s.minioContainer.MappedPort(ctx, nat.Port(fmt.Sprintf("%d/tcp", MinioPort)))
+	if err != nil {
+		return fmt.Errorf("failed to get minio port: %w", err)
+	}
+
 	conf.RenderedProfiles = &proxyserver.RenderedProfiles{
-		URLPrefix: fmt.Sprintf("http://localhost:%d", s.ProxyHTTPPort),
+		URLPrefix: fmt.Sprintf("http://%s:%s/%s/", host, port.Port(), s.S3Buckets.TaskResultsBucket),
 		S3Bucket:  s.S3Buckets.TaskResultsBucket,
 	}
 	conf.FillDefault()
 
-	var err error
 	s.ProxyServer, err = proxyserver.NewPerforatorServer(conf, s.l, xmetrics.NewRegistry())
 	if err != nil {
 		return fmt.Errorf("failed to create proxy server: %w", err)
@@ -650,10 +695,12 @@ func (s *IntegrationTestEnv) setupAgent(ctx context.Context) error {
 		agentOpts = append(agentOpts, agent.WithCPOService(conf.CPOService))
 	}
 
+	s.AgentRegistry = xmetrics.NewRegistry()
+
 	var err error
 	s.Agent, err = agent.NewPerforatorAgent(
 		s.l.Logger(),
-		xmetrics.NewRegistry(),
+		s.AgentRegistry,
 		&conf.Profiler,
 		agentOpts...,
 	)
@@ -681,6 +728,57 @@ func NoClientTLSConfig() certifi.ClientTLSConfig {
 func NoServerTLSConfig() certifi.ServerTLSConfig {
 	return certifi.ServerTLSConfig{
 		Enabled: false,
+	}
+}
+
+func testEnvConfig() *Config {
+	return &Config{
+		ProxyConfig: &proxyserver.Config{
+			Server: proxyserver.ServerConfig{
+				Insecure: true,
+			},
+			BinaryProvider: proxyserver.BinaryProviderConfig{
+				FileCache: &asyncfilecache.Config{
+					MaxSize:  "10G",
+					MaxItems: 1000000,
+					RootPath: "/tmp/proxy_file_cache",
+				},
+			},
+			FeaturesConfig: proxyserver.FeaturesConfig{
+				EnableCPOExperimental: ptr.Bool(true),
+			},
+		},
+		AgentGatewayConfig: &gatewayserver.Config{
+			TLS: NoServerTLSConfig(),
+			StorageServiceConfig: &storage_service.ServiceConfig{
+				MicroscopePullerConfig: &microscope_filter.Config{
+					PullInterval: 10 * time.Second,
+				},
+			},
+			CustomProfilingOperationServiceConfig: &custom_profiling_operation.ServiceConfig{
+				PollInterval: 10 * time.Second,
+			},
+		},
+		AgentConfig: &agent.Config{
+			Profiler: profiler_config.Config{
+				ProcessDiscovery: profiler_config.ProcessDiscoveryConfig{
+					IgnoreUnrelatedProcesses: true,
+				},
+				Egress: profiler_config.EgressConfig{
+					Interval: 5 * time.Second,
+				},
+				BPF: machine.Config{
+					TraceWallTime: ptr.Bool(false),
+				},
+				PerfEvents: []profiler_config.PerfEventConfig{{
+					Type:      perfevent.CPUCycles.Name(),
+					Frequency: ptr.Uint64(99),
+				}},
+			},
+			CPOService: &agentcpo.ServiceConfig{
+				Host: "localhost",
+			},
+		},
 	}
 }
 

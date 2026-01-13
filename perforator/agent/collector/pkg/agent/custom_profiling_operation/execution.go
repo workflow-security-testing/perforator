@@ -30,6 +30,14 @@ var (
 const (
 	defaultStatusOutputChannelSize = 10
 	defaultFinishOperationTimeout  = 10 * time.Second
+
+	MetricPrefix        = "custom_profiling_operation"
+	MetricPreparedCount = "prepared.count"
+	MetricStartedCount  = "started.count"
+	MetricFailedCount   = "failed.count"
+	MetricStoppedCount  = "stopped.count"
+	MetricFinishedCount = "finished.count"
+	MetricZombieCount   = "zombie.count"
 )
 
 type operationExecutionMetrics struct {
@@ -98,7 +106,7 @@ func newOperationExecution(
 		return nil, errors.New("operation time interval has expired")
 	}
 
-	reg = reg.WithPrefix("custom_profiling_operation")
+	reg = reg.WithPrefix(MetricPrefix)
 
 	execution := &operationExecution{
 		l:                   l,
@@ -112,12 +120,12 @@ func newOperationExecution(
 			Timestamp: timestamppb.Now(),
 		},
 		metrics: operationExecutionMetrics{
-			prepared: reg.Counter("prepared.count"),
-			started:  reg.Counter("started.count"),
-			failed:   reg.Counter("failed.count"),
-			stopped:  reg.Counter("stopped.count"),
-			finished: reg.Counter("finished.count"),
-			zombie:   reg.Counter("zombie.count"),
+			prepared: reg.Counter(MetricPreparedCount),
+			started:  reg.Counter(MetricStartedCount),
+			failed:   reg.Counter(MetricFailedCount),
+			stopped:  reg.Counter(MetricStoppedCount),
+			finished: reg.Counter(MetricFinishedCount),
+			zombie:   reg.Counter(MetricZombieCount),
 		},
 		opts: options,
 	}
