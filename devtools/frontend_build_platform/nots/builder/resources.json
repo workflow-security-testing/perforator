@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-01-12T05:14:51.940Z",
+    "created": "2026-01-12T17:00:26Z",
     "pr": {
       "id": 11264344,
       "author": "zaverden",
-      "summary": "chore(conf): merge package_manager.base and package_manager/pnpm"
+      "summary": "chore(conf): merge package_manager.base and package_manager/pnpm [FBP-2777](https://st.yandex-team.ru/FBP-2777)"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:10773101675"
+      "uri": "sbr:10780542303"
     },
     "darwin-arm64": {
-      "uri": "sbr:10773100748"
+      "uri": "sbr:10780540746"
     },
     "linux": {
-      "uri": "sbr:10773103431"
+      "uri": "sbr:10780545719"
     },
     "linux-aarch64": {
-      "uri": "sbr:10773102445"
+      "uri": "sbr:10780543846"
     }
   }
 }
