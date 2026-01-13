@@ -522,6 +522,7 @@ require (
 	github.com/hasura/go-graphql-client v0.13.1
 	github.com/heetch/confita v0.0.0-20181011080120-653cbec9ecff
 	github.com/hinshun/vt10x v0.0.0-20220301184237-5011da428d02
+	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0
 	github.com/iancoleman/strcase v0.3.0
 	github.com/icza/bitio v1.1.0
 	github.com/imdario/mergo v0.3.16
@@ -1698,7 +1699,6 @@ require (
 	github.com/hudl/fargo v1.4.0 // indirect
 	github.com/hugelgupf/socketpair v0.0.0-20190730060125-05d35a94e714 // indirect
 	github.com/hybridgroup/mjpeg v0.0.0-20140228234708-4680f319790e // indirect
-	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20240312041847-bd984b5ce465 // indirect
 	github.com/icholy/digest v1.1.0 // indirect
 	github.com/icrowley/fake v0.0.0-20221112152111-d7b7e2276db2 // indirect
