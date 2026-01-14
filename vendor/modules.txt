@@ -7264,7 +7264,7 @@ github.com/exaring/otelpgx
 # github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d
 ## explicit
 github.com/exponent-io/jsonpath
-# github.com/expr-lang/expr v1.17.5
+# github.com/expr-lang/expr v1.17.7
 ## explicit; go 1.18
 github.com/expr-lang/expr
 github.com/expr-lang/expr/ast
@@ -7277,6 +7277,7 @@ github.com/expr-lang/expr/docgen
 github.com/expr-lang/expr/file
 github.com/expr-lang/expr/internal/deref
 github.com/expr-lang/expr/internal/difflib
+github.com/expr-lang/expr/internal/ring
 github.com/expr-lang/expr/internal/spew
 github.com/expr-lang/expr/internal/testify/assert
 github.com/expr-lang/expr/internal/testify/assert/internal/unsafetests
@@ -7297,12 +7298,22 @@ github.com/expr-lang/expr/test/fuzz
 github.com/expr-lang/expr/test/gen
 github.com/expr-lang/expr/test/interface
 github.com/expr-lang/expr/test/issues/461
+github.com/expr-lang/expr/test/issues/567
 github.com/expr-lang/expr/test/issues/688
 github.com/expr-lang/expr/test/issues/723
 github.com/expr-lang/expr/test/issues/730
 github.com/expr-lang/expr/test/issues/739
 github.com/expr-lang/expr/test/issues/756
 github.com/expr-lang/expr/test/issues/785
+github.com/expr-lang/expr/test/issues/817
+github.com/expr-lang/expr/test/issues/819
+github.com/expr-lang/expr/test/issues/823
+github.com/expr-lang/expr/test/issues/830
+github.com/expr-lang/expr/test/issues/836
+github.com/expr-lang/expr/test/issues/840
+github.com/expr-lang/expr/test/issues/844
+github.com/expr-lang/expr/test/issues/854
+github.com/expr-lang/expr/test/issues/857
 github.com/expr-lang/expr/test/mock
 github.com/expr-lang/expr/test/operator
 github.com/expr-lang/expr/test/operator/issues584
