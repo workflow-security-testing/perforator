@@ -21,5 +21,3 @@ ELSE()
 ENDIF()
 
 END()
-
-RECURSE(cmd)

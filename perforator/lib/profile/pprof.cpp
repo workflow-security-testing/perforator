@@ -727,7 +727,8 @@ public:
             };
 
             size_t linesSize = 0;
-            for (auto&& line : frame.GetInlineChain().GetLines()) {
+            auto inlineChain = frame.GetInlineChain();
+            for (auto&& line : inlineChain.GetLines()) {
                 linesSize += WireFormatLite::TagSize(Location::kLineFieldNumber, WireFormatLite::TYPE_MESSAGE);
                 linesSize += WireFormatLite::LengthDelimitedSize(ValuesSize(lineFields(line)));
             }
@@ -743,7 +744,7 @@ public:
             Out_->WriteVarint64(ValuesSize(fields) + linesSize);
             ValuesWrite(fields, Out_);
 
-            for (auto&& line : frame.GetInlineChain().GetLines()) {
+            for (auto&& line : inlineChain.GetLines()) {
                 auto fields = lineFields(line);
                 WireFormatLite::WriteTag(Location::kLineFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
                 Out_->WriteVarint64(ValuesSize(fields));
@@ -806,8 +807,9 @@ public:
                 };
             };
 
+            auto key = sample.GetKey();
             auto visitLabels = [&](auto&& visitor) {
-                for (auto&& label : sample.GetKey().GetAllLabels()) {
+                for (auto&& label : key.GetAllLabels()) {
                     if (label.IsString()) {
                         visitor(strLabelFields(*label.GetKey().GetIndex(), *label.GetString().GetIndex()));
                     } else {
@@ -817,7 +819,7 @@ public:
             };
 
             size_t locationIdsSize = 0;
-            for (auto&& stack : sample.GetKey().GetStacks()) {
+            for (auto&& stack : key.GetStacks()) {
                 for (auto&& frame : stack.GetFrames()) {
                     locationIdsSize += TValueTraits<Sample::kLocationIdFieldNumber, WireFormatLite::TYPE_UINT64>::SizeNoTag(*frame.GetIndex() + 1);
                 }
@@ -841,7 +843,7 @@ public:
             WireFormatLite::WriteTag(Sample::kLocationIdFieldNumber, WireFormatLite::WIRETYPE_LENGTH_DELIMITED, Out_);
             Out_->WriteVarint64(locationIdsSize);
 
-            for (auto&& stack : sample.GetKey().GetStacks()) {
+            for (auto&& stack : key.GetStacks()) {
                 for (auto&& frame : stack.GetFrames()) {
                     TValueTraits<Sample::kLocationIdFieldNumber, WireFormatLite::TYPE_UINT64>::WriteNoTag(*frame.GetIndex() + 1, Out_);
                 }

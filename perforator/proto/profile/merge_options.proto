@@ -6,30 +6,6 @@ option go_package = "github.com/yandex/perforator/perforator/proto/profile";
 
 // MergeOptions defines how different profiles are merged together.
 message MergeOptions {
-    // If true (default), aggregate samples with identical call stacks across
-    // different threads. The merged profile will not contain thread IDs for
-    // these aggregated samples. If false, samples from different threads remain
-    // distinct.
-    optional bool ignore_thread_ids = 1 [default = true];
-
-    // If true (default), aggregate samples with identical call stacks across
-    // different processes. The merged profile will not contain process IDs for
-    // these aggregated samples. If false, samples from different processes
-    // remain distinct.
-    optional bool ignore_process_ids = 2 [default = true];
-
-    // If true, aggregate samples with identical call stacks across threads with
-    // different names. The merged profile will not contain thread names for
-    // these aggregated samples. If false (default), samples from threads with
-    // different names remain distinct.
-    optional bool ignore_thread_names = 3 [default = false];
-
-    // If true, aggregate samples with identical call stacks across processes
-    // with different names. The merged profile will not contain process names
-    // for these aggregated samples. If false (default), samples from processes
-    // with different names remain distinct.
-    optional bool ignore_process_names = 4 [default = false];
-
     // If true, merge samples based on matching symbolized call stacks,
     // disregarding differences in underlying binaries (e.g., build IDs, paths)
     // as long as symbols match. The merged profile effectively represents logic
@@ -59,11 +35,12 @@ message MergeOptions {
     // from different source locations are distinct.
     optional bool ignore_source_locations = 8 [default = false];
 
-    // If true, aggregate samples originating from different binary instruction
-    // addresses within the same function. Granularity at the instruction
-    // address level within a function is lost. If false (default), samples from
-    // different binary addresses are distinct.
-    optional bool ignore_binary_addresses = 9 [default = false];
+    // If set to positive value N, only every N-th sample from profile will be taken.
+    // Exact algorithm is implementation-dependant,
+    // but stable output for same set of profiles is guaranteed.
+    // Sampling will be performed after filtering.
+    // Value of 0 and 1 disable sampling.
+    optional uint64 sample_period = 10 [default = 0];
 
     // If true (default), normalize some well-known value type units.
     // For example, profiles with value types [wall.nanoseconds] and [wall.us]
@@ -74,12 +51,6 @@ message MergeOptions {
     // Without this, merging might fail if summed values exceed representational
     // limits.
     optional bool normalize_value_types = 100 [default = true];
-
-    // If true, sanitize thread and process names, e.g., by removing
-    // trailing digits. This helps aggregate samples from thread/process pools
-    // where names like "ThreadPoolWorker-123" would otherwise create many
-    // unique entries.
-    optional bool cleanup_thread_names = 101 [default = false];
 
     // Allows filtering of profile labels before merging. By default, sample
     // labels are stored as-is. Filtering can reduce merged profile size if
@@ -95,8 +66,10 @@ message MergeOptions {
 }
 
 message LabelFilter {
-    // Remove labels whose keys start with any of these prefixes.
-    repeated string skipped_key_prefixes = 1;
+    reserved 1;
+
+    repeated string keys_show = 2;
+    repeated string keys_hide = 3;
 }
 
 // Defines criteria for filtering samples before they are included in the merge.

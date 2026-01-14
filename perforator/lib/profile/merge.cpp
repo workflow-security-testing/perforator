@@ -76,22 +76,6 @@ public:
         PopulateFilters();
     }
 
-    bool IgnoreThreadIds() const {
-        return Options_.ignore_thread_ids();
-    }
-
-    bool IgnoreProcessIds() const {
-        return Options_.ignore_process_ids();
-    }
-
-    bool IgnoreThreadNames() const {
-        return Options_.ignore_thread_names();
-    }
-
-    bool IgnoreProcessNames() const {
-        return Options_.ignore_process_names();
-    }
-
     bool MergeBinaries() const {
         return Options_.merge_by_symbolized_names();
     }
@@ -106,14 +90,6 @@ public:
 
     bool MergeSourceLocations() const {
         return Options_.ignore_source_locations();
-    }
-
-    bool MergeBinaryAddresses() const {
-        return Options_.ignore_binary_addresses();
-    }
-
-    bool CleanupThreadNames() const {
-        return Options_.cleanup_thread_names();
     }
 
     bool AllowSample(TSample sample) const {
@@ -131,7 +107,8 @@ public:
     }
 
     bool AllowLabel(TLabel label) const {
-        return !DroppedLabelKeys_.contains(label.GetKey().GetIndex());
+        return (PreservedLabelKeys_.empty() || PreservedLabelKeys_.contains(label.GetKey().GetIndex()))
+            && !DroppedLabelKeys_.contains(label.GetKey().GetIndex());
     }
 
     bool AllowValueType(TValueType valueType) const {
@@ -248,13 +225,20 @@ private:
     }
 
     void PopulateLabelFilters() {
-        if (Options_.label_filter().skipped_key_prefixes().empty()) {
+        if (Options_.label_filter().keys_show().empty()
+            && Options_.label_filter().keys_hide().empty()
+        ) {
             return;
         }
 
         for (TLabel label : Profile_.Labels()) {
-            for (TStringBuf prefix : Options_.label_filter().skipped_key_prefixes()) {
-                if (label.GetKey().View().StartsWith(prefix)) {
+            for (TStringBuf show : Options_.label_filter().keys_show()) {
+                if (label.GetKey().View() == show) {
+                    PreservedLabelKeys_.insert(label.GetKey().GetIndex());
+                }
+            }
+            for (TStringBuf hide : Options_.label_filter().keys_hide()) {
+                if (label.GetKey().View() == hide) {
                     DroppedLabelKeys_.insert(label.GetKey().GetIndex());
                 }
             }
@@ -286,6 +270,7 @@ private:
     bool HasTriviallyNegativeSampleFilter_ = false;
     absl::flat_hash_map<TLabelId, ui32> RequiredAllOfLabels_;
     absl::flat_hash_set<TBinaryId> RequiredOneOfBinaries_;
+    absl::flat_hash_set<TStringId> PreservedLabelKeys_;
     absl::flat_hash_set<TStringId> DroppedLabelKeys_;
     absl::flat_hash_set<TValueTypeId> AllowedValueTypes_;
 };
@@ -409,7 +394,9 @@ private:
             auto builder = Builder_.AddLabelGroup();
 
             for (auto&& label : labelGroup.GetLabels()) {
-                builder.AddLabel(MapLabel(label));
+                if (Policy_.AllowLabel(label)) {
+                    builder.AddLabel(MapLabel(label));
+                }
             }
 
             return builder.Finish();

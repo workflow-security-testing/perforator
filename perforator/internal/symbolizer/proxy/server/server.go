@@ -34,6 +34,8 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/yandex/perforator/library/go/core/log"
@@ -1374,7 +1376,15 @@ func makeMergeOptions(
 		options.ValueTypeFilter = &profileproto.ValueTypeFilter{}
 	}
 
-	options.LabelFilter.SkippedKeyPrefixes = []string{"cgroup"}
+	getLabelKey := func(label profileproto.WellKnownLabel) string {
+		return proto.GetExtension(label.Descriptor().Values().ByNumber(protoreflect.EnumNumber(label)).Options(), profileproto.E_LabelKey).(string)
+	}
+
+	options.LabelFilter.KeysShow = []string{
+		getLabelKey(profileproto.WellKnownLabel_ProcessCommand),
+		getLabelKey(profileproto.WellKnownLabel_ThreadCommand),
+		getLabelKey(profileproto.WellKnownLabel_Workload),
+	}
 
 	options.ValueTypeFilter.Allowlist = []string{targetEventType}
 
