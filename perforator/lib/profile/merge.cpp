@@ -6,7 +6,7 @@
 #include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
 #include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
 
-#include <util/system/mutex.h>
+#include <util/digest/numeric.h>
 
 #include <bitset>
 #include <cctype>
@@ -74,6 +74,10 @@ public:
         , Options_{options}
     {
         PopulateFilters();
+    }
+
+    ui64 SamplePeriod() const {
+        return Max<ui64>(Options_.sample_period(), 1);
     }
 
     bool MergeBinaries() const {
@@ -287,6 +291,7 @@ public:
         , Profile_{profile}
         , IsFirstProfile_{profileIndex == 0}
         , Policy_{profile, options}
+        , SamplingCounter_(NumericHash(profileIndex) % Policy_.SamplePeriod())
         , Strings_{*Profile_.Strings().GetPastTheEndIndex()}
         , ValueTypes_{*Profile_.ValueTypes().GetPastTheEndIndex()}
         , Samples_{*Profile_.Samples().GetPastTheEndIndex()}
@@ -334,7 +339,9 @@ private:
     void MergeSamples() {
         for (TSample sample : Profile_.Samples()) {
             if (Policy_.AllowSample(sample)) {
-                MergeSample(sample);
+                if (SamplingCounter_++ % Policy_.SamplePeriod() == 0) {
+                    MergeSample(sample);
+                }
             }
         }
     }
@@ -534,6 +541,7 @@ private:
     const TProfile Profile_;
     const bool IsFirstProfile_;
     const TMergePolicy Policy_;
+    ui64 SamplingCounter_;
 
     TIndexRemapping<TStringId> Strings_;
     TIndexRemapping<TValueTypeId> ValueTypes_;
@@ -554,30 +562,28 @@ private:
 
 class TProfileMerger::TImpl {
 public:
-    TImpl(NProto::NProfile::Profile* merged, const NProto::NProfile::MergeOptions& options)
-        : Options_{options}
-        , Builder_{merged}
+    TImpl(NProto::NProfile::Profile* merged)
+        : Builder_{merged}
     {}
 
     NProto::NProfile::Profile* Finish() {
         return std::move(Builder_).Finish();
     }
 
-    void Add(const NProto::NProfile::Profile& proto) {
+    void Add(const NProto::NProfile::Profile& proto, const NProto::NProfile::MergeOptions& options) {
         TProfile profile{&proto};
-        TSingleProfileMerger{Builder_, Options_, profile, ProfileCount_++}.Merge();
+        TSingleProfileMerger{Builder_, options, profile, ProfileCount_++}.Merge();
     }
 
 private:
-    const NProto::NProfile::MergeOptions& Options_;
     TProfileBuilder Builder_;
     ui32 ProfileCount_ = 0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
-TProfileMerger::TProfileMerger(NProto::NProfile::Profile* merged, const NProto::NProfile::MergeOptions& options)
-    : Impl_{MakeHolder<TImpl>(merged, options)}
+TProfileMerger::TProfileMerger(NProto::NProfile::Profile* merged)
+    : Impl_{MakeHolder<TImpl>(merged)}
 {}
 
 TProfileMerger::TProfileMerger(TProfileMerger&& rhs) noexcept = default;
@@ -586,8 +592,8 @@ TProfileMerger& TProfileMerger::operator=(TProfileMerger&& rhs) noexcept = defau
 
 TProfileMerger::~TProfileMerger() = default;
 
-void TProfileMerger::Add(const NProto::NProfile::Profile& proto) {
-    return Impl_->Add(proto);
+void TProfileMerger::Add(const NProto::NProfile::Profile& proto, const NProto::NProfile::MergeOptions& options) {
+    return Impl_->Add(proto, options);
 }
 
 NProto::NProfile::Profile* TProfileMerger::Finish() && {
@@ -601,9 +607,9 @@ void MergeProfiles(
     NProto::NProfile::Profile* merged,
     const NProto::NProfile::MergeOptions& options
 ) {
-    TProfileMerger merger{merged, options};
+    TProfileMerger merger{merged};
     for (auto& profile : profiles) {
-        merger.Add(profile);
+        merger.Add(profile, options);
     }
     std::move(merger).Finish();
 }

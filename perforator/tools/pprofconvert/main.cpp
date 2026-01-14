@@ -294,13 +294,13 @@ int main(int argc, const char* argv[]) {
 
         for (int tid = 0; tid < threadCount; ++tid) {
             tp.SafeAddFunc([tid, argv, argc, &profiles] {
-                NPerforator::NProfile::TProfileMerger merger{&profiles[tid], {}};
+                NPerforator::NProfile::TProfileMerger merger{&profiles[tid]};
 
                 NPerforator::NProto::NProfile::Profile profile;
                 for (int i = 3 + tid; i < argc; i += threadCount) {
                     TFileInput in{argv[i]};
                     Y_ENSURE(profile.ParseFromArcadiaStream(&in));
-                    merger.Add(profile);
+                    merger.Add(profile, {});
                 }
 
                 std::move(merger).Finish();
@@ -314,9 +314,9 @@ int main(int argc, const char* argv[]) {
         Cerr << "Merging final profile" << Endl;
 
         NPerforator::NProto::NProfile::Profile merged;
-        NPerforator::NProfile::TProfileMerger merger{&merged, {}};
+        NPerforator::NProfile::TProfileMerger merger{&merged};
         for (auto& profile : profiles) {
-            merger.Add(profile);
+            merger.Add(profile, {});
         }
         std::move(merger).Finish();
 
@@ -386,7 +386,7 @@ int main(int argc, const char* argv[]) {
         auto start = Now();
 
         NPerforator::NProto::NProfile::Profile merged;
-        NPerforator::NProfile::TProfileMerger merger{&merged, {}};
+        NPerforator::NProfile::TProfileMerger merger{&merged};
 
         int cnt = 0;
 
@@ -396,7 +396,7 @@ int main(int argc, const char* argv[]) {
             TFileInput in{argv[i]};
             Y_ENSURE(profile.ParseFromArcadiaStream(&in));
 
-            merger.Add(profile);
+            merger.Add(profile, {});
             Cerr << "Merged profile #" << cnt++ << Endl;
 
             int size = merged.stack_segments().frame_ids_offset_size();

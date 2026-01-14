@@ -13,10 +13,7 @@ namespace NPerforator::NProfile {
 // NB: @TProfileMerger is single-threaded and not thread-safe.
 class TProfileMerger {
 public:
-    TProfileMerger(
-        NProto::NProfile::Profile* merged,
-        const NProto::NProfile::MergeOptions& options
-    );
+    TProfileMerger(NProto::NProfile::Profile* merged);
 
     TProfileMerger(const TProfileMerger& rhs) = delete;
     TProfileMerger(TProfileMerger&& rhs) noexcept;
@@ -27,7 +24,7 @@ public:
 
     // Merge one profile into the resulting one.
     // This function is not thread safe.
-    void Add(const NProto::NProfile::Profile& profile);
+    void Add(const NProto::NProfile::Profile& profile, const NProto::NProfile::MergeOptions& options);
 
     // Finalizes the merge process, performing any last calculations or
     // data consolidation.

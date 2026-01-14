@@ -122,10 +122,10 @@ NThreading::TFuture<void> TParallelProfileMerger::TImpl::SetupMergingPipeline() 
 }
 
 TParallelProfileMerger::TImpl::TMergeResult TParallelProfileMerger::TImpl::WorkerThread(ui32 workerId) {
-    TProfileMerger merger{IntermediateProfiles_.at(workerId), Options_.MergeOptions};
+    TProfileMerger merger{IntermediateProfiles_.at(workerId)};
 
     while (auto maybeProfile = PendingProfiles_.Pop()) {
-        merger.Add(maybeProfile.GetRef());
+        merger.Add(maybeProfile.GetRef(), Options_.MergeOptions);
     }
 
     return {workerId, std::move(merger)};
@@ -144,7 +144,10 @@ TParallelProfileMerger::TImpl::TMergeResult TParallelProfileMerger::TImpl::Combi
     NProto::NProfile::Profile* profile = std::move(rhs.UnfinishedMerger).Finish();
     Y_ABORT_UNLESS(profile);
 
-    lhs.UnfinishedMerger.Add(*profile);
+    auto options = Options_.MergeOptions;
+    // FIXME(ayles): ugly hack, should be removed after moving filters to TProfile itself.
+    options.set_sample_period(0);
+    lhs.UnfinishedMerger.Add(*profile, options);
     *profile = {};
 
     return std::move(lhs);

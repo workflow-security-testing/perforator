@@ -5,6 +5,7 @@ SRCS(
     banned_users.go
     config.go
     llvm_tools.go
+    merge.go
     microscope.go
     render.go
     server.go
