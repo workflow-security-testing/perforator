@@ -2,7 +2,9 @@ package render
 
 import (
 	"bytes"
+	"compress/gzip"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -524,15 +526,18 @@ func (f *FlameGraph) encodeBlocksToJSON(blocks []*block, enc *json.Encoder) erro
 }
 
 func (f *FlameGraph) renderBlocksToHTMLV2(blocks []*block, w io.Writer) error {
-	jsonBytes := make([]byte, 0, 1024)
-	buf := bytes.NewBuffer(jsonBytes)
-	err := f.renderBlocksToJSON(blocks, buf)
+	buf := new(bytes.Buffer)
+	compressable := gzip.NewWriter(buf)
+	err := f.renderBlocksToJSON(blocks, compressable)
 	if err != nil {
+		return err
+	}
+	if err = compressable.Close(); err != nil {
 		return err
 	}
 	jsCode := template.HTML("<script>" + string(resource.Get("viewer.js")) + "</script>")
 
-	jsonData := template.HTML("<script>window.__data__=" + buf.String() + "</script>")
+	jsonData := template.HTML("<script>window.__data__=\"" + base64.StdEncoding.EncodeToString(buf.Bytes()) + "\"</script>")
 
 	return tmpl.ExecuteTemplate(w, string(f.format), &struct {
 		Json   template.HTML
