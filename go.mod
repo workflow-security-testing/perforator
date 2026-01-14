@@ -674,16 +674,16 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20240311024730-e056997136bb
 	github.com/pingcap/parser v0.0.0-20210415081931-48e7f467fd74
 	github.com/pion/datachannel v1.5.10
-	github.com/pion/ice/v4 v4.0.10
-	github.com/pion/interceptor v0.1.38-0.20250120152133-34362889114e
-	github.com/pion/logging v0.2.3
-	github.com/pion/rtcp v1.2.15
-	github.com/pion/rtp v1.8.15
-	github.com/pion/sctp v1.8.39
+	github.com/pion/ice/v4 v4.0.13
+	github.com/pion/interceptor v0.1.42
+	github.com/pion/logging v0.2.4
+	github.com/pion/rtcp v1.2.16
+	github.com/pion/rtp v1.8.26
+	github.com/pion/sctp v1.8.41
 	github.com/pion/sdp/v3 v3.0.16
-	github.com/pion/transport/v3 v3.0.7
+	github.com/pion/transport/v3 v3.1.1
 	github.com/pion/webrtc/v3 v3.3.3
-	github.com/pion/webrtc/v4 v4.1.0
+	github.com/pion/webrtc/v4 v4.1.8
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e
 	github.com/pkg/errors v0.9.1
@@ -2016,19 +2016,19 @@ require (
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20250324122243-d51e00e5bbf0 // indirect
 	github.com/pingcap/tipb v0.0.0-20220825135535-d6f1aebebabd // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
-	github.com/pion/dtls/v3 v3.0.6 // indirect
+	github.com/pion/dtls/v3 v3.0.8 // indirect
 	github.com/pion/ice/v2 v2.3.35 // indirect
 	github.com/pion/mdns v0.0.12 // indirect
-	github.com/pion/mdns/v2 v2.0.7 // indirect
+	github.com/pion/mdns/v2 v2.1.0 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/srtp/v2 v2.0.20 // indirect
-	github.com/pion/srtp/v3 v3.0.4 // indirect
+	github.com/pion/srtp/v3 v3.0.9 // indirect
 	github.com/pion/stun v0.6.1 // indirect
-	github.com/pion/stun/v3 v3.0.0 // indirect
+	github.com/pion/stun/v3 v3.0.2 // indirect
 	github.com/pion/transport v0.14.1 // indirect
 	github.com/pion/transport/v2 v2.2.10 // indirect
 	github.com/pion/turn/v2 v2.1.6 // indirect
-	github.com/pion/turn/v4 v4.0.0 // indirect
+	github.com/pion/turn/v4 v4.1.3 // indirect
 	github.com/pion/udp v0.1.1 // indirect
 	github.com/pion/udp/v2 v2.0.1 // indirect
 	github.com/pjbgf/sha1cd v0.3.2 // indirect

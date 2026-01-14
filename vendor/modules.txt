@@ -13242,8 +13242,8 @@ github.com/pion/dtls/v2/pkg/protocol/alert
 github.com/pion/dtls/v2/pkg/protocol/extension
 github.com/pion/dtls/v2/pkg/protocol/handshake
 github.com/pion/dtls/v2/pkg/protocol/recordlayer
-# github.com/pion/dtls/v3 v3.0.6
-## explicit; go 1.20
+# github.com/pion/dtls/v3 v3.0.8
+## explicit; go 1.21
 github.com/pion/dtls/v3
 github.com/pion/dtls/v3/internal/ciphersuite
 github.com/pion/dtls/v3/internal/ciphersuite/types
@@ -13273,16 +13273,16 @@ github.com/pion/ice/v2
 github.com/pion/ice/v2/internal/atomic
 github.com/pion/ice/v2/internal/fakenet
 github.com/pion/ice/v2/internal/stun
-# github.com/pion/ice/v4 v4.0.10
-## explicit; go 1.20
+# github.com/pion/ice/v4 v4.0.13
+## explicit; go 1.21
 github.com/pion/ice/v4
 github.com/pion/ice/v4/internal
 github.com/pion/ice/v4/internal/atomic
 github.com/pion/ice/v4/internal/fakenet
 github.com/pion/ice/v4/internal/stun
 github.com/pion/ice/v4/internal/taskloop
-# github.com/pion/interceptor v0.1.38-0.20250120152133-34362889114e
-## explicit; go 1.20
+# github.com/pion/interceptor v0.1.42
+## explicit; go 1.21
 github.com/pion/interceptor
 github.com/pion/interceptor/examples/nack
 github.com/pion/interceptor/internal/cc
@@ -13303,32 +13303,34 @@ github.com/pion/interceptor/pkg/report
 github.com/pion/interceptor/pkg/rfc8888
 github.com/pion/interceptor/pkg/stats
 github.com/pion/interceptor/pkg/twcc
-# github.com/pion/logging v0.2.3
+# github.com/pion/logging v0.2.4
 ## explicit; go 1.20
 github.com/pion/logging
 # github.com/pion/mdns v0.0.12
 ## explicit; go 1.19
 github.com/pion/mdns
-# github.com/pion/mdns/v2 v2.0.7
-## explicit; go 1.19
+# github.com/pion/mdns/v2 v2.1.0
+## explicit; go 1.21
 github.com/pion/mdns/v2
 # github.com/pion/randutil v0.1.0
 ## explicit; go 1.14
 github.com/pion/randutil
-# github.com/pion/rtcp v1.2.15
-## explicit; go 1.20
+# github.com/pion/rtcp v1.2.16
+## explicit; go 1.21
 github.com/pion/rtcp
-# github.com/pion/rtp v1.8.15
-## explicit; go 1.20
+# github.com/pion/rtp v1.8.26
+## explicit; go 1.21
 github.com/pion/rtp
 github.com/pion/rtp/codecs
 github.com/pion/rtp/codecs/av1/frame
 github.com/pion/rtp/codecs/av1/obu
+github.com/pion/rtp/codecs/h264
 github.com/pion/rtp/codecs/vp9
+github.com/pion/rtp/examples/send-h264
 github.com/pion/rtp/pkg/frame
 github.com/pion/rtp/pkg/obu
-# github.com/pion/sctp v1.8.39
-## explicit; go 1.20
+# github.com/pion/sctp v1.8.41
+## explicit; go 1.21
 github.com/pion/sctp
 # github.com/pion/sdp/v3 v3.0.16
 ## explicit; go 1.21
@@ -13336,16 +13338,16 @@ github.com/pion/sdp/v3
 # github.com/pion/srtp/v2 v2.0.20
 ## explicit; go 1.14
 github.com/pion/srtp/v2
-# github.com/pion/srtp/v3 v3.0.4
-## explicit; go 1.20
+# github.com/pion/srtp/v3 v3.0.9
+## explicit; go 1.21
 github.com/pion/srtp/v3
 # github.com/pion/stun v0.6.1
 ## explicit; go 1.12
 github.com/pion/stun
 github.com/pion/stun/internal/hmac
 github.com/pion/stun/internal/testutil
-# github.com/pion/stun/v3 v3.0.0
-## explicit; go 1.19
+# github.com/pion/stun/v3 v3.0.2
+## explicit; go 1.21
 github.com/pion/stun/v3
 github.com/pion/stun/v3/internal/hmac
 github.com/pion/stun/v3/internal/testutil
@@ -13365,8 +13367,8 @@ github.com/pion/transport/v2/test
 github.com/pion/transport/v2/udp
 github.com/pion/transport/v2/utils/xor
 github.com/pion/transport/v2/vnet
-# github.com/pion/transport/v3 v3.0.7
-## explicit; go 1.19
+# github.com/pion/transport/v3 v3.1.1
+## explicit; go 1.21
 github.com/pion/transport/v3
 github.com/pion/transport/v3/connctx
 github.com/pion/transport/v3/deadline
@@ -13388,8 +13390,8 @@ github.com/pion/turn/v2/internal/client
 github.com/pion/turn/v2/internal/ipnet
 github.com/pion/turn/v2/internal/proto
 github.com/pion/turn/v2/internal/server
-# github.com/pion/turn/v4 v4.0.0
-## explicit; go 1.19
+# github.com/pion/turn/v4 v4.1.3
+## explicit; go 1.21
 github.com/pion/turn/v4
 github.com/pion/turn/v4/internal/allocation
 github.com/pion/turn/v4/internal/client
@@ -13445,8 +13447,8 @@ github.com/pion/webrtc/v3/pkg/media/rtpdump
 github.com/pion/webrtc/v3/pkg/media/samplebuilder
 github.com/pion/webrtc/v3/pkg/null
 github.com/pion/webrtc/v3/pkg/rtcerr
-# github.com/pion/webrtc/v4 v4.1.0
-## explicit; go 1.20
+# github.com/pion/webrtc/v4 v4.1.8
+## explicit; go 1.21
 github.com/pion/webrtc/v4
 github.com/pion/webrtc/v4/examples
 github.com/pion/webrtc/v4/examples/bandwidth-estimation-from-disk
@@ -13454,7 +13456,11 @@ github.com/pion/webrtc/v4/examples/broadcast
 github.com/pion/webrtc/v4/examples/custom-logger
 github.com/pion/webrtc/v4/examples/data-channels
 github.com/pion/webrtc/v4/examples/data-channels-detach
+github.com/pion/webrtc/v4/examples/data-channels-detach-create
 github.com/pion/webrtc/v4/examples/data-channels-flow-control
+github.com/pion/webrtc/v4/examples/data-channels-simple
+github.com/pion/webrtc/v4/examples/data-channels-whip-whep-like
+github.com/pion/webrtc/v4/examples/ice-proxy
 github.com/pion/webrtc/v4/examples/ice-restart
 github.com/pion/webrtc/v4/examples/ice-single-port
 github.com/pion/webrtc/v4/examples/ice-tcp
@@ -13464,6 +13470,7 @@ github.com/pion/webrtc/v4/examples/ortc-media
 github.com/pion/webrtc/v4/examples/pion-to-pion/answer
 github.com/pion/webrtc/v4/examples/pion-to-pion/offer
 github.com/pion/webrtc/v4/examples/play-from-disk
+github.com/pion/webrtc/v4/examples/play-from-disk-fec
 github.com/pion/webrtc/v4/examples/play-from-disk-renegotiation
 github.com/pion/webrtc/v4/examples/reflect
 github.com/pion/webrtc/v4/examples/rtcp-processing
@@ -13483,6 +13490,8 @@ github.com/pion/webrtc/v4/internal/util
 github.com/pion/webrtc/v4/pkg/media
 github.com/pion/webrtc/v4/pkg/media/h264reader
 github.com/pion/webrtc/v4/pkg/media/h264writer
+github.com/pion/webrtc/v4/pkg/media/h265reader
+github.com/pion/webrtc/v4/pkg/media/h265writer
 github.com/pion/webrtc/v4/pkg/media/ivfreader
 github.com/pion/webrtc/v4/pkg/media/ivfwriter
 github.com/pion/webrtc/v4/pkg/media/oggreader
