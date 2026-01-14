@@ -357,6 +357,25 @@ func (c *Client) CreateMicroscope(
 	return resp.ID, nil
 }
 
+func (c *Client) DeleteMicroscope(
+	ctx context.Context,
+	id string,
+) error {
+	ctx, span := c.tracer.Start(ctx, "DeleteMicroscope")
+	defer span.End()
+
+	c.l.Info(
+		ctx,
+		"Delete microscope",
+		log.String("id", id),
+	)
+
+	_, err := c.microscopesClient.DeleteMicroscope(ctx, &perforator.DeleteMicroscopeRequest{
+		ID: id,
+	})
+	return err
+}
+
 func (c *Client) GetProfile(
 	ctx context.Context,
 	profileID string,

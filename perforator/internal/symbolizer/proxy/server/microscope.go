@@ -245,3 +245,30 @@ func (s *PerforatorServer) SetMicroscope(ctx context.Context, req *perforator.Se
 		ID: uid.String(),
 	}, nil
 }
+
+func (s *PerforatorServer) DeleteMicroscope(ctx context.Context, req *perforator.DeleteMicroscopeRequest) (*perforator.DeleteMicroscopeResponse, error) {
+	if req.ID == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "id is empty")
+	}
+
+	user := auth.UserFromContext(ctx)
+	if user == nil || user.Login == "" {
+		return nil, status.Errorf(codes.Unauthenticated, "user is unspecified")
+	}
+
+	microscope, err := s.microscopeStorage.GetMicroscope(ctx, req.ID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get microscope: %v", err)
+	}
+
+	if microscope.User != user.Login {
+		return nil, status.Errorf(codes.PermissionDenied, "permission denied")
+	}
+
+	err = s.microscopeStorage.DeleteMicroscope(ctx, req.ID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to delete microscope: %v", err)
+	}
+
+	return &perforator.DeleteMicroscopeResponse{}, nil
+}

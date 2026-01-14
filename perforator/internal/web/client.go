@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"time"
 
@@ -28,11 +27,12 @@ type ClientConfig struct {
 type Client struct {
 	l xlog.Logger
 
-	connection        *grpc.ClientConn
-	client            perforator.PerforatorClient
-	microscopesClient perforator.MicroscopeServiceClient
-	taskClient        perforator.TaskServiceClient
-	clusterTopClient  perforator.ClusterTopClient
+	connection *grpc.ClientConn
+
+	perforator.PerforatorClient
+	perforator.MicroscopeServiceClient
+	perforator.TaskServiceClient
+	perforator.ClusterTopClient
 }
 
 func NewClient(cfg *ClientConfig, l xlog.Logger) (*Client, error) {
@@ -55,66 +55,11 @@ func NewClient(cfg *ClientConfig, l xlog.Logger) (*Client, error) {
 	}
 
 	return &Client{
-		l:                 l,
-		connection:        conn,
-		client:            perforator.NewPerforatorClient(conn),
-		microscopesClient: perforator.NewMicroscopeServiceClient(conn),
-		taskClient:        perforator.NewTaskServiceClient(conn),
-		clusterTopClient:  perforator.NewClusterTopClient(conn),
+		l:                       l,
+		connection:              conn,
+		PerforatorClient:        perforator.NewPerforatorClient(conn),
+		MicroscopeServiceClient: perforator.NewMicroscopeServiceClient(conn),
+		TaskServiceClient:       perforator.NewTaskServiceClient(conn),
+		ClusterTopClient:        perforator.NewClusterTopClient(conn),
 	}, nil
 }
-
-////////////////////////////////////////////////////////////////////////////////
-
-func (c *Client) ListServices(ctx context.Context, req *perforator.ListServicesRequest) (*perforator.ListServicesResponse, error) {
-	return c.client.ListServices(ctx, req)
-}
-
-func (c *Client) ListSuggestions(
-	ctx context.Context,
-	req *perforator.ListSuggestionsRequest,
-) (*perforator.ListSuggestionsResponse, error) {
-	return c.client.ListSuggestions(ctx, req)
-}
-
-func (c *Client) ListProfiles(ctx context.Context, req *perforator.ListProfilesRequest) (*perforator.ListProfilesResponse, error) {
-	return c.client.ListProfiles(ctx, req)
-}
-
-func (c *Client) GetProfile(ctx context.Context, req *perforator.GetProfileRequest) (*perforator.GetProfileResponse, error) {
-	return c.client.GetProfile(ctx, req)
-}
-
-func (c *Client) MergeProfiles(ctx context.Context, req *perforator.MergeProfilesRequest) (*perforator.MergeProfilesResponse, error) {
-	return c.client.MergeProfiles(ctx, req)
-}
-
-func (c *Client) UploadProfile(ctx context.Context, req *perforator.UploadProfileRequest) (*perforator.UploadProfileResponse, error) {
-	return c.client.UploadProfile(ctx, req)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-func (c *Client) ListMicroscopes(ctx context.Context, req *perforator.ListMicroscopesRequest) (*perforator.ListMicroscopesResponse, error) {
-	return c.microscopesClient.ListMicroscopes(ctx, req)
-}
-
-func (c *Client) SetMicroscope(ctx context.Context, req *perforator.SetMicroscopeRequest) (*perforator.SetMicroscopeResponse, error) {
-	return c.microscopesClient.SetMicroscope(ctx, req)
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-func (c *Client) GetTask(ctx context.Context, req *perforator.GetTaskRequest) (*perforator.GetTaskResponse, error) {
-	return c.taskClient.GetTask(ctx, req)
-}
-
-func (c *Client) StartTask(ctx context.Context, req *perforator.StartTaskRequest) (*perforator.StartTaskResponse, error) {
-	return c.taskClient.StartTask(ctx, req)
-}
-
-func (c *Client) ListTasks(ctx context.Context, req *perforator.ListTasksRequest) (*perforator.ListTasksResponse, error) {
-	return c.taskClient.ListTasks(ctx, req)
-}
-
-////////////////////////////////////////////////////////////////////////////////

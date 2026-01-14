@@ -153,10 +153,33 @@ var (
 			return nil
 		},
 	}
+
+	deleteMicroscopeCmd = &cobra.Command{
+		Use:   "delete <id>",
+		Short: "Delete microscope",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			cli, err := makeCLI()
+			if err != nil {
+				return err
+			}
+			defer cli.Shutdown()
+
+			id := args[0]
+			err = cli.Client().DeleteMicroscope(cli.Context(), id)
+			if err != nil {
+				return err
+			}
+
+			cli.Logger().Info(cli.Context(), "Deleted microscope", log.String("id", id))
+
+			return nil
+		},
+	}
 )
 
 func init() {
-	commands := []*cobra.Command{listMicroscopesCmd, createMicroscopeCmd}
+	commands := []*cobra.Command{listMicroscopesCmd, createMicroscopeCmd, deleteMicroscopeCmd}
 
 	for _, cmd := range commands {
 		cmd.Flags().StringVar(&url, "url", "", "Perforator proxy URL")

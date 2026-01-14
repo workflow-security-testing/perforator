@@ -18,6 +18,9 @@ service MicroscopeService {
 
    // List user microscopes
    rpc ListMicroscopes(ListMicroscopesRequest) returns (ListMicroscopesResponse) {}
+
+   // Delete microscope by ID
+   rpc DeleteMicroscope(DeleteMicroscopeRequest) returns (DeleteMicroscopeResponse) {}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -30,6 +33,12 @@ message SetMicroscopeRequest {
 message SetMicroscopeResponse {
     string ID = 1;
 }
+
+message DeleteMicroscopeRequest {
+    string ID = 1;
+}
+
+message DeleteMicroscopeResponse {}
 
 message ListMicroscopesRequest {
     NPagination.Paginated Paginated = 1;

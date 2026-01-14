@@ -50,5 +50,9 @@ type Storage interface {
 
 	ListMicroscopes(ctx context.Context, filters *Filters, pagination *util.Pagination) ([]Microscope, error)
 
+	GetMicroscope(ctx context.Context, id string) (*Microscope, error)
+
+	DeleteMicroscope(ctx context.Context, id string) error
+
 	GetUserInfo(ctx context.Context, userID string, opts *GetUserInfoOptions) (*UserInfo, error)
 }

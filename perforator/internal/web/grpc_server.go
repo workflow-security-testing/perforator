@@ -53,6 +53,11 @@ func (s *WebService) SetMicroscope(ctx context.Context, req *perforator.SetMicro
 	return s.client.SetMicroscope(ctx, req)
 }
 
+// DeleteMicroscope implements perforator.MicroscopeService.
+func (s *WebService) DeleteMicroscope(ctx context.Context, req *perforator.DeleteMicroscopeRequest) (*perforator.DeleteMicroscopeResponse, error) {
+	return s.client.DeleteMicroscope(ctx, req)
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // GetTask implements perforator.TaskServiceServer.
@@ -73,13 +78,13 @@ func (s *WebService) ListTasks(ctx context.Context, req *perforator.ListTasksReq
 ////////////////////////////////////////////////////////////////////////////////
 
 func (s *WebService) ListClusterTopGenerations(ctx context.Context, req *perforator.ListClusterTopGenerationRequest) (*perforator.ListClusterTopGenerationResponse, error) {
-	return s.client.clusterTopClient.ListClusterTopGenerations(ctx, req)
+	return s.client.ListClusterTopGenerations(ctx, req)
 }
 
 func (s *WebService) GetClusterTopAggregatedByFunction(ctx context.Context, req *perforator.ClusterTopRequest) (*perforator.ClusterTopResponse, error) {
-	return s.client.clusterTopClient.GetClusterTopAggregatedByFunction(ctx, req)
+	return s.client.GetClusterTopAggregatedByFunction(ctx, req)
 }
 
 func (s *WebService) GetClusterTopAggregatedByService(ctx context.Context, req *perforator.ClusterTopRequest) (*perforator.ClusterTopResponse, error) {
-	return s.client.clusterTopClient.GetClusterTopAggregatedByService(ctx, req)
+	return s.client.GetClusterTopAggregatedByService(ctx, req)
 }

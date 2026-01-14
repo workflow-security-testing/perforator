@@ -143,6 +143,46 @@ func (s *Storage) ListMicroscopes(
 	return rows, nil
 }
 
+func (s *Storage) DeleteMicroscope(ctx context.Context, id string) error {
+	primary, err := s.cluster.WaitForPrimary(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = primary.DBx().ExecContext(
+		ctx,
+		"DELETE FROM microscopes WHERE id = $1",
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to delete microscope %s: %w", id, err)
+	}
+
+	s.l.Info(ctx, "Deleted microscope", log.String("id", id))
+
+	return nil
+}
+
+func (s *Storage) GetMicroscope(ctx context.Context, id string) (*microscope.Microscope, error) {
+	alive, err := s.cluster.WaitForAlive(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &microscope.Microscope{}
+	err = alive.DBx().GetContext(
+		ctx,
+		res,
+		"SELECT "+AllColumns+" FROM microscopes WHERE id = $1",
+		id,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (s *Storage) GetUserInfo(ctx context.Context, userID string, opts *microscope.GetUserInfoOptions) (userInfo *microscope.UserInfo, err error) {
 	userInfo = &microscope.UserInfo{}
 
