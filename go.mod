@@ -713,12 +713,12 @@ require (
 	github.com/redis/go-redis/extra/redisotel/v9 v9.0.5
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/rekby/fixenv v0.7.0
-	github.com/riverqueue/river v0.16.0
-	github.com/riverqueue/river/riverdriver v0.16.0
-	github.com/riverqueue/river/riverdriver/riverdatabasesql v0.16.0
-	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.16.0
-	github.com/riverqueue/river/rivershared v0.16.0
-	github.com/riverqueue/river/rivertype v0.16.0
+	github.com/riverqueue/river v0.24.0
+	github.com/riverqueue/river/riverdriver v0.24.0
+	github.com/riverqueue/river/riverdriver/riverdatabasesql v0.24.0
+	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.24.0
+	github.com/riverqueue/river/rivershared v0.24.0
+	github.com/riverqueue/river/rivertype v0.24.0
 	github.com/rivo/tview v0.0.0-20220916081518-2e69b7385a37
 	github.com/rivo/uniseg v0.4.7
 	github.com/robfig/cron/v3 v3.0.1
