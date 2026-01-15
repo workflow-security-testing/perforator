@@ -202,7 +202,7 @@ require (
 	github.com/a-h/templ v0.2.663
 	github.com/abema/go-mp4 v1.4.1
 	github.com/agnivade/levenshtein v1.2.0
-	github.com/airbusgeo/godal v0.0.12
+	github.com/airbusgeo/godal v0.0.16
 	github.com/airbusgeo/osio v0.1.4
 	github.com/alecthomas/participle v0.4.1
 	github.com/alecthomas/participle/v2 v2.1.0
