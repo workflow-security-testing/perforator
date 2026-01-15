@@ -10407,7 +10407,7 @@ github.com/hashicorp/vault/api
 # github.com/hashicorp/yamux v0.1.2-0.20220728231903-574fd304fd65
 ## explicit; go 1.15
 github.com/hashicorp/yamux
-# github.com/hasura/go-graphql-client v0.13.1
+# github.com/hasura/go-graphql-client v0.15.0
 ## explicit; go 1.20
 github.com/hasura/go-graphql-client
 github.com/hasura/go-graphql-client/example/graphql-ws-bc/client

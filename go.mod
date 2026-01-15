@@ -519,7 +519,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.12.0
 	github.com/hashicorp/vault/api v1.12.0
 	github.com/hashicorp/yamux v0.1.2-0.20220728231903-574fd304fd65
-	github.com/hasura/go-graphql-client v0.13.1
+	github.com/hasura/go-graphql-client v0.15.0
 	github.com/heetch/confita v0.0.0-20181011080120-653cbec9ecff
 	github.com/hinshun/vt10x v0.0.0-20220301184237-5011da428d02
 	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0
