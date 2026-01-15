@@ -804,6 +804,7 @@ require (
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli v1.22.16
 	github.com/urfave/cli/v2 v2.27.6
+	github.com/vakenbolt/go-test-report v0.9.3
 	github.com/valkey-io/valkey-go v1.0.66
 	github.com/valkey-io/valkey-go/mock v1.0.60
 	github.com/valkey-io/valkey-go/valkeycompat v1.0.60

@@ -15704,6 +15704,10 @@ github.com/urfave/cli/v2/internal/example-cli
 github.com/urfave/cli/v2/internal/example-hello-world
 # github.com/urfave/negroni v1.0.0
 ## explicit
+# github.com/vakenbolt/go-test-report v0.9.3
+## explicit; go 1.13
+github.com/vakenbolt/go-test-report
+github.com/vakenbolt/go-test-report/embed_assets
 # github.com/valkey-io/valkey-go v1.0.66
 ## explicit; go 1.23.0
 github.com/valkey-io/valkey-go
