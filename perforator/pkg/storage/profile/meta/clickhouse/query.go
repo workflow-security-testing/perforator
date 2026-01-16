@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
+
 	"github.com/yandex/perforator/observability/lib/querylang"
 	"github.com/yandex/perforator/observability/lib/querylang/operator"
 	"github.com/yandex/perforator/perforator/pkg/env"
 	"github.com/yandex/perforator/perforator/pkg/humantime"
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
-	"github.com/yandex/perforator/perforator/pkg/sqlbuilder"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
 	"github.com/yandex/perforator/perforator/pkg/tls"
@@ -130,47 +131,73 @@ func buildTimestampValueRepr(value querylang.Value) (string, error) {
 	return fmt.Sprintf("%.3f", tsFraction), nil
 }
 
-func buildValueRepr(field string, value querylang.Value) (string, error) {
+func buildValueRepr(field string, value querylang.Value) (any, error) {
 	if field == "timestamp" {
 		return buildTimestampValueRepr(value)
 	}
-
-	switch value := value.(type) {
+	switch v := value.(type) {
 	case querylang.String:
-		return fmt.Sprintf("'%s'", sqlbuilder.Escape(value.Value)), nil
+		return v.Value, nil
+	case *querylang.String:
+		return v.Value, nil
 	case querylang.Int:
-		return value.Value.String(), nil
+		return v.Value.Int64(), nil
 	default:
-		return value.Repr(), nil
+		return nil, fmt.Errorf("unsupported value type %+T", value)
 	}
 }
 
-func buildConditionString(column string, condition *querylang.Condition) (string, error) {
-	prefix := ""
-	if condition.Inverse {
-		prefix = "NOT "
-	}
+type predicate any
 
+func buildConditionString(column string, condition *querylang.Condition) (sq.Sqlizer, error) {
 	valueRepr, err := buildValueRepr(column, condition.Value)
 	if err != nil {
-		return "", fmt.Errorf("failed to build value repr: %w", err)
+		return nil, fmt.Errorf("failed to build value repr: %w", err)
 	}
 
-	switch condition.Operator {
+	effectiveOperator := condition.Operator
+	if condition.Inverse {
+		switch condition.Operator {
+		case operator.LTE:
+			effectiveOperator = operator.GT
+		case operator.LT:
+			effectiveOperator = operator.GTE
+		case operator.GTE:
+			effectiveOperator = operator.LT
+		case operator.GT:
+			effectiveOperator = operator.LTE
+		case operator.Eq:
+		default:
+			return nil, fmt.Errorf("negation not supported for querylang operator %v at column %s", condition.Operator, column)
+		}
+	}
+
+	switch effectiveOperator {
 	case operator.Eq:
-		return fmt.Sprintf("%s%s = %s", prefix, column, valueRepr), nil
+		eq := sq.Eq{
+			column: valueRepr,
+		}
+		if condition.Inverse {
+			return sq.NotEq(eq), nil
+		} else {
+			return eq, nil
+		}
 	case operator.Regex:
-		return fmt.Sprintf("%smatch(%s, %s)", prefix, column, valueRepr), nil
+		prefix := ""
+		if condition.Inverse {
+			prefix = "NOT "
+		}
+		return sq.Expr(fmt.Sprintf("%smatch (%s, ?)", prefix, column), valueRepr), nil
 	case operator.LTE:
-		return fmt.Sprintf("%s%s <= %s", prefix, column, valueRepr), nil
+		return sq.LtOrEq{column: valueRepr}, nil
 	case operator.LT:
-		return fmt.Sprintf("%s%s < %s", prefix, column, valueRepr), nil
+		return sq.Lt{column: valueRepr}, nil
 	case operator.GTE:
-		return fmt.Sprintf("%s%s >= %s", prefix, column, valueRepr), nil
+		return sq.GtOrEq{column: valueRepr}, nil
 	case operator.GT:
-		return fmt.Sprintf("%s%s > %s", prefix, column, valueRepr), nil
+		return sq.Gt{column: valueRepr}, nil
 	default:
-		return "", fmt.Errorf("querylang operator %v is not supported for column %s", condition.Operator, column)
+		return nil, fmt.Errorf("querylang operator %v is not supported for column %s", condition.Operator, column)
 	}
 }
 
@@ -181,26 +208,26 @@ var (
 	}
 )
 
-func buildMultiValueWhereClause(op querylang.LogicalOperator, column string, values []string) string {
-	return fmt.Sprintf("%s(%s, [%s])", logicalOperatorToFuncName[op], column, strings.Join(values, ", "))
+func buildMultiValueWhereClause(op querylang.LogicalOperator, column string, values []any) sq.Sqlizer {
+	return sq.Expr(fmt.Sprintf("%s(%s, ?)", logicalOperatorToFuncName[op], column), values)
 }
 
 // only support equality checks for array fields
-func buildArrayColumnWhereClause(column string, matcher *querylang.Matcher) (string, error) {
-	values := make([]string, 0, len(matcher.Conditions))
+func buildArrayColumnWhereClause(column string, matcher *querylang.Matcher) (sq.Sqlizer, error) {
+	values := make([]any, 0, len(matcher.Conditions))
 
 	for _, condition := range matcher.Conditions {
 		if condition.Operator != operator.Eq {
-			return "", fmt.Errorf("unsupported operator %v for array column %s", condition.Operator, column)
+			return nil, fmt.Errorf("unsupported operator %v for array column %s", condition.Operator, column)
 		}
 
 		if condition.Inverse {
-			return "", fmt.Errorf("inverse operators are not supported for array column: %s", column)
+			return nil, fmt.Errorf("inverse operators are not supported for array column: %s", column)
 		}
 
 		valueRepr, err := buildValueRepr(matcher.Field, condition.Value)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 
 		values = append(values, valueRepr)
@@ -209,18 +236,18 @@ func buildArrayColumnWhereClause(column string, matcher *querylang.Matcher) (str
 	return buildMultiValueWhereClause(matcher.Operator, column, values), nil
 }
 
-func buildEnvWhereClause(matcher *querylang.Matcher) (string, error) {
+func buildEnvWhereClause(matcher *querylang.Matcher) (sq.Sqlizer, error) {
 	envKey, ok := env.BuildEnvKeyFromMatcherField(matcher.Field)
 	if !ok {
-		return "", fmt.Errorf("failed to build env key from matcher field: %v", matcher.Field)
+		return nil, fmt.Errorf("failed to build env key from matcher field: %v", matcher.Field)
 	}
 
 	values, err := profilequerylang.ExtractEqualityMatch(matcher)
 	if err != nil {
-		return "", fmt.Errorf("failed to build where clause for env %v: %w", matcher.Field, err)
+		return nil, fmt.Errorf("failed to build where clause for env %v: %w", matcher.Field, err)
 	}
 	if len(values) != 1 {
-		return "", fmt.Errorf("only one condition is allowed")
+		return nil, fmt.Errorf("only one condition is allowed")
 	}
 	var val string
 	for v := range values {
@@ -228,44 +255,43 @@ func buildEnvWhereClause(matcher *querylang.Matcher) (string, error) {
 	}
 
 	concatenatedEnv := env.BuildConcatenatedEnv(envKey, val)
-	return buildMultiValueWhereClause(matcher.Operator, envsColumn, []string{fmt.Sprintf("'%s'", sqlbuilder.Escape(concatenatedEnv))}), nil
+	return buildMultiValueWhereClause(matcher.Operator, envsColumn, []any{concatenatedEnv}), nil
 }
 
-func buildSingleValueColumnWhereClause(column string, matcher *querylang.Matcher) (string, error) {
-	conditions := make([]string, 0, len(matcher.Conditions))
+func buildSingleValueColumnWhereClause(column string, matcher *querylang.Matcher) (sq.Sqlizer, error) {
+	conditions := make([]sq.Sqlizer, 0, len(matcher.Conditions))
 
+	if len(matcher.Conditions) == 0 {
+		return nil, errors.New("empty where clause for matcher")
+	}
 	for _, condition := range matcher.Conditions {
-		condition, err := buildConditionString(column, condition)
+		var err error
+		cond, err := buildConditionString(column, condition)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		conditions = append(conditions, condition)
-	}
-
-	separator := " AND "
-	if matcher.Operator == querylang.OR {
-		separator = " OR "
-	}
-
-	if len(conditions) == 0 {
-		return "", errors.New("empty where clause for matcher")
+		conditions = append(conditions, cond)
 	}
 
 	if len(conditions) == 1 {
 		return conditions[0], nil
 	}
 
-	return "(" + strings.Join(conditions, separator) + ")", nil
+	if matcher.Operator == querylang.OR {
+		return sq.Or(conditions), nil
+	} else {
+		return sq.And(conditions), nil
+	}
 }
 
-func buildMatcherWhereClause(matcher *querylang.Matcher) (string, error) {
+func buildMatcherWhereClause(matcher *querylang.Matcher) (sq.Sqlizer, error) {
 	if env.IsEnvMatcherField(matcher.Field) {
 		return buildEnvWhereClause(matcher)
 	}
 
-	clauses := make([]string, 0, len(labelsToColumns[matcher.Field]))
+	clauses := make([]sq.Sqlizer, 0, len(labelsToColumns[matcher.Field]))
 	for _, column := range labelsToColumns[matcher.Field] {
-		var clause string
+		var clause sq.Sqlizer
 		var err error
 		if arrayColumns[column] {
 			clause, err = buildArrayColumnWhereClause(column, matcher)
@@ -273,28 +299,27 @@ func buildMatcherWhereClause(matcher *querylang.Matcher) (string, error) {
 			clause, err = buildSingleValueColumnWhereClause(column, matcher)
 		}
 		if err != nil {
-			return "", fmt.Errorf("failed to build column `%s` where clause: %w", clause, err)
+			return nil, fmt.Errorf("failed to build column `%s` where clause: %w", clause, err)
 		}
 		clauses = append(clauses, clause)
 	}
 
 	if len(clauses) == 0 {
-		return "", errors.New("no where clauses are build for querylang.Matcher")
+		return nil, errors.New("no where clauses are build for querylang.Matcher")
 	}
 
 	if len(clauses) == 1 {
 		return clauses[0], nil
 	}
 
-	return "(" + strings.Join(clauses, " OR ") + ")", nil
+	return sq.Or(clauses), nil
 }
 
 func makeSelectProfilesQueryBuilder(
 	query *meta.ProfileQuery,
-) (*sqlbuilder.SelectQueryBuilder, error) {
-	builder := sqlbuilder.Select().
+) (sq.SelectBuilder, error) {
+	builder := sq.Select().
 		Where("expired = false").
-		Values(AllColumns).
 		From("profiles")
 
 	for _, matcher := range query.Selector.Matchers {
@@ -304,47 +329,56 @@ func makeSelectProfilesQueryBuilder(
 
 		clause, err := buildMatcherWhereClause(matcher)
 		if err != nil {
-			return nil, fmt.Errorf("failed to build matcher `%s` where clause: %w", matcher.Field, err)
+			return builder, fmt.Errorf("failed to build matcher `%s` where clause: %w", matcher.Field, err)
 		}
 
-		builder.Where(clause)
+		builder = builder.Where(clause)
 	}
 
 	if query.MaxSamples != 0 {
 		if len(query.SortOrder.Columns) != 0 {
-			return nil, fmt.Errorf("cannot combine sort order with max samples")
+			return builder, fmt.Errorf("cannot combine sort order with max samples")
 		}
 
-		builder.OrderByColumn("farmHash64(id)")
-		builder.Limit(query.MaxSamples)
+		builder = builder.OrderBy("farmHash64(id)")
+		builder = builder.Limit(query.MaxSamples)
 	} else {
 		if query.Pagination.Offset != 0 {
-			builder.Offset(query.Pagination.Offset)
+			builder = builder.Offset(query.Pagination.Offset)
 		}
 		if query.Pagination.Limit != 0 {
-			builder.Limit(query.Pagination.Limit)
+			builder = builder.Limit(query.Pagination.Limit)
 		}
 
 		if len(query.SortOrder.Columns) == 0 {
-			builder.OrderByColumn("timestamp")
+			builder = builder.OrderBy("timestamp")
 		} else {
-			builder.OrderBy(makeOrderBy(&query.SortOrder))
+			builder = makeOrderBy(&query.SortOrder, builder)
 		}
 	}
 
 	return builder, nil
 }
 
-func buildSelectProfilesQuery(query *meta.ProfileQuery) (string, error) {
+func buildSelectProfilesQuery(query *meta.ProfileQuery) (string, []any, error) {
 	builder, err := makeSelectProfilesQueryBuilder(query)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
-	return builder.Query()
+	builder = builder.Column(AllColumns)
+
+	return builder.ToSql()
 }
 
-func makeOrderBy(order *util.SortOrder) *sqlbuilder.OrderBy {
-	return &sqlbuilder.OrderBy{Columns: order.Columns, Descending: order.Descending}
+func makeOrderBy(order *util.SortOrder, builder sq.SelectBuilder) sq.SelectBuilder {
+	for _, c := range order.Columns {
+		if c.Descending {
+			builder = builder.OrderByClause(c.Name + " DESC")
+		} else {
+			builder = builder.OrderBy(c.Name)
+		}
+	}
+	return builder
 }
 
 func buildInsertQuery(rows []*ProfileRow) (string, error) {

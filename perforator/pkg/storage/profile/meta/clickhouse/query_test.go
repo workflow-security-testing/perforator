@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/yandex/perforator/perforator/pkg/profilequerylang"
@@ -28,113 +29,167 @@ func TestQueryBuild(t *testing.T) {
 		query.Selector = parsedSelector
 		return &query
 	}
-	queries := map[string]string{
-		`{service="perforator|web-search", build_ids="a|b"}`: fmt.Sprintf(`
+	queries := map[string]struct {
+		prefix string
+		args   []any
+	}{
+		`{service="perforator|web-search", build_ids="a|b"}`: {
+			prefix: fmt.Sprintf(`
 			SELECT %s
 			FROM profiles
 			WHERE expired = false
-				AND (service = 'perforator' OR service = 'web-search')
-				AND hasAny(build_ids, ['a', 'b'])
-			ORDER BY`,
-			AllColumns,
-		),
-		`{"service"="perforator.storage-production"}`: fmt.Sprintf(`
-			SELECT %s
-			FROM profiles
-			WHERE expired = false
-				AND service = 'perforator.storage-production'
-			ORDER BY`,
-			AllColumns,
-		),
-		`{"cpu"="Intel", profiler_version="12341|12|156", build_ids="a"}`: fmt.Sprintf(`
-			SELECT %s
-			FROM profiles
-			WHERE expired = false
-				AND attributes['cpu'] = 'Intel'
-				AND (attributes['profiler_version'] = '12341' OR attributes['profiler_version'] = '12' OR attributes['profiler_version'] = '156')
-				AND hasAny(build_ids, ['a'])
-			ORDER BY`,
-			AllColumns,
-		),
-		`{}`: fmt.Sprintf(`
-			SELECT %s
-			FROM profiles
-			WHERE expired = false
-			ORDER BY`,
-			AllColumns,
-		),
-		`{id="a|b|y"}`: fmt.Sprintf(`
-			SELECT %s
-			FROM profiles
-			WHERE expired = false
-				AND (id = 'a' OR id = 'b' OR id = 'y')
-			ORDER BY`,
-			AllColumns,
-		),
-		`{id="a|b|y", tls.KEY="value"}`: fmt.Sprintf(`
-			SELECT %s
-			FROM profiles
-			WHERE expired = false
-				AND (id = 'a' OR id = 'b' OR id = 'y')
-			ORDER BY`,
-			AllColumns,
-		),
-		`{id="a|b|y", env.KEY="value", env.KEY2="value2"}`: fmt.Sprintf(`
-			SELECT %s
-			FROM profiles
-			WHERE expired = false
-				AND (id = 'a' OR id = 'b' OR id = 'y')
-				AND hasAny(envs, ['KEY=value'])
-				AND hasAny(envs, ['KEY2=value2'])
-			ORDER BY`,
-			AllColumns,
-		),
-		`{event_type="cpu.cycles"}`: fmt.Sprintf(`
-			SELECT %s 
-			FROM profiles
-			WHERE expired=false
-				AND event_type='cpu.cycles'
-			ORDER BY`,
-			AllColumns,
-		),
-		`{event_type="wall.seconds", service="perforator.storage-prestable"}`: fmt.Sprintf(`
-			SELECT %s
-			FROM profiles 
-			WHERE expired=false
-				AND event_type='wall.seconds'
-				AND service='perforator.storage-prestable'
+				AND (service = ? OR service = ?)
+				AND hasAny(build_ids, ?)
 			ORDER BY
-			`,
-			AllColumns,
-		),
-		`{custom_profiling_operation_id="abacaba"}`: fmt.Sprintf(`
+			    timestamp
+			LIMIT 10`,
+				AllColumns,
+			),
+			args: []any{"perforator", "web-search", []any{"a", "b"}},
+		},
+		`{"service"="perforator.storage-production"}`: {
+			prefix: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired = false
+				AND service = ?
+			ORDER BY
+			    timestamp
+			LIMIT 10`,
+				AllColumns,
+			),
+			args: []any{"perforator.storage-production"},
+		},
+		`{"cpu"="Intel", profiler_version="12341|12|156", build_ids="a"}`: {
+			prefix: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired = false
+				AND attributes['cpu'] = ?
+				AND (attributes['profiler_version'] = ? OR attributes['profiler_version'] = ? OR attributes['profiler_version'] = ?)
+				AND hasAny(build_ids, ?)
+			ORDER BY
+			    timestamp
+			LIMIT 10`,
+				AllColumns,
+			),
+			args: []any{"Intel", "12341", "12", "156", []any{"a"}},
+		},
+		`{}`: {
+			prefix: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired = false
+			ORDER BY
+			    timestamp
+			LIMIT 10`,
+				AllColumns,
+			),
+		},
+		`{id="a|b|y"}`: {
+			prefix: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired = false
+				AND (id = ? OR id = ? OR id = ?)
+			ORDER BY
+			    timestamp
+			LIMIT 10`,
+				AllColumns,
+			),
+			args: []any{"a", "b", "y"},
+		},
+		`{id="a|b|y", tls.KEY="value"}`: {
+			prefix: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired = false
+				AND (id = ? OR id = ? OR id = ?)
+			ORDER BY
+			    timestamp
+			LIMIT 10`,
+				AllColumns,
+			),
+			args: []any{"a", "b", "y"},
+		},
+		`{id="a|b|y", env.KEY="value", env.KEY2="value2"}`: {
+			prefix: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired = false
+				AND (id = ? OR id = ? OR id = ?)
+				AND hasAny(envs, ?)
+				AND hasAny(envs, ?)
+			ORDER BY
+			    timestamp
+			LIMIT 10`,
+				AllColumns,
+			),
+			args: []any{"a", "b", "y", []any{"KEY=value"}, []any{"KEY2=value2"}},
+		},
+		`{event_type="cpu.cycles"}`: {
+			prefix: fmt.Sprintf(`
 			SELECT %s
 			FROM profiles
 			WHERE expired=false
-			    AND custom_profiling_operation_id='abacaba'
+				AND event_type=?
 			ORDER BY
+			    timestamp
+			LIMIT 10`,
+				AllColumns,
+			),
+			args: []any{"cpu.cycles"},
+		},
+		`{event_type="wall.seconds", service="perforator.storage-prestable"}`: {
+			prefix: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired=false
+				AND event_type=?
+				AND service=?
+			ORDER BY
+			    timestamp
+			LIMIT 10
 			`,
-			AllColumns,
-		),
+				AllColumns,
+			),
+			args: []any{"wall.seconds", "perforator.storage-prestable"},
+		},
+		`{custom_profiling_operation_id="abacaba"}`: {
+			prefix: fmt.Sprintf(`
+			SELECT %s
+			FROM profiles
+			WHERE expired=false
+			    AND custom_profiling_operation_id=?
+			ORDER BY
+			    timestamp
+			LIMIT 10
+			`,
+				AllColumns,
+			),
+			args: []any{"abacaba"},
+		},
 	}
 
-	for selector, expectedSQLprefix := range queries {
+	for selector, expected := range queries {
 		t.Run(selector, func(t *testing.T) {
-			sql, err := buildSelectProfilesQuery(makeQuery(selector))
+			sql, args, err := buildSelectProfilesQuery(makeQuery(selector))
 			require.NoError(t, err)
 
-			expectedSQLprefix = strings.ReplaceAll(expectedSQLprefix, "\n", "")
+			expectedSQLprefix := strings.ReplaceAll(expected.prefix, "\n", "")
 			expectedSQLprefix = strings.ReplaceAll(expectedSQLprefix, "\t", "")
 			expectedSQLprefix = strings.ReplaceAll(expectedSQLprefix, " ", "")
 			sql = strings.ReplaceAll(sql, " ", "")
 
-			require.True(
+			assert.Equal(
 				t,
-				strings.HasPrefix(sql, expectedSQLprefix),
+				expectedSQLprefix,
+				sql,
 				"%s does not have prefix %s",
 				sql,
 				expectedSQLprefix,
 			)
+			assert.Equal(t, expected.args, args)
 		})
 	}
 }

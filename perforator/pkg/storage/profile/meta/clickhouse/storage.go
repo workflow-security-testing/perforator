@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	sq "github.com/Masterminds/squirrel"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/clickhouse"
 	"github.com/yandex/perforator/perforator/pkg/env"
-	"github.com/yandex/perforator/perforator/pkg/sqlbuilder"
 	"github.com/yandex/perforator/perforator/pkg/storage/profile/meta"
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/storage/util"
@@ -78,32 +78,32 @@ func (s *Storage) ListServices(
 	ctx context.Context,
 	query *meta.ServiceQuery,
 ) ([]*meta.ServiceMetadata, error) {
-	builder := sqlbuilder.Select().
-		Values("service,max(timestamp) AS max_timestamp, sum(1) AS profile_count").
+	builder := sq.Select().
+		Columns("service", "max(timestamp) AS max_timestamp", "sum(1) AS profile_count").
 		From("profiles").
-		GroupBy("service").
-		OrderBy(makeOrderBy(&query.SortOrder))
+		GroupBy("service")
+	builder = makeOrderBy(&query.SortOrder, builder)
 
 	if query.Limit != 0 {
-		builder.Limit(query.Limit)
+		builder = builder.Limit(query.Limit)
 	}
 	if query.Offset != 0 {
-		builder.Offset(query.Offset)
+		builder = builder.Offset(query.Offset)
 	}
 	if query.Regex != nil {
-		builder.Where(fmt.Sprintf("match(service, '%s')", sqlbuilder.Escape(*query.Regex)))
+		builder = builder.Where("match(service, ?)", *query.Regex)
 	}
 	if query.MaxStaleAge != nil {
-		builder.Having(fmt.Sprintf("max_timestamp >= %.3f", getTimestampFraction(time.Now().Add(-*query.MaxStaleAge))))
+		builder = builder.Having("max_timestamp >= ?", getTimestampFraction(time.Now().Add(-*query.MaxStaleAge)))
 	}
 
-	sql, err := builder.Query()
+	sql, args, err := builder.ToSql()
 	if err != nil {
 		return nil, err
 	}
 
 	s.l.Debug(ctx, "Selecting services from clickhouse", log.String("sql", sql))
-	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanServiceRow)
+	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanServiceRow, args...)
 }
 
 func suggestSupported(column string) bool {
@@ -151,62 +151,69 @@ func (s *Storage) ListSuggestions(
 		return nil, nil
 	}
 
+	envQuery := false
+	if column == envsColumn {
+		envQuery = true
+		column = "envValue"
+	}
+
 	profileQuery := &meta.ProfileQuery{
 		Selector: query.Selector,
+		SortOrder: util.SortOrder{
+			Columns: []util.SortColumn{{Name: column}},
+		},
 	}
 	builder, err := makeSelectProfilesQueryBuilder(profileQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	if column == envsColumn {
-		column = "envValue"
+	if envQuery {
 		envKey, ok := env.BuildEnvKeyFromMatcherField(query.Field)
 		if !ok {
 			return nil, fmt.Errorf("failed to build env key from query field: %v", query.Field)
 		}
 		prefix := env.BuildConcatenatedEnv(envKey, "")
-		builder.Values(fmt.Sprintf(
-			`if(isNotNull(arrayFirstOrNull(s -> startsWith(s, '%s'), %s) as envElement), substring(envElement, length('%s') + 1), NULL) as %s`,
-			prefix,
+
+		builder = builder.Column(fmt.Sprintf(
+			`if(isNotNull(arrayFirstOrNull(s -> startsWith(s, ?), %s) as envElement), substring(envElement, length(?) + 1), NULL) as %s`,
 			envsColumn,
-			prefix,
 			column,
-		))
-		builder.Where("isNotNull(envElement)")
+		), prefix, prefix)
+		builder = builder.Where("isNotNull(envElement)")
 	} else {
-		builder.Values(column)
+		builder = builder.Column(column)
 	}
 
-	builder.
-		GroupBy(column).
-		OrderBy(&sqlbuilder.OrderBy{
-			Columns:    []string{column},
-			Descending: false,
-		})
+	builder = builder.
+		GroupBy(column)
 
 	if query.Regex != nil {
-		builder.Where(fmt.Sprintf("match(%s, '%s')", column, sqlbuilder.Escape(*query.Regex)))
+		builder = builder.Where(fmt.Sprintf("match(%s, ?)", column), *query.Regex)
 	}
 	if query.Limit != 0 {
-		builder.Limit(query.Limit)
+		builder = builder.Limit(query.Limit)
 	}
 	if query.Offset != 0 {
-		builder.Offset(query.Offset)
+		builder = builder.Offset(query.Offset)
 	}
 
-	// to prevent full scans
-	builder.
-		Settings(fmt.Sprintf("max_rows_to_read=%d", MaxRowsToRead)).
-		Settings("read_overflow_mode='break'")
+	// Prevent full scans.
+	// We don't use sb.Options() here as squirrel places options right after SELECT,
+	// but clickhouse expects them in the end.
+	options := fmt.Sprintf(
+		"SETTINGS max_rows_to_read=%d, read_overflow_mode='break'",
+		MaxRowsToRead,
+	)
+	builder = builder.Suffix(options)
 
-	sql, err := builder.Query()
+	sql, args, err := builder.ToSql()
 	if err != nil {
 		return nil, err
 	}
 
 	s.l.Debug(ctx, "Searching for suggestions in clickhouse", log.String("sql", sql))
-	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanSuggestionRow)
+	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanSuggestionRow, args...)
 }
 
 // StoreProfile implements meta.Storage.
@@ -241,14 +248,14 @@ func (s *Storage) SelectProfiles(
 	ctx context.Context,
 	query *meta.ProfileQuery,
 ) ([]*meta.ProfileMetadata, error) {
-	sql, err := buildSelectProfilesQuery(query)
+	sql, args, err := buildSelectProfilesQuery(query)
 	if err != nil {
 		return nil, err
 	}
 
 	s.l.Debug(ctx, "Select profiles", log.String("sql", sql))
 
-	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanProfileRow)
+	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, sql, scanProfileRow, args...)
 }
 
 // GetProfiles implements meta.Storage.
@@ -256,19 +263,19 @@ func (s *Storage) GetProfiles(
 	ctx context.Context,
 	profileIDs []string,
 ) ([]*meta.ProfileMetadata, error) {
-	builder := sqlbuilder.Select().
-		Values(AllColumns).
+	builder := sq.Select().
+		Columns(AllColumns).
 		From("profiles").
-		Where(fmt.Sprintf("id IN [%s]", sqlbuilder.BuildQuotedList(profileIDs))).
+		Where("id IN [%s]", (profileIDs)).
 		Where("expired = false")
 
-	query, err := builder.Query()
+	query, args, err := builder.ToSql()
 	if err != nil {
 		return nil, err
 	}
 
 	s.l.Debug(ctx, "Get profiles from clickhouse", log.String("sql", query))
-	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, query, scanProfileRow)
+	return clickhouse.QueryWithRetries(s.l, ctx, s.conn, query, scanProfileRow, args...)
 }
 
 // RemoveProfiles implements meta.Storage.

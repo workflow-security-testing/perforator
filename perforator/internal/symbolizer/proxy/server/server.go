@@ -1149,8 +1149,12 @@ func (s *PerforatorServer) constructPGOProfilesQuery(req *perforator.GeneratePGO
 	// This increases the chance of guessing a buildID from the most recent release,
 	// instead of the previous one(s).
 	query.SortOrder = util.SortOrder{
-		Columns:    []string{profilequerylang.TimestampLabel},
-		Descending: true,
+		Columns: []util.SortColumn{
+			{
+				Name:       profilequerylang.TimestampLabel,
+				Descending: true,
+			},
+		},
 	}
 	query.MaxSamples = 0
 	query.Pagination = util.Pagination{
