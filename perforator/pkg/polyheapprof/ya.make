@@ -17,6 +17,7 @@ ENDIF()
 
 SRCS(
     heap.go
+    http.go
 )
 
 END()

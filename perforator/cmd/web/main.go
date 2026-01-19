@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"strings"

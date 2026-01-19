@@ -27,6 +27,7 @@ import (
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/maxprocs"
 	"github.com/yandex/perforator/perforator/pkg/must"
+	"github.com/yandex/perforator/perforator/pkg/polyheapprof"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -221,6 +222,12 @@ func run() error {
 
 	// Setup http puller server
 	http.Handle("/metrics", r.HTTPHandler(ctx, xlog.New(l)))
+	err = polyheapprof.StartHeapProfileRecording()
+	if err != nil {
+		return fmt.Errorf("failed to start heap profiling")
+	}
+
+	http.HandleFunc("GET /debug/pprof/polyheap", polyheapprof.ServeCurrentHeapProfile)
 
 	// Run pprof server
 	go func() {

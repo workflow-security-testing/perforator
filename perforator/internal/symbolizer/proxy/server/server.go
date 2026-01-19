@@ -1763,15 +1763,7 @@ func (s *PerforatorServer) runMetricsServer(ctx context.Context, port uint32) er
 	s.l.Info(ctx, "Starting metrics server", log.UInt32("port", port))
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", s.reg.HTTPHandler(ctx, s.l))
-	mux.HandleFunc("GET /debug/pprof/polyheap", func(w http.ResponseWriter, r *http.Request) {
-		p, err := polyheapprof.ReadCurrentHeapProfile()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		_ = p.Write(w)
-	})
+	mux.HandleFunc("GET /debug/pprof/polyheap", polyheapprof.ServeCurrentHeapProfile)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),

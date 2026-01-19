@@ -165,15 +165,7 @@ type RunConfig struct {
 func (s *BinaryProcessorServer) runMetricsServer(ctx context.Context, port uint32) error {
 	s.l.Info(ctx, "Starting metrics server", log.UInt32("port", port))
 	http.Handle("/metrics", s.reg.HTTPHandler(ctx, s.l))
-	http.HandleFunc("GET /debug/pprof/polyheap", func(w http.ResponseWriter, r *http.Request) {
-		p, err := polyheapprof.ReadCurrentHeapProfile()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		_ = p.Write(w)
-	})
+	http.HandleFunc("GET /debug/pprof/polyheap", polyheapprof.ServeCurrentHeapProfile)
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 

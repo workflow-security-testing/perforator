@@ -27,7 +27,6 @@ import (
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpclog"
 	"github.com/yandex/perforator/perforator/pkg/grpcutil/grpcmetrics"
-	"github.com/yandex/perforator/perforator/pkg/polyheapprof"
 	s3client "github.com/yandex/perforator/perforator/pkg/s3"
 	"github.com/yandex/perforator/perforator/pkg/tracing"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -224,15 +223,6 @@ func indexHandler(uiFS afero.Fs) (http.HandlerFunc, error) {
 func (s *WebService) runMetricsServer(ctx context.Context, port uint) error {
 	s.l.Info(ctx, "Starting metrics server", log.UInt("port", port))
 	http.Handle("/metrics", s.reg.HTTPHandler(ctx, s.l))
-	http.HandleFunc("/debug/pprof/polyheap", func(w http.ResponseWriter, r *http.Request) {
-		p, err := polyheapprof.ReadCurrentHeapProfile()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		_ = p.Write(w)
-	})
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
 
