@@ -138,7 +138,7 @@ require (
 	cuelang.org/go v0.4.3
 	firebase.google.com/go v3.13.0+incompatible
 	git.apache.org/thrift.git v0.13.0
-	github.com/99designs/gqlgen v0.17.66
+	github.com/99designs/gqlgen v0.17.78
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/AlexxIT/go2rtc v1.8.2
 	github.com/Antonboom/errname v0.1.10
@@ -201,7 +201,7 @@ require (
 	github.com/XSAM/otelsql v0.23.0
 	github.com/a-h/templ v0.2.663
 	github.com/abema/go-mp4 v1.4.1
-	github.com/agnivade/levenshtein v1.2.0
+	github.com/agnivade/levenshtein v1.2.1
 	github.com/airbusgeo/godal v0.0.16
 	github.com/airbusgeo/osio v0.1.4
 	github.com/alecthomas/participle v0.4.1
@@ -803,7 +803,7 @@ require (
 	github.com/ugorji/go/codec v1.3.0
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli v1.22.16
-	github.com/urfave/cli/v2 v2.27.6
+	github.com/urfave/cli/v2 v2.27.7
 	github.com/vakenbolt/go-test-report v0.9.3
 	github.com/valkey-io/valkey-go v1.0.66
 	github.com/valkey-io/valkey-go/mock v1.0.60
@@ -813,7 +813,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vbauerster/mpb v3.4.0+incompatible
 	github.com/vbauerster/mpb/v8 v8.7.1
-	github.com/vektah/gqlparser/v2 v2.5.22
+	github.com/vektah/gqlparser/v2 v2.5.30
 	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
@@ -1375,7 +1375,7 @@ require (
 	github.com/cpu/goacmedns v0.1.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
 	github.com/cpuguy83/go-md2man v1.0.10 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/cristalhq/acmd v0.11.1 // indirect
 	github.com/crossdock/crossdock-go v0.0.0-20160816171116-049aabb0122b // indirect
 	github.com/cubicdaiya/gonp v1.0.4 // indirect
@@ -1569,7 +1569,7 @@ require (
 	github.com/go-toolsmith/pkgload v1.2.2 // indirect
 	github.com/go-toolsmith/strparse v1.1.0 // indirect
 	github.com/go-toolsmith/typep v1.1.0 // indirect
-	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
+	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gobuffalo/attrs v1.0.3 // indirect
 	github.com/gobuffalo/depgen v0.2.0 // indirect
 	github.com/gobuffalo/envy v1.8.1 // indirect
@@ -1844,7 +1844,7 @@ require (
 	github.com/maruel/natural v1.1.1 // indirect
 	github.com/maruel/panicparse/v2 v2.5.0 // indirect
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
-	github.com/matryer/moq v0.4.0 // indirect
+	github.com/matryer/moq v0.5.2 // indirect
 	github.com/matryer/try v0.0.0-20161228173917-9ac251b645a2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
