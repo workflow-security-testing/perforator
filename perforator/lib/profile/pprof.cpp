@@ -24,6 +24,8 @@
 #include <util/generic/size_literals.h>
 #include <util/generic/typetraits.h>
 #include <util/stream/format.h>
+#include <util/stream/mem.h>
+#include <util/stream/zlib.h>
 #include <util/system/yassert.h>
 
 
@@ -464,6 +466,9 @@ private:
 
             pos = nextpos;
         }
+
+        Y_ENSURE(!parser.IsCorrupted(), "Input is not a valid protobuf. "
+            "Ensure the data is uncompressed pprof format.");
 
         return ranges;
     }
@@ -1308,9 +1313,32 @@ void ConvertFromPProf(const NProto::NPProf::Profile& from, NProto::NProfile::Pro
     NDetail::TFromPProfConverterContext{from, to}.Convert();
 }
 
+namespace {
+
+bool IsGzipCompressed(TStringBuf data) {
+    // Gzip magic bytes: 0x1f 0x8b
+    return data.size() >= 2 &&
+        static_cast<ui8>(data[0]) == 0x1f &&
+        static_cast<ui8>(data[1]) == 0x8b;
+}
+
+TString DecompressGzip(TStringBuf compressed) {
+    TMemoryInput input{compressed.data(), compressed.size()};
+    TZLibDecompress decompressor{&input};
+    return decompressor.ReadAll();
+}
+
+} // namespace
+
 void ConvertFromPProf(TStringBuf from, NProto::NProfile::Profile* to) {
     Y_ABORT_UNLESS(to, "Expected non-null output pointer");
-    NDetail::TFromPProfBytesConverterContext{from, to}.Convert();
+
+    if (IsGzipCompressed(from)) {
+        TString decompressed = DecompressGzip(from);
+        NDetail::TFromPProfBytesConverterContext{decompressed, to}.Convert();
+    } else {
+        NDetail::TFromPProfBytesConverterContext{from, to}.Convert();
+    }
 }
 
 void ConvertToPProf(const NProto::NProfile::Profile& from, NProto::NPProf::Profile* to) {

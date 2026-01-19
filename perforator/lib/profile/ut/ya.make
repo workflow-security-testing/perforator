@@ -8,6 +8,7 @@ SRCS(
     builder_ut.cpp
     diff_ut.cpp
     merge_ut.cpp
+    pprof_ut.cpp
 )
 
 PEERDIR(
