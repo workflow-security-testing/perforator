@@ -51,7 +51,6 @@ var (
 	pids             []int
 	tids             []int
 	logLevel         string
-	enableJVM        bool
 	enablePHP        bool
 )
 
@@ -64,7 +63,6 @@ func init() {
 	rootCmd.Flags().IntSliceVarP(&pids, "pid", "p", nil, "id of process(es) to trace")
 	rootCmd.Flags().IntSliceVarP(&tids, "tid", "t", nil, "id of thread(s) to trace")
 	rootCmd.Flags().StringVarP(&logLevel, "log-level", "l", "info", "log level (default - `info`, must be one of `debug`, `info`, `warn`, `error`)")
-	rootCmd.Flags().BoolVar(&enableJVM, "enable-jvm", false, "[experimental feature] enable JVM profiling")
 	rootCmd.Flags().BoolVar(&enablePHP, "enable-php", false, "[experimental feature] enable PHP profiling")
 
 	cobrabuildinfo.Init(rootCmd)
@@ -110,7 +108,6 @@ func run() error {
 	if dumpElf {
 		reqs := unwinder.ProgramRequirements{
 			Debug: debug,
-			JVM:   enableJVM,
 			PHP:   enablePHP,
 		}
 		prog, err := unwinder.LoadProg(reqs)

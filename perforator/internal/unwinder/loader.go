@@ -8,7 +8,6 @@ import (
 
 type ProgramRequirements struct {
 	Debug bool
-	JVM   bool
 	PHP   bool
 }
 
@@ -19,9 +18,6 @@ func LoadProg(reqs ProgramRequirements) ([]byte, error) {
 		name = "debug"
 	} else {
 		name = "release"
-	}
-	if reqs.JVM {
-		name += ".jvm"
 	}
 
 	if reqs.PHP {

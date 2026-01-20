@@ -38,12 +38,6 @@ func TestStackUsage(t *testing.T) {
 	t.Run("Release", func(t *testing.T) {
 		testProg(t, unwinder.ProgramRequirements{})
 	})
-	t.Run("DebugJVM", func(t *testing.T) {
-		testProg(t, unwinder.ProgramRequirements{Debug: true, JVM: true})
-	})
-	t.Run("ReleaseJVM", func(t *testing.T) {
-		testProg(t, unwinder.ProgramRequirements{JVM: true})
-	})
 	t.Run("DebugPHP", func(t *testing.T) {
 		testProg(t, unwinder.ProgramRequirements{Debug: true, PHP: true})
 	})

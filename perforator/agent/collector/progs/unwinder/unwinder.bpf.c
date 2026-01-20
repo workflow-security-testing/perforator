@@ -339,29 +339,12 @@ static ALWAYS_INLINE struct profiler_state* get_state() {
     return state;
 }
 
-static
-#ifdef BPF_DEBUG
-// we are short on stack, this needs to be a separate leaf function
-NOINLINE
-#else
-// function will be optimized to no-op, let's inline it
-ALWAYS_INLINE
-#endif
-void debug_check_config(struct profiler_config *config) {
-#ifndef PERFORATOR_ENABLE_JVM
-    if (config && config->enable_jvm) {
-        BPF_TRACE("enable_jvm enabled but will be ignored: program was built without JVM support\n");
-    }
-#endif
-}
-
 static ALWAYS_INLINE struct profiler_config* get_config() {
     struct profiler_config* config = map_lookup_zero(&profiler_config);
 
     if (config == 0) {
         BPF_TRACE("failed to get profiler config\n");
     }
-    debug_check_config(config);
     return config;
 }
 
