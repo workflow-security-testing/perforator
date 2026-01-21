@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"sync/atomic"
 	"time"
 
+	"github.com/yandex/perforator/perforator/internal/symbolpool"
 	"github.com/yandex/perforator/perforator/pkg/disjointsegmentsets"
 )
 
@@ -15,7 +15,7 @@ type perfMap struct {
 	path             string
 	lastRefreshMtime time.Time
 	lastRefreshSize  int64
-	symbols          atomic.Pointer[[]symbol]
+	symCount         int
 }
 
 func newPerfMap(path string) *perfMap {
@@ -23,27 +23,7 @@ func newPerfMap(path string) *perfMap {
 		path: path,
 	}
 
-	pm.symbols.Store(&[]symbol{})
-
 	return pm
-}
-
-// can be called concurrently without restrictions
-func (p *perfMap) find(ip uint64) (string, bool) {
-	symbols := *p.symbols.Load()
-	pos, ok := slices.BinarySearchFunc(symbols, 42, func(s symbol, unused int) int {
-		if s.offset <= ip {
-			if ip < s.offset+s.size {
-				return 0
-			}
-			return -1
-		}
-		return 1
-	})
-	if !ok {
-		return "", false
-	}
-	return symbols[pos].name, true
 }
 
 type refreshStats struct {
@@ -52,39 +32,46 @@ type refreshStats struct {
 	currentSize int
 }
 
-func (p *perfMap) refresh() (refreshStats, error) {
+func (p *perfMap) refresh() ([]symbolpool.Symbol, refreshStats, error) {
 	info, err := os.Stat(p.path)
 	if err != nil {
-		return refreshStats{}, fmt.Errorf("failed to stat perf map: %w", err)
+		return nil, refreshStats{}, fmt.Errorf("failed to stat perf map: %w", err)
 	}
 	var stats refreshStats
 	if p.lastRefreshSize == info.Size() && p.lastRefreshMtime.Equal(info.ModTime()) {
 		stats.skipped = true
-		stats.currentSize = len(*p.symbols.Load())
-		return stats, nil
+		stats.currentSize = p.symCount
+		return nil, stats, nil
 	}
 
 	file, err := os.Open(p.path)
 	if err != nil {
-		return stats, fmt.Errorf("failed to open perf map: %w", err)
+		return nil, stats, fmt.Errorf("failed to open perf map: %w", err)
 	}
 	defer file.Close()
 
 	startTS := time.Now()
-	syms, err := parse(file)
+	rawSyms, err := parse(file)
 	if err != nil {
-		return stats, fmt.Errorf("failed to parse perf map: %w", err)
+		return nil, stats, fmt.Errorf("failed to parse perf map: %w", err)
 	}
-	slices.SortFunc(syms, func(a, b symbol) int {
+	slices.SortFunc(rawSyms, func(a, b symbol) int {
 		return cmp.Compare(a.offset, b.offset)
 	})
-	syms, _ = disjointsegmentsets.Prune(syms)
+	rawSyms, _ = disjointsegmentsets.Prune(rawSyms)
 	stats.rebuildTime = time.Since(startTS)
-	stats.currentSize = len(syms)
+	p.symCount = len(rawSyms)
+	stats.currentSize = p.symCount
 
 	p.lastRefreshMtime = info.ModTime()
 	p.lastRefreshSize = info.Size()
-
-	p.symbols.Store(&syms)
-	return stats, nil
+	var syms []symbolpool.Symbol
+	for _, s := range rawSyms {
+		syms = append(syms, symbolpool.Symbol{
+			Name:  s.name,
+			Begin: s.offset,
+			Size:  s.size,
+		})
+	}
+	return syms, stats, nil
 }

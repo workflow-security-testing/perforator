@@ -11,6 +11,7 @@ RECURSE(
     offline_processing
     servicediscovery
     symbolizer
+    symbolpool
     unwinder
     web
     xmetrics

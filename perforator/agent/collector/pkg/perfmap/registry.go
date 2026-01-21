@@ -18,6 +18,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profilerext"
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmattach"
 	"github.com/yandex/perforator/perforator/internal/logfield"
+	"github.com/yandex/perforator/perforator/internal/symbolpool"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/pidfd"
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
@@ -45,6 +46,7 @@ type Registry struct {
 	logger        xlog.Logger
 	mu            sync.RWMutex
 	procs         map[linux.CurrentNamespacePID]*trackedProcess
+	syms          *symbolpool.Pool
 	jvmDialer     *jvmattach.Dialer
 	enableJVM     bool
 	started       atomic.Bool
@@ -65,6 +67,7 @@ func NewRegistry(logger log.Logger, mReg metrics.Registry, enableJVM bool) *Regi
 	reg := &Registry{
 		logger: xlog.New(logger.WithName("perfmap")),
 		procs:  make(map[linux.CurrentNamespacePID]*trackedProcess),
+		syms:   symbolpool.New(),
 		jvmDialer: &jvmattach.Dialer{
 			Logger: xlog.New(logger.WithName("perfmap.jvmattach")),
 		},
@@ -346,18 +349,14 @@ func (r *Registry) findProcess(pid linux.CurrentNamespacePID) *trackedProcess {
 }
 
 func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizaterOutput, bool) {
-	tp := r.findProcess(pid)
-	if tp == nil || tp.state.Load() != int32(processStateInitialized) {
-		return profilerext.JITSymbolizaterOutput{}, false
+	name, ok := r.syms.Resolve(pid, ip)
+	if ok {
+		return profilerext.JITSymbolizaterOutput{
+			SymbolName:  name,
+			MappingName: profile.JITSpecialMapping,
+		}, true
 	}
-	name, ok := tp.perfmap.find(ip)
-	if !ok {
-		return profilerext.JITSymbolizaterOutput{}, false
-	}
-	return profilerext.JITSymbolizaterOutput{
-		SymbolName:  name,
-		MappingName: profile.JITSpecialMapping,
-	}, true
+	return profilerext.JITSymbolizaterOutput{}, false
 }
 
 func trySleepContext(ctx context.Context, dur time.Duration) {
@@ -423,11 +422,14 @@ func (r *Registry) runRefresher(ctx context.Context) {
 				r.dumpJVMPerfMap(ctx, tp)
 			}
 			r.logger.Debug(ctx, "Starting perf map parser", logfield.CurrentNamespacePID(tp.pid))
-			stats, err := tp.perfmap.refresh()
+			newSyms, stats, err := tp.perfmap.refresh()
 			if err != nil {
 				r.logger.Info(ctx, "Failed to refresh perf map", logfield.CurrentNamespacePID(tp.pid), log.Error(err))
 				errors++
 				continue
+			}
+			if newSyms != nil {
+				r.syms.Put(tp.pid, newSyms)
 			}
 			if !stats.skipped {
 				modified++
