@@ -384,7 +384,7 @@ export class FlamegraphOffseter {
 
         const row = this.rows[h];
 
-        if (!this.framesWindow[h]) {
+        if (!this.framesWindow?.[h]) {
             return null;
         }
         const [leftIndex, rightIndex] = this.framesWindow[h];
