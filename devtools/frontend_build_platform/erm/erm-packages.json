@@ -265,13 +265,23 @@
   "@yandex-tsg/cli": {
     "description": "Универсальный генератор проектов для фронтенд-разработки в крупных корпоративных средах",
     "type": "NPM_PACKAGE",
-    "default": "0.0.8",
+    "default": "0.0.9",
     "links": {
       "Sources": "https://a.yandex-team.ru/arcadia/devtools/frontend_build_platform/tsg/",
       "Docs": "https://docs.yandex-team.ru/tsg/"
     },
     "specifier": ">=0.0.2",
     "versions": {
+      "0.0.9": {
+        "add_date": "2026-01-22T00:06:43",
+        "resources": [
+          {
+            "id": 10866075088,
+            "platform": "any",
+            "arch": "any"
+          }
+        ]
+      },
       "0.0.8": {
         "add_date": "2026-01-20T19:47:58",
         "resources": [
