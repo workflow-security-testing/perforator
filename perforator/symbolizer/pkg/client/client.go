@@ -28,6 +28,7 @@ import (
 	"github.com/yandex/perforator/perforator/proto/lib/pagination"
 	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
 	"github.com/yandex/perforator/perforator/proto/perforator"
+	"github.com/yandex/perforator/perforator/proto/profile"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -407,6 +408,7 @@ type MergeProfilesRequest struct {
 	ProfileFilters
 	MaxSamples   uint32
 	Format       *RenderFormat
+	MergeOptions *profile.MergeOptions
 	Experimental *perforator.MergeExperimentalOptions
 }
 
@@ -496,6 +498,7 @@ func (c *Client) MergeProfiles(
 			},
 		},
 		MaxSamples:   request.MaxSamples,
+		MergeOptions: request.MergeOptions,
 		Experimental: request.Experimental,
 	}
 

@@ -70,6 +70,8 @@ message LabelFilter {
 
     repeated string keys_show = 2;
     repeated string keys_hide = 3;
+    repeated string keys_show_regex = 4;
+    repeated string keys_hide_regex = 5;
 }
 
 // Defines criteria for filtering samples before they are included in the merge.

@@ -3,6 +3,8 @@
 #include "merge.h"
 #include "profile.h"
 
+#include <contrib/libs/re2/re2/re2.h>
+
 #include <library/cpp/containers/absl_flat_hash/flat_hash_map.h>
 #include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
 
@@ -229,20 +231,32 @@ private:
     }
 
     void PopulateLabelFilters() {
-        if (Options_.label_filter().keys_show().empty()
-            && Options_.label_filter().keys_hide().empty()
-        ) {
-            return;
-        }
-
-        for (TLabel label : Profile_.Labels()) {
-            for (TStringBuf show : Options_.label_filter().keys_show()) {
+        for (TStringBuf show : Options_.label_filter().keys_show()) {
+            for (TLabel label : Profile_.Labels()) {
                 if (label.GetKey().View() == show) {
                     PreservedLabelKeys_.insert(label.GetKey().GetIndex());
                 }
             }
-            for (TStringBuf hide : Options_.label_filter().keys_hide()) {
+        }
+        for (TStringBuf hide : Options_.label_filter().keys_hide()) {
+            for (TLabel label : Profile_.Labels()) {
                 if (label.GetKey().View() == hide) {
+                    DroppedLabelKeys_.insert(label.GetKey().GetIndex());
+                }
+            }
+        }
+        for (TStringBuf showRegex : Options_.label_filter().keys_show_regex()) {
+            re2::RE2 regex{showRegex};
+            for (TLabel label : Profile_.Labels()) {
+                if (regex.PartialMatch(label.GetKey().View(), regex)) {
+                    PreservedLabelKeys_.insert(label.GetKey().GetIndex());
+                }
+            }
+        }
+        for (TStringBuf hideRegex : Options_.label_filter().keys_hide_regex()) {
+            re2::RE2 regex{hideRegex};
+            for (TLabel label : Profile_.Labels()) {
+                if (regex.PartialMatch(label.GetKey().View(), regex)) {
                     DroppedLabelKeys_.insert(label.GetKey().GetIndex());
                 }
             }

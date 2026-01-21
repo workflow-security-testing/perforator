@@ -232,20 +232,20 @@ func fillMergeOptions(
 		return proto.GetExtension(label.Descriptor().Values().ByNumber(protoreflect.EnumNumber(label)).Options(), profileproto.E_LabelKey).(string)
 	}
 
-	opts.LabelFilter.KeysShow = []string{
+	opts.LabelFilter.KeysShow = append(opts.LabelFilter.KeysShow, []string{
 		getLabelKey(profileproto.WellKnownLabel_ProcessCommand),
 		getLabelKey(profileproto.WellKnownLabel_ThreadCommand),
 		getLabelKey(profileproto.WellKnownLabel_Workload),
-	}
+	}...)
 
-	opts.ValueTypeFilter.Allowlist = []string{targetEventType}
+	opts.ValueTypeFilter.Allowlist = append(opts.ValueTypeFilter.Allowlist, []string{targetEventType}...)
 
 	err := samplefilter.FillProtoSampleFilter(selector, opts.SampleFilter)
 	if err != nil {
 		return nil, err
 	}
 
-	if samplePeriod != 0 {
+	if samplePeriod != 0 && opts.SamplePeriod == nil {
 		opts.SamplePeriod = ptr.Uint64(samplePeriod)
 	}
 

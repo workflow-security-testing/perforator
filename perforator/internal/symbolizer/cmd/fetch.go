@@ -22,6 +22,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xpflag"
 	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
 	proto "github.com/yandex/perforator/perforator/proto/perforator"
+	"github.com/yandex/perforator/perforator/proto/profile"
 	"github.com/yandex/perforator/perforator/symbolizer/pkg/client"
 )
 
@@ -32,6 +33,7 @@ var (
 	sampleProfileStacks bool
 	maxSamples          uint32
 	profileID           string
+	mergeOptions        profile.MergeOptions
 	experimentalOptions proto.MergeExperimentalOptions
 
 	format                                      string
@@ -189,6 +191,7 @@ func mergeProfiles(
 	filters client.ProfileFilters,
 	maxSamples uint32,
 	format *client.RenderFormat,
+	options *profile.MergeOptions,
 	experimental *proto.MergeExperimentalOptions,
 ) ([]byte, error) {
 	profile, metas, err := proxyClient.MergeProfiles(
@@ -197,6 +200,7 @@ func mergeProfiles(
 			ProfileFilters: filters,
 			MaxSamples:     maxSamples,
 			Format:         format,
+			MergeOptions:   options,
 			Experimental:   experimental,
 		},
 		false,
@@ -276,6 +280,7 @@ func fetchProfile() error {
 			},
 			maxSamples,
 			format,
+			&mergeOptions,
 			&experimentalOptions,
 		)
 		if err != nil {
@@ -581,6 +586,10 @@ func addCommonSelectorOptions(cmd *cobra.Command) {
 	cmd.Flags().Var(xpflag.NewFunc(func(value string) error {
 		return json.Unmarshal([]byte(value), &experimentalOptions)
 	}), "experimental", "JSON-formatted profile merge experimental options")
+
+	cmd.Flags().Var(xpflag.NewFunc(func(value string) error {
+		return json.Unmarshal([]byte(value), &mergeOptions)
+	}), "options", "JSON-formatted profile merge additional options")
 }
 
 func addCommonRenderOptions(cmd *cobra.Command) {
