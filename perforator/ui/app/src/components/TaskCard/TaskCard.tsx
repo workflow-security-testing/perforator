@@ -96,9 +96,9 @@ export const TaskCard: React.FC<TaskCardProps> = props => {
                     : null
             ),
         ],
-        ['Sample count', spec?.MaxSamples],
-        ['Baseline sample count', diffSpec?.BaselineQuery?.MaxSamples],
-        ['Diff sample count', diffSpec?.DiffQuery?.MaxSamples],
+        ['Profile count', spec?.MaxSamples],
+        ['Baseline profile count', diffSpec?.BaselineQuery?.MaxSamples],
+        ['Diff profile count', diffSpec?.DiffQuery?.MaxSamples],
         ['Trace', renderTraceLink()],
         ['Flamegraph format', format === 'Flamegraph' ? 'HTML' : undefined],
         ['Executor', getExecutor({ attempts: status?.Attempts })],
