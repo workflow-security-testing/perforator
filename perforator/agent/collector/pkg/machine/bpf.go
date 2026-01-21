@@ -72,6 +72,7 @@ type BPF struct {
 	maxSizeBytes metrics.IntGauge
 	metrics      metrics.Registry
 
+	collspec        *ebpf.CollectionSpec
 	mapreplacements map[string]*ebpf.Map
 	state           programstate.State
 	// some maps that we need in runtime
@@ -138,12 +139,18 @@ func (b *BPF) initialize() (err error) {
 	}
 	b.log.Debug("Successfully removed mlock limit")
 
-	err = b.setupMaps(b.currentProgramRequirements())
+	spec, err := b.loadCollectionSpec(b.currentProgramRequirements())
+	if err != nil {
+		return fmt.Errorf("failed to load maps and programs: %w", err)
+	}
+	b.collspec = spec
+
+	err = b.configureAndSetupMaps()
 	if err != nil {
 		return fmt.Errorf("failed to setup maps: %w", err)
 	}
 
-	err = b.setupProgramsUnsafe(b.currentProgramRequirements())
+	err = b.setupProgramsUnsafe()
 	if err != nil {
 		return fmt.Errorf("failed to setup programs: %w", err)
 	}
@@ -253,16 +260,21 @@ func (b *BPF) loadCollectionSpec(reqs unwinder.ProgramRequirements) (*ebpf.Colle
 	return spec, nil
 }
 
-func (b *BPF) setupMaps(reqs unwinder.ProgramRequirements) (err error) {
-	spec, err := b.loadCollectionSpec(reqs)
+func (b *BPF) configureAndSetupMaps() (err error) {
+	b.log.Debug("Applying runtime customizations")
+	unwindTableMapSpec, ok := b.collspec.Maps["unwind_table"]
+	if !ok {
+		return fmt.Errorf("missing unwind_table map")
+	}
+	utSpec, err := b.prepareUnwindTableSpec(unwindTableMapSpec)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to prepare unwind table spec: %w", err)
 	}
 
 	b.log.Debug("Loading eBPF maps into the kernel")
 
 	maps := &unwinder.Maps{}
-	err = spec.LoadAndAssign(maps, nil)
+	err = b.collspec.LoadAndAssign(maps, nil)
 	if err != nil {
 		return fmt.Errorf("failed to assign maps: %w", err)
 	}
@@ -273,15 +285,6 @@ func (b *BPF) setupMaps(reqs unwinder.ProgramRequirements) (err error) {
 		b.mapreplacements[name] = m
 		return nil
 	})
-
-	unwindTableMapSpec, ok := spec.Maps["unwind_table"]
-	if !ok {
-		return fmt.Errorf("missing unwind_table map")
-	}
-	utSpec, err := b.prepareUnwindTableSpec(unwindTableMapSpec)
-	if err != nil {
-		return fmt.Errorf("failed to prepare unwind table spec: %w", err)
-	}
 
 	b.state = *programstate.New(maps, &utSpec)
 	b.samplesMap = maps.Samples
@@ -299,7 +302,7 @@ func (b *BPF) setupMaps(reqs unwinder.ProgramRequirements) (err error) {
 // setupProgramsUnsafe requires b.progsmu to be locked.
 // Close any existing programs and load the new programs, probably with different build flags.
 // This routine can be used for online program debugging without restarts.
-func (b *BPF) setupProgramsUnsafe(reqs unwinder.ProgramRequirements) (err error) {
+func (b *BPF) setupProgramsUnsafe() (err error) {
 	if b.progs != nil {
 		err = b.progs.Close()
 		if err != nil {
@@ -313,15 +316,10 @@ func (b *BPF) setupProgramsUnsafe(reqs unwinder.ProgramRequirements) (err error)
 		return fmt.Errorf("failed to close links: %w", err)
 	}
 
-	spec, err := b.loadCollectionSpec(reqs)
-	if err != nil {
-		return err
-	}
-
 	// The main interaction with the kernel happens here.
 	b.log.Debug("Loading eBPF programs into the kernel")
 	b.progs = &unwinder.Progs{}
-	if err := spec.LoadAndAssign(b.progs, &ebpf.CollectionOptions{
+	if err := b.collspec.LoadAndAssign(b.progs, &ebpf.CollectionOptions{
 		Programs: ebpf.ProgramOptions{
 			LogSizeStart: verifierLogSizeStart,
 		},
@@ -377,7 +375,7 @@ func (b *BPF) ReloadProgram(debug bool) error {
 	}
 	b.progdebug = debug
 
-	err := b.setupProgramsUnsafe(b.currentProgramRequirements())
+	err := b.setupProgramsUnsafe()
 	if err != nil {
 		return fmt.Errorf("failed to reload program: %w", err)
 	}
