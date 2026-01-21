@@ -58,6 +58,13 @@ enum metric : u32 {
     METRIC_DWARF_ERROR_MAPPING_NOBINARYID_COUNT,
     METRIC_DWRAF_ERROR_MAPPING_NOBINARYROOT_COUNT,
     METRIC_DWARF_ERROR_MAPPING_UNWINDTABLELOOKUP_COUNT,
+    // --- per-process dwarf metrics ---
+    // we found rule in per-process unwind table
+    METRIC_DWARF_SUCCESFUL_PER_PROCESS_RULE_LOOKUP_COUNT,
+    // process has per-process unwind table, but we did not find rule in there
+    // (and also in a per-mapping unwind table)
+    METRIC_DWARF_ERROR_PER_PROCESS_RULE_LOOKUP_COUNT,
+
     METRIC_FP_ERROR_READ_RETURNADDRESS_COUNT,
     METRIC_FP_ERROR_READ_BASEPOINTER_COUNT,
     METRIC_UPROBE_TRIGGERED_COUNT,

@@ -196,12 +196,22 @@ func (s *State) RemoveMapping(key *unwinder.ExecutableMappingKey) error {
 	return s.maps.ExecutableMappings.Delete(key)
 }
 
-func (s *State) PutBinaryUnwindTable(id unwinder.BinaryId, root unwinder.PageId) error {
-	return s.maps.UnwindRoots.Update(&id, &root, ebpf.UpdateNoExist)
+func (s *State) AddBinaryUnwindTable(id unwinder.BinaryId, root unwinder.PageId) error {
+	return s.maps.BinaryUnwindRoots.Update(&id, &root, ebpf.UpdateNoExist)
 }
 
 func (s *State) DeleteBinaryUnwindTable(id unwinder.BinaryId) error {
-	return s.maps.UnwindRoots.Delete(&id)
+	return s.maps.BinaryUnwindRoots.Delete(&id)
+}
+
+func (s *State) PutProcessUnwindTable(pid linux.CurrentNamespacePID, root unwinder.PageId) error {
+	// unlike binary, process unwind table may evolve over time
+	// and hence needs to be updated
+	return s.maps.ProcessUnwindRoots.Update(&pid, &root, ebpf.UpdateAny)
+}
+
+func (s *State) DeleteProcessUnwindTable(pid linux.CurrentNamespacePID) error {
+	return s.maps.ProcessUnwindRoots.Delete(&pid)
 }
 
 func (s *State) GetMetric(metric unwinder.Metric, val []uint64) error {

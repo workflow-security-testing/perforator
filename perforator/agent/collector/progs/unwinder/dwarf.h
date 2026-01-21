@@ -91,7 +91,12 @@ struct {
     BPF_MAP_DEF_ARRAY(values, struct unwind_table_part);
 } unwind_table SEC(BPF_SEC_BTF_MAPS);
 
-BPF_MAP(unwind_roots, BPF_MAP_TYPE_HASH, binary_id, page_id, MAX_BINARIES);
+enum {
+    MAX_PER_PROCESS_UNWIND_TABLES = 1000,
+};
+
+BPF_MAP(binary_unwind_roots, BPF_MAP_TYPE_HASH, binary_id, page_id, MAX_BINARIES);
+BPF_MAP(process_unwind_roots, BPF_MAP_TYPE_HASH, u32, page_id, MAX_PER_PROCESS_UNWIND_TABLES);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -440,13 +445,24 @@ static NOINLINE struct executable_mapping* dwarf_unwind_locate_executable(u32 pi
 ////////////////////////////////////////////////////////////////////////////////
 
 ALWAYS_INLINE u32 dwarf_unwind_get_executable_root(binary_id bid) {
-    u32* page = bpf_map_lookup_elem(&unwind_roots, &bid);
+    u32* page = bpf_map_lookup_elem(&binary_unwind_roots, &bid);
     if (page == NULL) {
         DWARF_TRACE("failed to lookup mapping %llu root\n", bid);
         return -1;
     }
 
     DWARF_TRACE("found mapping %llu root %d\n", bid, *page);
+    return *page;
+}
+
+ALWAYS_INLINE u32 dwarf_unwind_get_process_root(u32 pid) {
+    u32* page = bpf_map_lookup_elem(&process_unwind_roots, &pid);
+    if (page == NULL) {
+        DWARF_TRACE("failed to lookup process %d root\n", pid);
+        return -1;
+    }
+
+    DWARF_TRACE("found process %d root %d\n", pid, *page);
     return *page;
 }
 
@@ -463,6 +479,16 @@ static NOINLINE bool dwarf_unwind_locate_rule(
 
     struct executable_mapping* mapping = dwarf_unwind_locate_executable(ctx->pid, rip);
     if (!mapping) {
+        u32 process_root = dwarf_unwind_get_process_root(ctx->pid);
+        if (process_root != (u32)-1) {
+            bool ok = unwind_table_lookup_fast(process_root, rip, rule);
+            if (ok) {
+                DWARF_TRACE("found per-process unwind rule for rip %llx\n", rip);
+                return true;
+            }
+            DWARF_TRACE("per-process unwind table also lacks rip %llx\n", rip);
+            metric_increment(METRIC_DWARF_ERROR_PER_PROCESS_RULE_LOOKUP_COUNT);
+        }
         metric_increment(METRIC_DWARF_ERROR_MAPPING_LOCATE_COUNT);
         DWARF_TRACE("no mapping found for rip %llx\n", rip);
         return false;

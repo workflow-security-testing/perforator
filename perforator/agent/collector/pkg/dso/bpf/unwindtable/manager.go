@@ -267,7 +267,7 @@ func (m *BPFManager) putRoot(id uint64, root PageID) error {
 	if m.state == nil {
 		return nil
 	}
-	return m.state.PutBinaryUnwindTable(unwinder.BinaryId(id), root)
+	return m.state.AddBinaryUnwindTable(unwinder.BinaryId(id), root)
 }
 
 func (m *BPFManager) delRoot(id uint64) error {
