@@ -342,7 +342,7 @@ func (d *Registry) populateDSO(ctx context.Context, dso *DSO, f *os.File) {
 		dso.BinaryClass = PthreadGlibcBinaryClass
 	}
 
-	dso.bpfAllocation, err = d.bpfBinaryManager.Add(buildID, dso.ID, analysis)
+	dso.bpfAllocation, err = d.bpfBinaryManager.Add(ctx, buildID, dso.ID, analysis)
 	if err != nil {
 		d.l.Error(
 			ctx,

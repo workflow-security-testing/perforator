@@ -445,7 +445,11 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 		p.jitSymbolizers = append(p.jitSymbolizers, p.perfmap)
 	}
 
-	bpfManager, err := binary.NewBPFBinaryManager(p.log.WithName("ProcessRegistry"), r.WithPrefix("ProcessRegistry"), p.bpf.State())
+	bpfManager, err := binary.NewBPFBinaryManager(
+		p.log.WithName("ProcessRegistry"),
+		r.WithPrefix("ProcessRegistry"),
+		p.bpf.State(),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to create bpf binary manager: %w", err)
 	}

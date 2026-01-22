@@ -1,6 +1,7 @@
 package binary
 
 import (
+	"context"
 	"sync"
 
 	"github.com/yandex/perforator/library/go/core/log"
@@ -29,12 +30,18 @@ type Allocation struct {
 }
 
 type BPFBinaryManager struct {
-	l      log.Logger
-	state  *programstate.State
-	tables *unwindtable.BPFManager
+	l         log.Logger
+	state     *programstate.State
+	tables    *unwindtable.BPFManager
+	listeners []Listener
 }
 
-func NewBPFBinaryManager(l log.Logger, r metrics.Registry, state *programstate.State) (*BPFBinaryManager, error) {
+func NewBPFBinaryManager(
+	l log.Logger,
+	r metrics.Registry,
+	state *programstate.State,
+	opts ...ManagerOption,
+) (*BPFBinaryManager, error) {
 	l = l.WithName("BinaryManager")
 
 	unwmanager, err := unwindtable.NewBPFManager(l, r, state)
@@ -42,14 +49,20 @@ func NewBPFBinaryManager(l log.Logger, r metrics.Registry, state *programstate.S
 		return nil, err
 	}
 
-	return &BPFBinaryManager{
+	m := &BPFBinaryManager{
 		l:      l,
 		state:  state,
 		tables: unwmanager,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		opt(m)
+	}
+
+	return m, nil
 }
 
-func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.BinaryAnalysis) (alloc *Allocation, err error) {
+func (m *BPFBinaryManager) Add(ctx context.Context, buildID string, id uint64, analysis *parse.BinaryAnalysis) (alloc *Allocation, err error) {
 	unwAlloc, err := m.tables.Add(buildID, id, analysis.UnwindTable)
 	if err != nil {
 		return nil, err
@@ -61,6 +74,9 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 	}()
 
 	binId := unwinder.BinaryId(id)
+
+	// TODO: all language-specific code below can be extracted into dedicated
+	// `binary.Listener`s.
 
 	if analysis.TLSConfig != nil {
 		err = m.state.AddTLSConfig(binId, convertToUnwindTLSConfig(analysis.TLSConfig))
@@ -104,6 +120,10 @@ func (m *BPFBinaryManager) Add(buildID string, id uint64, analysis *parse.Binary
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	for _, l := range m.listeners {
+		l.OnBinaryDiscovery(ctx, id, buildID, analysis)
 	}
 
 	alloc = &Allocation{

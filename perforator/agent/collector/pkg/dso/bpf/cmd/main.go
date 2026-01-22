@@ -32,7 +32,7 @@ func run(ctx context.Context, l xlog.Logger) error {
 		binaryParserOptions.PreferredUnwindInfoSource = parse.UnwindInfoSource_Sframe
 	}
 
-	m, err := binary.NewBPFBinaryManager(l.Logger(), r, nil)
+	m, err := binary.NewBPFBinaryManager(l.Logger(), r, nil /* state */)
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func run(ctx context.Context, l xlog.Logger) error {
 		return err
 	}
 
-	a, err := m.Add("nobuildid", 0, analysis)
+	a, err := m.Add(ctx, "nobuildid", 0, analysis)
 	if err != nil {
 		return err
 	}
