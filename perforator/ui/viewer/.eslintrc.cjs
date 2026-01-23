@@ -15,6 +15,7 @@ module.exports = {
             {allowConstantExport: true},
         ],
         "no-unused-vars": "off",
+        'eol-last': 'error',
         "@typescript-eslint/no-unused-vars": ["error"]
     },
     root: true

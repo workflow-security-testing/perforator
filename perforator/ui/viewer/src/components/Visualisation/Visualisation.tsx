@@ -1,8 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import type { Coordinate, FlamegraphProps, QueryKeys } from '@perforator/flamegraph';
+import type { Coordinate, FlamegraphProps, QueryKeys, UserSettings } from '@perforator/flamegraph';
 import { calculateTopForTable, Flamegraph, prerenderColors, SideBySide, TopTable, createLeftHeavy, inverseLeftHeavy } from '@perforator/flamegraph';
 
 import { Loader, useThemeType } from '@gravity-ui/uikit';
@@ -10,6 +10,7 @@ import { Tabs } from '@gravity-ui/uikit/legacy';
 import { createSuccessToast } from '../../utils/toaster';
 
 import { parseStacks, stringifyStacks, useTypedQuery } from '../../query-utils';
+import { SettingsPopup } from '../SettingsPopup/SettingsPopup';
 
 import './Visualisation.css';
 import { cn } from '../../utils/cn';
@@ -100,13 +101,22 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             : null;
     }, [profileData, isFirstTopRender]);
 
-    const userSettings  = {
+    const [userSettings, setUserSettings] = useState<UserSettings>(localStorage.getItem('userSettings') ? JSON.parse(localStorage.getItem('userSettings')!) : {
         monospace: 'default',
         numTemplating: 'exponent',
         reverseFlameByDefault: true,
         shortenFrameTexts: 'false',
         theme: 'system'
-    } as const;
+    });
+
+    const handleUserSettings = React.useCallback((settings: UserSettings) => {
+        setUserSettings(settings);
+        try {
+            localStorage.setItem('userSettings', JSON.stringify(settings));
+        } catch (e) {
+            console.error(e);
+        }
+    }, []);
 
     const flamegraphProps: FlamegraphProps = {
         goToDefinitionHref: () => '',
@@ -150,18 +160,21 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
 
     return (
         <div className={b({sbs: tab === 'sbs'})}>
-            <Tabs
-                className={'vis_tabs'}
-                activeTab={tab}
-                items={[
-                    { id: 'flame', title: 'Flamegraph' },
-                    { id: 'top', title: 'Top' },
-                    { id: 'sbs', title: 'Side by side' }
-                ]}
-                onSelectTab={(newTab) => {
-                    setQuery({ tab: newTab });
-                }}
-            />
+            <div className={b('header')}>
+                <Tabs
+                    className={'vis_tabs'}
+                    activeTab={tab}
+                    items={[
+                        { id: 'flame', title: 'Flamegraph' },
+                        { id: 'top', title: 'Top' },
+                        { id: 'sbs', title: 'Side by side' }
+                    ]}
+                    onSelectTab={(newTab) => {
+                        setQuery({ tab: newTab });
+                    }}
+                />
+                <SettingsPopup settings={userSettings} onSettingsChange={handleUserSettings} />
+            </div>
             {content}
         </div>
     );

@@ -1,0 +1,17 @@
+.settings-popup {
+    padding: var(--g-spacing-4);
+    min-width: 300px;
+}
+
+.settings-popup__section {
+    margin-bottom: var(--g-spacing-4);
+}
+
+.settings-popup__section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-popup__label {
+    display: block;
+    margin-bottom: var(--g-spacing-2);
+}

@@ -7,3 +7,6 @@ export * from './components';
 export * from './file-path';
 export * from './top';
 export * from './left-heavy';
+export * from './models/UserSettings';
+export * from './models/goto';
+export * from './models/Profile';
