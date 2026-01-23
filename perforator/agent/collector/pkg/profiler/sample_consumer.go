@@ -28,6 +28,12 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/tls"
 )
 
+const (
+	InnermostPidnsTidLabel = "innermost_pidns_tid"
+	InnermostPidnsPidLabel = "innermost_pidns_pid"
+	AbsoluteTimestampLabel = "absolute_timestamp"
+)
+
 type SampleConsumerFeatures struct {
 	EnableSampleTimeCollection     bool
 	EnableInnermostPidnsCollection bool
@@ -523,7 +529,7 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 func (c *oneShotSampleConsumer) collectSampleTime(builder *profile.SampleBuilder) {
 	bootTime, err := btime.GetBootTime()
 	if err == nil {
-		builder.AddIntLabel("absolute_timestamp", bootTime.UnixNano()+int64(c.sample.CollectionTime), "ns")
+		builder.AddIntLabel(AbsoluteTimestampLabel, bootTime.UnixNano()+int64(c.sample.CollectionTime), "ns")
 	} else {
 		panic(fmt.Sprintf("failed to get system boot time: %v", err))
 	}
@@ -582,8 +588,8 @@ func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []pro
 		AddStringLabel("cgroup", c.p.cgroups.CgroupFullName(c.sample.ParentCgroup))
 
 	if c.features.EnableInnermostPidnsCollection {
-		builder.AddIntLabel("innermost_pidns_tid", int64(c.sample.InnermostPidnsTid), "id")
-		builder.AddIntLabel("innermost_pidns_pid", int64(c.sample.InnermostPidnsPid), "id")
+		builder.AddIntLabel(InnermostPidnsTidLabel, int64(c.sample.InnermostPidnsTid), "id")
+		builder.AddIntLabel(InnermostPidnsPidLabel, int64(c.sample.InnermostPidnsPid), "id")
 	}
 
 	c.collectWorkloadInto(builder)

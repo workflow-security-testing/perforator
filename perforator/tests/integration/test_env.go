@@ -627,6 +627,7 @@ func (s *IntegrationTestEnv) setupProxyServer(ctx context.Context) error {
 		URLPrefix: fmt.Sprintf("http://%s:%s/%s/", host, port.Port(), s.S3Buckets.TaskResultsBucket),
 		S3Bucket:  s.S3Buckets.TaskResultsBucket,
 	}
+	conf.FeaturesConfig.EnableNewProfileMerger = ptr.Bool(true)
 	conf.FillDefault()
 
 	s.ProxyServer, err = proxyserver.NewPerforatorServer(conf, s.l, xmetrics.NewRegistry())
