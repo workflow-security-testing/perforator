@@ -1,14 +1,14 @@
 package prototext
 
 import (
-	"io/ioutil"
+	"os"
 
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func ParseFile(path string, conf protoreflect.ProtoMessage) error {
-	body, err := ioutil.ReadFile(path)
+	body, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}
