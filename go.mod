@@ -972,6 +972,7 @@ require (
 	go.uber.org/zap v1.27.0
 	go.uber.org/zap/exp v0.3.0
 	go.withmatt.com/connect-brotli v0.4.0
+	go.yaml.in/yaml/v3 v3.0.4
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
 	golang.org/x/crypto v0.42.0
@@ -2304,7 +2305,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	go4.org/intern v0.0.0-20220617035311-6925f38cc365 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	gocloud.dev v0.19.0 // indirect
