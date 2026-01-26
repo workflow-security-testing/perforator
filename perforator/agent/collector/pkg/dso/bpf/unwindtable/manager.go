@@ -12,6 +12,7 @@ import (
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine/programstate"
 	"github.com/yandex/perforator/perforator/agent/preprocessing/proto/unwind"
 	"github.com/yandex/perforator/perforator/internal/unwinder"
+	"github.com/yandex/perforator/perforator/pkg/linux"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -29,10 +30,8 @@ type Allocation struct {
 	// Index of the allocation in the cache.
 	// Allows to remove engaged items from the cache efficiently.
 	cacheid int
-	// Index of the binary.
-	id uint64
 
-	BuildID   string
+	id        AllocationID
 	RowCount  int
 	NodeCount int
 	Pages     []PageID
@@ -147,8 +146,27 @@ func (m *BPFManager) init() error {
 	return nil
 }
 
-func (m *BPFManager) Add(buildID string, id uint64, table *unwind.UnwindTable) (a *Allocation, err error) {
-	l := log.With(m.l, log.String("buildid", buildID))
+type BinaryAllocationID struct {
+	BuildID  string
+	BinaryID unwinder.BinaryId
+}
+
+// AllocationID is unique allocation identifier.
+// It has oneof semantics: exactly one field must be non-zero in a valid AllocationKey.
+type AllocationID struct {
+	Binary *BinaryAllocationID
+	PID    linux.CurrentNamespacePID
+}
+
+func (k *AllocationID) String() string {
+	if k.Binary != nil {
+		return fmt.Sprint("binary:", k.Binary.BuildID)
+	}
+	return fmt.Sprint("process:", k.PID)
+}
+
+func (m *BPFManager) Add(id AllocationID, table *unwind.UnwindTable) (a *Allocation, err error) {
+	l := log.With(m.l, log.Stringer("id", &id))
 	defer func() {
 		if err != nil {
 			m.metrics.tablesfailed.Inc()
@@ -158,7 +176,6 @@ func (m *BPFManager) Add(buildID string, id uint64, table *unwind.UnwindTable) (
 		} else {
 			m.metrics.tablesbuilt.Inc()
 			l.Debug("Allocated unwind table",
-				log.UInt64("id", a.id),
 				log.Int("npages", len(a.Pages)),
 				log.Int("nrows", a.RowCount),
 				log.Int("nnodes", a.NodeCount),
@@ -168,12 +185,11 @@ func (m *BPFManager) Add(buildID string, id uint64, table *unwind.UnwindTable) (
 
 	res, err := m.registerTable(id, table)
 	if err != nil {
-		return nil, fmt.Errorf("failed to register unwind table for binary buildID=%s: %w", buildID, err)
+		return nil, fmt.Errorf("failed to register unwind table for allocation %s: %w", &id, err)
 	}
 	a = &Allocation{
 		state:     AllocationStateEngaged,
 		id:        id,
-		BuildID:   buildID,
 		RowCount:  len(table.GetStartPc()),
 		NodeCount: res.nodes,
 		Pages:     res.pages,
@@ -202,8 +218,7 @@ func (m *BPFManager) release(a *Allocation) {
 	}
 
 	l := log.With(m.l,
-		log.String("buildid", a.BuildID),
-		log.UInt64("id", a.id),
+		log.Stringer("id", &a.id),
 		log.Int("npages", len(a.Pages)),
 	)
 
@@ -237,7 +252,7 @@ type registeredTable struct {
 	nodes int
 }
 
-func (m *BPFManager) registerTable(id uint64, table *unwind.UnwindTable) (res *registeredTable, err error) {
+func (m *BPFManager) registerTable(id AllocationID, table *unwind.UnwindTable) (res *registeredTable, err error) {
 	b := pageTableBuilder{
 		m:     m,
 		id:    id,
@@ -263,23 +278,31 @@ func (m *BPFManager) putPage(id PageID, page *unwinder.UnwindTablePage) error {
 	return nil
 }
 
-func (m *BPFManager) putRoot(id uint64, root PageID) error {
+func (m *BPFManager) putRoot(id AllocationID, root PageID) error {
 	if m.state == nil {
 		return nil
 	}
-	return m.state.AddBinaryUnwindTable(unwinder.BinaryId(id), root)
+	if id.Binary != nil {
+		return m.state.AddBinaryUnwindTable(unwinder.BinaryId(id.Binary.BinaryID), root)
+	} else {
+		return m.state.PutProcessUnwindTable(id.PID, root)
+	}
 }
 
-func (m *BPFManager) delRoot(id uint64) error {
+func (m *BPFManager) delRoot(id AllocationID) error {
 	if m.state == nil {
 		return nil
 	}
-	return m.state.DeleteBinaryUnwindTable(unwinder.BinaryId(id))
+	if id.Binary != nil {
+		return m.state.DeleteBinaryUnwindTable(unwinder.BinaryId(id.Binary.BinaryID))
+	} else {
+		return m.state.DeleteProcessUnwindTable(id.PID)
+	}
 }
 
 type pageTableBuilder struct {
 	m     *BPFManager
-	id    uint64
+	id    AllocationID
 	table *unwind.UnwindTable
 	pages []PageID
 
@@ -632,7 +655,7 @@ func (m *BPFManager) MoveFromCache(a *Allocation) bool {
 
 	case AllocationStateCached:
 		m.l.Debug("Moving allocation from cache",
-			log.String("buildid", a.BuildID),
+			log.Stringer("id", &a.id),
 			log.Int32("allocstate", a.state),
 			log.Int("cacheid", a.cacheid),
 		)
@@ -653,7 +676,7 @@ func (m *BPFManager) MoveToCache(a *Allocation) bool {
 	switch a.state {
 	case AllocationStateEngaged:
 		m.l.Debug("Moving allocation to cache",
-			log.String("buildid", a.BuildID),
+			log.Stringer("id", &a.id),
 			log.Int32("allocstate", a.state),
 		)
 
@@ -690,7 +713,7 @@ func (m *BPFManager) evict(a *Allocation) bool {
 	switch a.state {
 	case AllocationStateCached:
 		m.l.Debug("Evicting allocation from cache",
-			log.String("buildid", a.BuildID),
+			log.Stringer("id", &a.id),
 			log.Int32("allocstate", a.state),
 			log.Int("npages", len(a.Pages)),
 		)

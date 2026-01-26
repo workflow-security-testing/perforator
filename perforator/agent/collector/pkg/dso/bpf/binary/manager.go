@@ -63,7 +63,13 @@ func NewBPFBinaryManager(
 }
 
 func (m *BPFBinaryManager) Add(ctx context.Context, buildID string, id uint64, analysis *parse.BinaryAnalysis) (alloc *Allocation, err error) {
-	unwAlloc, err := m.tables.Add(buildID, id, analysis.UnwindTable)
+	allocID := unwindtable.AllocationID{
+		Binary: &unwindtable.BinaryAllocationID{
+			BuildID:  buildID,
+			BinaryID: unwinder.BinaryId(id),
+		},
+	}
+	unwAlloc, err := m.tables.Add(allocID, analysis.UnwindTable)
 	if err != nil {
 		return nil, err
 	}
