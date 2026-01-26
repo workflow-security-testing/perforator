@@ -615,6 +615,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.1-0.20220423185008-bf980b35cac4
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/mkrautz/goar v0.0.0-20150919110319-282caa8bd9da
+	github.com/modelcontextprotocol/go-sdk v1.2.0
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee
 	github.com/montanaflynn/stats v0.7.1
 	github.com/mrknow-all/go-oae v0.0.0-20221221002406-36600e4f6b43
@@ -1619,6 +1620,7 @@ require (
 	github.com/google/go-tpm-tools v0.4.2 // indirect
 	github.com/google/go-tspi v0.3.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
+	github.com/google/jsonschema-go v0.3.0 // indirect
 	github.com/google/licenseclassifier v0.0.0-20221004142553-c1ed8fcf4bab // indirect
 	github.com/google/licenseclassifier/v2 v2.0.0 // indirect
 	github.com/google/martian v2.1.1-0.20190517191504-25dcb96d9e51+incompatible // indirect
