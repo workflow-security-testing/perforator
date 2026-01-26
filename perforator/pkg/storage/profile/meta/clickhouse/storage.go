@@ -82,7 +82,11 @@ func (s *Storage) ListServices(
 		Columns("service", "max(timestamp) AS max_timestamp", "sum(1) AS profile_count").
 		From("profiles").
 		GroupBy("service")
-	builder = makeOrderBy(&query.SortOrder, builder)
+	var err error
+	builder, err = makeOrderBy(&query.SortOrder, builder)
+	if err != nil {
+		return nil, err
+	}
 
 	if query.Limit != 0 {
 		builder = builder.Limit(query.Limit)

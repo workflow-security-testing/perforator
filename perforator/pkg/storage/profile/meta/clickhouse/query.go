@@ -25,7 +25,8 @@ const (
 )
 
 var (
-	AllColumns string = ""
+	AllColumns    string = ""
+	allColumnsMap map[string]struct{}
 )
 
 func forEachCHField(row interface{}, callback func(fieldIndex int, structField reflect.StructField, fieldValue *reflect.Value) error) error {
@@ -52,7 +53,7 @@ func forEachCHField(row interface{}, callback func(fieldIndex int, structField r
 	return nil
 }
 
-func generateAllColumns(row interface{}) string {
+func generateAllColumns(row interface{}) []string {
 	var columns []string
 
 	err := forEachCHField(row, func(fieldIndex int, structField reflect.StructField, fieldValue *reflect.Value) error {
@@ -67,11 +68,16 @@ func generateAllColumns(row interface{}) string {
 		panic(fmt.Sprintf("unexpected error in generateAllColumns: %v", err))
 	}
 
-	return strings.Join(columns, ", ")
+	return columns
 }
 
 func init() {
-	AllColumns = generateAllColumns(ProfileRow{})
+	allColumns := generateAllColumns(ProfileRow{})
+	AllColumns = strings.Join(allColumns, ", ")
+	allColumnsMap = make(map[string]struct{})
+	for _, c := range allColumns {
+		allColumnsMap[c] = struct{}{}
+	}
 }
 
 var (
@@ -353,7 +359,11 @@ func makeSelectProfilesQueryBuilder(
 		if len(query.SortOrder.Columns) == 0 {
 			builder = builder.OrderBy("timestamp")
 		} else {
-			builder = makeOrderBy(&query.SortOrder, builder)
+			var err error
+			builder, err = makeOrderBy(&query.SortOrder, builder)
+			if err != nil {
+				return builder, err
+			}
 		}
 	}
 
@@ -370,15 +380,19 @@ func buildSelectProfilesQuery(query *meta.ProfileQuery) (string, []any, error) {
 	return builder.ToSql()
 }
 
-func makeOrderBy(order *util.SortOrder, builder sq.SelectBuilder) sq.SelectBuilder {
+func makeOrderBy(order *util.SortOrder, builder sq.SelectBuilder) (sq.SelectBuilder, error) {
 	for _, c := range order.Columns {
+		_, ok := allColumnsMap[c.Name]
+		if !ok && c.Name != "envValue" {
+			return builder, fmt.Errorf("invalid sort order requested: unknown column %q", c.Name)
+		}
 		if c.Descending {
 			builder = builder.OrderByClause(c.Name + " DESC")
 		} else {
 			builder = builder.OrderBy(c.Name)
 		}
 	}
-	return builder
+	return builder, nil
 }
 
 func buildInsertQuery(rows []*ProfileRow) (string, error) {
