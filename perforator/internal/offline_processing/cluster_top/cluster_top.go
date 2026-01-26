@@ -187,10 +187,11 @@ func (t *ClusterTop) selectAndProcessService(
 	clusterPerfTopAggregator ClusterPerfTopAggregator,
 	heavy bool,
 	degreeOfParallelism int,
-) bool {
+) (shouldContinueRightAway bool) {
 	serviceHandler, err := serviceSelector.SelectService(ctx, heavy)
 	if err != nil {
 		t.l.Warn(ctx, "Failed to select a service", log.Error(err))
+		// In case of select service failure - we should avoid retrying immediately in the upper layer.
 		return false
 	}
 	defer func() {
