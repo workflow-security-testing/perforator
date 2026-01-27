@@ -35,6 +35,7 @@ var (
 	profileID           string
 	mergeOptions        profile.MergeOptions
 	experimentalOptions proto.MergeExperimentalOptions
+	taskAnnotation      string
 
 	format                                      string
 	pgoFormat                                   string
@@ -193,6 +194,7 @@ func mergeProfiles(
 	format *client.RenderFormat,
 	options *profile.MergeOptions,
 	experimental *proto.MergeExperimentalOptions,
+	taskAnnotation string,
 ) ([]byte, error) {
 	profile, metas, err := proxyClient.MergeProfiles(
 		ctx,
@@ -204,6 +206,7 @@ func mergeProfiles(
 			Experimental:   experimental,
 		},
 		false,
+		taskAnnotation,
 	)
 	if err != nil {
 		return nil, err
@@ -282,6 +285,7 @@ func fetchProfile() error {
 			format,
 			&mergeOptions,
 			&experimentalOptions,
+			taskAnnotation,
 		)
 		if err != nil {
 			return err
@@ -358,7 +362,7 @@ func fetchDiffProfile(args []string) error {
 		SymbolizeOptions: format.Symbolize,
 		RenderFormat:     format,
 		Experimental:     &experimentalOptions,
-	}, false)
+	}, false, taskAnnotation)
 	if err != nil {
 		return err
 	}
@@ -425,6 +429,7 @@ func fetchPGOProfile(args []string) error {
 		selector,
 		format,
 		false,
+		taskAnnotation,
 	)
 	if err != nil {
 		return err
@@ -787,6 +792,13 @@ func setupFetchCmd() *cobra.Command {
 		"Selector (https://perforator.tech/docs/en/reference/querylang)",
 	)
 
+	fetchCmd.Flags().StringVar(
+		&taskAnnotation,
+		"task-annotation",
+		"",
+		"Arbitrary comment to annotate resulting task with",
+	)
+
 	fetchCmd.MarkFlagsMutuallyExclusive("id", "service")
 	fetchCmd.MarkFlagsMutuallyExclusive("id", "build-id")
 	fetchCmd.MarkFlagsMutuallyExclusive("id", "node-id")
@@ -794,6 +806,7 @@ func setupFetchCmd() *cobra.Command {
 	fetchCmd.MarkFlagsMutuallyExclusive("id", "cpu-model")
 	fetchCmd.MarkFlagsMutuallyExclusive("id", "selector")
 	fetchCmd.MarkFlagsMutuallyExclusive("id", "dc")
+	fetchCmd.MarkFlagsMutuallyExclusive("id", "task-annotation")
 	fetchCmd.MarkFlagsMutuallyExclusive("selector", "service")
 	fetchCmd.MarkFlagsMutuallyExclusive("selector", "build-id")
 	fetchCmd.MarkFlagsMutuallyExclusive("selector", "node-id")

@@ -57,6 +57,9 @@ func (s *PerforatorServer) StartTask(
 	if key := req.GetIdempotencyKey(); key != "" {
 		meta.IdempotencyKey = key
 	}
+	if annotation := req.GetAnnotation(); annotation != "" {
+		meta.Annotation = annotation
+	}
 	meta.Pool = s.c.Tasks.Pool
 
 	id, err := s.tasks.AddTask(ctx, meta, req.GetSpec())

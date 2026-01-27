@@ -41,6 +41,8 @@ service TaskService {
 message StartTaskRequest {
     TaskSpec Spec = 1;
     string IdempotencyKey = 2;
+    // Custom information about the task. It does not affect server behavior.
+    string Annotation = 3;
 }
 
 message StartTaskResponse {
@@ -92,6 +94,8 @@ message TaskMeta {
     string Author = 3;
     string IdempotencyKey = 4;
     string Pool = 5;
+    // The same string as passed to StartTask method.
+    string Annotation = 6;
 }
 
 message TaskSpec {

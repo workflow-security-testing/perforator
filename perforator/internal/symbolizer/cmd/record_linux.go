@@ -553,7 +553,9 @@ func uploadProfile(app *cli.App, opts *recordOptions, profile *pprof.Profile, st
 		Timestamp: timestamppb.New(startTime),
 	}
 
-	profileID, taskID, err = app.Client().UploadRenderedProfile(app.Context(), meta, opts.formatOpts, profile)
+	taskAnnotation := "merge task for a CLI-uploaded profile"
+
+	profileID, taskID, err = app.Client().UploadRenderedProfile(app.Context(), meta, opts.formatOpts, profile, taskAnnotation)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to upload profile: %w", err)
 	}

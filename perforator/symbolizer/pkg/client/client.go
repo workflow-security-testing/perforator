@@ -440,8 +440,9 @@ func (c *Client) doMergeProfiles(
 	ctx context.Context,
 	request *perforator.MergeProfilesRequest,
 	asURL bool,
+	taskAnnotation string,
 ) ([]byte, []*perforator.ProfileMeta, error) {
-	_, res, err := c.MergeProfilesProto(ctx, request)
+	_, res, err := c.MergeProfilesProto(ctx, request, taskAnnotation)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -457,10 +458,11 @@ func (c *Client) doMergeProfiles(
 func (c *Client) MergeProfilesProto(
 	ctx context.Context,
 	request *perforator.MergeProfilesRequest,
+	taskAnnotation string,
 ) (taskID string, res *perforator.MergeProfilesResponse, err error) {
 	id, result, err := c.runTask(ctx, &perforator.TaskSpec{
 		Kind: &perforator.TaskSpec_MergeProfiles{MergeProfiles: request},
-	})
+	}, taskAnnotation)
 	if err != nil {
 		return id, nil, err
 	}
@@ -477,6 +479,7 @@ func (c *Client) MergeProfiles(
 	ctx context.Context,
 	request *MergeProfilesRequest,
 	asURL bool,
+	taskAnnotation string,
 ) ([]byte, []*perforator.ProfileMeta, error) {
 	ctx, span := c.tracer.Start(ctx, "MergeProfiles")
 	defer span.End()
@@ -502,7 +505,7 @@ func (c *Client) MergeProfiles(
 		Experimental: request.Experimental,
 	}
 
-	return c.doMergeProfiles(ctx, req, asURL)
+	return c.doMergeProfiles(ctx, req, asURL, taskAnnotation)
 }
 
 func (c *Client) GetPGOProfile(
@@ -510,6 +513,7 @@ func (c *Client) GetPGOProfile(
 	selector string,
 	format *perforator.PGOProfileFormat,
 	asURL bool,
+	taskAnnotation string,
 ) ([]byte, *perforator.PGOMeta, error) {
 	_, span := c.tracer.Start(ctx, "GetPGOProfile")
 	defer span.End()
@@ -523,7 +527,7 @@ func (c *Client) GetPGOProfile(
 				Format: format,
 			},
 		},
-	})
+	}, taskAnnotation)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -545,8 +549,9 @@ func (c *Client) DiffProfiles(
 	ctx context.Context,
 	req *perforator.DiffProfilesRequest,
 	asURL bool,
+	taskAnnotation string,
 ) ([]byte, error) {
-	_, res, err := c.DiffProfilesProto(ctx, req)
+	_, res, err := c.DiffProfilesProto(ctx, req, taskAnnotation)
 	if err != nil {
 		return nil, err
 	}
@@ -557,6 +562,7 @@ func (c *Client) DiffProfiles(
 func (c *Client) DiffProfilesProto(
 	ctx context.Context,
 	req *perforator.DiffProfilesRequest,
+	taskAnnotation string,
 ) (
 	taskID string,
 	rsp *perforator.DiffProfilesResponse,
@@ -574,7 +580,7 @@ func (c *Client) DiffProfilesProto(
 
 	taskID, result, err := c.runTask(ctx, &perforator.TaskSpec{
 		Kind: &perforator.TaskSpec_DiffProfiles{DiffProfiles: req},
-	})
+	}, taskAnnotation)
 
 	if err != nil {
 		return
@@ -613,6 +619,7 @@ func (c *Client) UploadRenderedProfile(
 	meta *perforator.ProfileMeta,
 	formatOptions FormatOptions,
 	profile *pprof.Profile,
+	taskAnnotation string,
 ) (profileID string, taskID string, err error) {
 	profileID, err = c.UploadProfile(ctx, meta, profile)
 	if err != nil {
@@ -648,7 +655,7 @@ func (c *Client) UploadRenderedProfile(
 		}
 	}
 
-	taskID, _, err = c.MergeProfilesProto(ctx, req)
+	taskID, _, err = c.MergeProfilesProto(ctx, req, taskAnnotation)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to render uploaded profile: %w", err)
 	}
@@ -661,8 +668,15 @@ func (c *Client) UploadRenderedProfile(
 	return profileID, taskID, nil
 }
 
-func (c *Client) runTask(ctx context.Context, spec *perforator.TaskSpec) (string, *perforator.TaskResult, error) {
-	res, err := c.taskclient.StartTask(ctx, &perforator.StartTaskRequest{Spec: spec})
+func (c *Client) runTask(
+	ctx context.Context,
+	spec *perforator.TaskSpec,
+	taskAnnotation string,
+) (string, *perforator.TaskResult, error) {
+	res, err := c.taskclient.StartTask(ctx, &perforator.StartTaskRequest{
+		Spec:       spec,
+		Annotation: taskAnnotation,
+	})
 	if err != nil {
 		return "", nil, err
 	}

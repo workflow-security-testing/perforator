@@ -42,6 +42,7 @@ func (p *ProxyProcessor) Process(ctx context.Context, in *profile_event.SignalPr
 		Format: format,
 	},
 		false, // asURL (we want to get profile itself)
+		fmt.Sprintf("profile-event-processor, profile_id=%q", in.ProfileID),
 	)
 	if err != nil {
 		return nil, err

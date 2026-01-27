@@ -214,6 +214,7 @@ func (s *MonitoringService) gatherServiceProfilesMetrics(ctx context.Context, lo
 			MaxSamples: maxSamples,
 			Format:     format,
 		},
+		"request by quality-monitoring",
 	)
 
 	if err != nil {
