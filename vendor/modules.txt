@@ -1190,8 +1190,8 @@ git.apache.org/thrift.git/lib/go/thrift
 # git.sr.ht/~sbinet/gg v0.5.0
 ## explicit; go 1.19
 git.sr.ht/~sbinet/gg
-# github.com/99designs/gqlgen v0.17.78
-## explicit; go 1.23.0
+# github.com/99designs/gqlgen v0.17.86
+## explicit; go 1.24.0
 github.com/99designs/gqlgen
 github.com/99designs/gqlgen/api
 github.com/99designs/gqlgen/client
@@ -1214,6 +1214,8 @@ github.com/99designs/gqlgen/codegen/testserver/nullabledirectives
 github.com/99designs/gqlgen/codegen/testserver/nullabledirectives/generated
 github.com/99designs/gqlgen/codegen/testserver/nullabledirectives/generated/models
 github.com/99designs/gqlgen/codegen/testserver/nullabledirectives/generated/resolvers
+github.com/99designs/gqlgen/codegen/testserver/protogetters
+github.com/99designs/gqlgen/codegen/testserver/protogetters/models
 github.com/99designs/gqlgen/codegen/testserver/singlefile
 github.com/99designs/gqlgen/codegen/testserver/singlefile/introspection
 github.com/99designs/gqlgen/codegen/testserver/singlefile/invalid-packagename
@@ -1265,6 +1267,15 @@ github.com/99designs/gqlgen/plugin/federation/testdata/usefunctionsyntaxforexecu
 github.com/99designs/gqlgen/plugin/modelgen
 github.com/99designs/gqlgen/plugin/modelgen/internal/extrafields
 github.com/99designs/gqlgen/plugin/modelgen/out
+github.com/99designs/gqlgen/plugin/modelgen/out_conflicting_types
+github.com/99designs/gqlgen/plugin/modelgen/out_covariant_types
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_binding_models
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_diamond
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_embedding_models
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_partial
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_skipped_parents
+github.com/99designs/gqlgen/plugin/modelgen/out_embedded_struct_models_with_binding
+github.com/99designs/gqlgen/plugin/modelgen/out_embedded_structs_models
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitempty_tag_false
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitempty_tag_false_omitempty_tag_false_omitzero_tag_nil
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitempty_tag_false_omitempty_tag_false_omitzero_tag_true
@@ -1276,7 +1287,10 @@ github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitempty_tag_
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitzero_tag_false
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitzero_tag_nil
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitzero_tag_true
+github.com/99designs/gqlgen/plugin/modelgen/out_no_directive_models
 github.com/99designs/gqlgen/plugin/modelgen/out_nullable_input_omittable
+github.com/99designs/gqlgen/plugin/modelgen/out_omit_embedded_structs_models
+github.com/99designs/gqlgen/plugin/modelgen/out_omit_json_enum_marshalers
 github.com/99designs/gqlgen/plugin/modelgen/out_omit_resolver_fields
 github.com/99designs/gqlgen/plugin/modelgen/out_struct_pointers
 github.com/99designs/gqlgen/plugin/resolvergen
@@ -3771,8 +3785,8 @@ github.com/ProtonMail/gopenpgp/v3/internal
 github.com/ProtonMail/gopenpgp/v3/mime
 github.com/ProtonMail/gopenpgp/v3/mobile
 github.com/ProtonMail/gopenpgp/v3/profile
-# github.com/PuerkitoBio/goquery v1.10.3
-## explicit; go 1.23.0
+# github.com/PuerkitoBio/goquery v1.11.0
+## explicit; go 1.24.0
 github.com/PuerkitoBio/goquery
 # github.com/PuerkitoBio/purell v1.2.0
 ## explicit; go 1.19
@@ -8431,7 +8445,7 @@ github.com/goccy/go-json/internal/errors
 github.com/goccy/go-json/internal/runtime
 github.com/goccy/go-json/test/cover
 github.com/goccy/go-json/test/example
-# github.com/goccy/go-yaml v1.15.23
+# github.com/goccy/go-yaml v1.19.2
 ## explicit; go 1.21.0
 github.com/goccy/go-yaml
 github.com/goccy/go-yaml/ast
@@ -15747,6 +15761,12 @@ github.com/urfave/cli/v2/altsrc
 github.com/urfave/cli/v2/internal/build
 github.com/urfave/cli/v2/internal/example-cli
 github.com/urfave/cli/v2/internal/example-hello-world
+# github.com/urfave/cli/v3 v3.6.1
+## explicit; go 1.22
+github.com/urfave/cli/v3
+github.com/urfave/cli/v3/examples/example-cli
+github.com/urfave/cli/v3/examples/example-hello-world
+github.com/urfave/cli/v3/scripts
 # github.com/urfave/negroni v1.0.0
 ## explicit
 # github.com/vakenbolt/go-test-report v0.9.3
@@ -15832,7 +15852,7 @@ github.com/vbauerster/mpb/v8/internal
 ## explicit
 # github.com/vektah/gqlparser v1.1.2
 ## explicit
-# github.com/vektah/gqlparser/v2 v2.5.30
+# github.com/vektah/gqlparser/v2 v2.5.31
 ## explicit; go 1.22
 github.com/vektah/gqlparser/v2
 github.com/vektah/gqlparser/v2/ast
@@ -19823,7 +19843,7 @@ google.golang.org/grpc/security/advancedtls/testdata
 # google.golang.org/grpc/stats/opencensus v1.0.0
 ## explicit; go 1.17
 google.golang.org/grpc/stats/opencensus
-# google.golang.org/protobuf v1.36.10
+# google.golang.org/protobuf v1.36.11
 ## explicit; go 1.23
 google.golang.org/protobuf
 google.golang.org/protobuf/cmd/protoc-gen-go
@@ -19943,6 +19963,8 @@ google.golang.org/protobuf/internal/testprotos/required
 google.golang.org/protobuf/internal/testprotos/required/required_hybrid
 google.golang.org/protobuf/internal/testprotos/required/required_opaque
 google.golang.org/protobuf/internal/testprotos/test
+google.golang.org/protobuf/internal/testprotos/test/test_nopackage
+google.golang.org/protobuf/internal/testprotos/test/test_option
 google.golang.org/protobuf/internal/testprotos/test3
 google.golang.org/protobuf/internal/testprotos/test3/test3_hybrid
 google.golang.org/protobuf/internal/testprotos/test3/test3_opaque

@@ -138,7 +138,7 @@ require (
 	cuelang.org/go v0.4.3
 	firebase.google.com/go v3.13.0+incompatible
 	git.apache.org/thrift.git v0.13.0
-	github.com/99designs/gqlgen v0.17.78
+	github.com/99designs/gqlgen v0.17.86
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/AlexxIT/go2rtc v1.8.2
 	github.com/Antonboom/errname v0.1.10
@@ -193,7 +193,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.31
 	github.com/ProtonMail/gopenpgp/v3 v3.1.2
-	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/Shopify/sarama v1.38.1
 	github.com/ThalesIgnite/crypto11 v1.2.5
 	github.com/TuyaInc/tuya_pulsar_sdk_go v0.0.0-20201113075236-46c1e459e32e
@@ -432,7 +432,7 @@ require (
 	github.com/gobwas/ws v1.4.0
 	github.com/goccy/go-graphviz v0.2.9
 	github.com/goccy/go-json v0.10.3
-	github.com/goccy/go-yaml v1.15.23
+	github.com/goccy/go-yaml v1.19.2
 	github.com/gocql/gocql v1.7.0
 	github.com/godbus/dbus/v5 v5.1.1-0.20221223143132-c1a76c14e486
 	github.com/godror/godror v0.44.1
@@ -805,6 +805,7 @@ require (
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli v1.22.16
 	github.com/urfave/cli/v2 v2.27.7
+	github.com/urfave/cli/v3 v3.6.1
 	github.com/vakenbolt/go-test-report v0.9.3
 	github.com/valkey-io/valkey-go v1.0.66
 	github.com/valkey-io/valkey-go/mock v1.0.60
@@ -814,7 +815,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vbauerster/mpb v3.4.0+incompatible
 	github.com/vbauerster/mpb/v8 v8.7.1
-	github.com/vektah/gqlparser/v2 v2.5.30
+	github.com/vektah/gqlparser/v2 v2.5.31
 	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
@@ -1007,7 +1008,7 @@ require (
 	google.golang.org/grpc/gcp/observability v1.0.1
 	google.golang.org/grpc/security/advancedtls v1.0.0
 	google.golang.org/grpc/stats/opencensus v1.0.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 	gopkg.in/bluesuncorp/validator.v9 v9.10.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/gographics/imagick.v2 v2.5.0
