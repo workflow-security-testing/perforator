@@ -174,6 +174,19 @@ func (s *PerforatorServer) pollTasks(ctx context.Context) (spawned bool, err err
 	return true, nil
 }
 
+// taskUserError is a wrapper for task errors that are not Perforator fault.
+type taskUserError struct {
+	e error
+}
+
+func (t taskUserError) Error() string {
+	return t.e.Error()
+}
+
+func (t taskUserError) Unwrap() error {
+	return t.e
+}
+
 func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, stop func()) {
 	release := sync.OnceFunc(func() { s.tasksemaphore.Release(1) })
 	defer release()
@@ -200,7 +213,8 @@ func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, st
 
 	res, err := s.runTaskImpl(ctx, task.GetSpec(), release)
 	if err != nil {
-		if !errors.Is(err, merge.ErrNoProfilesToMerge) {
+		var userError taskUserError
+		if !errors.As(err, &userError) {
 			s.metrics.tasksFailedCount.With(metricTags).Inc()
 			s.metrics.tasksProcessingFailedDuration.With(metricTags).RecordDuration(time.Since(creationTime))
 			s.metrics.tasksExecutionFailedDuration.With(metricTags).RecordDuration(time.Since(startTime))
@@ -235,7 +249,7 @@ func (s *PerforatorServer) isBannedUser(user string) bool {
 func (s *PerforatorServer) runTaskImpl(ctx context.Context, spec *perforator.TaskSpec, release func()) (*perforator.TaskResult, error) {
 	if user := auth.UserFromContext(ctx); user != nil && s.isBannedUser(user.Login) {
 		s.l.Error(ctx, "User is banned, skipping task", log.String("user", user.Login))
-		return nil, fmt.Errorf("user %s is banned", user.Login)
+		return nil, taskUserError{e: fmt.Errorf("user %s is banned", user.Login)}
 	}
 
 	result := &perforator.TaskResult{}
@@ -244,6 +258,11 @@ func (s *PerforatorServer) runTaskImpl(ctx context.Context, spec *perforator.Tas
 	case *perforator.TaskSpec_MergeProfiles:
 		res, err := s.MergeProfiles(ctx, v.MergeProfiles)
 		if err != nil {
+			if errors.Is(err, merge.ErrNoProfilesToMerge) {
+				return nil, taskUserError{
+					e: err,
+				}
+			}
 			return nil, err
 		}
 		result.Kind = &perforator.TaskResult_MergeProfiles{MergeProfiles: res}
