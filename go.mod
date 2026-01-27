@@ -229,7 +229,7 @@ require (
 	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
-	github.com/asticode/go-astits v1.13.0
+	github.com/asticode/go-astits v1.15.0
 	github.com/at-wat/ebml-go v0.17.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/awalterschulze/gographviz v2.0.3+incompatible
