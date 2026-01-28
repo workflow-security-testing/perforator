@@ -7,4 +7,5 @@ export enum LocalStorageKey {
     TutorialProgress = 'tutorialProgress',
     TutorialBase = 'tutorialBase',
     ClusterTop = 'clusterTop',
+    CustomSampleSizes = 'customSampleSizes',
 }

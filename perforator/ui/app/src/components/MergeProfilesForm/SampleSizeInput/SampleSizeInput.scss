@@ -7,6 +7,39 @@
     margin-right: var(--g-spacing-3);
 }
 
+.sample-size-input__select-wrapper {
+    position: relative;
+}
+
 .sample-size-input__select {
     min-width: 75px;
+}
+
+.sample-size-input__custom-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.sample-size-input__delete-btn {
+    opacity: 0.6;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+.sample-size-input__add-option {
+    display: flex;
+    align-items: center;
+    gap: var(--g-spacing-2);
+    color: var(--g-color-text-secondary);
+}
+
+.sample-size-input__popup {
+    display: flex;
+    align-items: center;
+    gap: var(--g-spacing-2);
+    padding: var(--g-spacing-2);
 }
