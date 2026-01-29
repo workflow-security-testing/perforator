@@ -15761,12 +15761,15 @@ github.com/valkey-io/valkey-go/hack/cmds
 github.com/valkey-io/valkey-go/internal/cmds
 github.com/valkey-io/valkey-go/internal/util
 github.com/valkey-io/valkey-go/valkeylock
-# github.com/valkey-io/valkey-go/mock v1.0.60
+# github.com/valkey-io/valkey-go/mock v1.0.66
 ## explicit; go 1.23.0
 github.com/valkey-io/valkey-go/mock
 # github.com/valkey-io/valkey-go/valkeycompat v1.0.60
 ## explicit; go 1.23.0
 github.com/valkey-io/valkey-go/valkeycompat
+# github.com/valkey-io/valkey-go/valkeyhook v1.0.66
+## explicit; go 1.23.0
+github.com/valkey-io/valkey-go/valkeyhook
 # github.com/valkey-io/valkey-go/valkeyotel v1.0.66
 ## explicit; go 1.23.0
 github.com/valkey-io/valkey-go/valkeyotel

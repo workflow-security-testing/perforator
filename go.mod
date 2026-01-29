@@ -807,8 +807,9 @@ require (
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/vakenbolt/go-test-report v0.9.3
 	github.com/valkey-io/valkey-go v1.0.66
-	github.com/valkey-io/valkey-go/mock v1.0.60
+	github.com/valkey-io/valkey-go/mock v1.0.66
 	github.com/valkey-io/valkey-go/valkeycompat v1.0.60
+	github.com/valkey-io/valkey-go/valkeyhook v1.0.66
 	github.com/valkey-io/valkey-go/valkeyotel v1.0.66
 	github.com/valyala/fastjson v1.6.4
 	github.com/valyala/fasttemplate v1.2.2
