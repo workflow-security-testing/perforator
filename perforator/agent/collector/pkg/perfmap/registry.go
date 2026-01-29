@@ -65,11 +65,11 @@ func NewRegistry(logger log.Logger, mReg metrics.Registry, enableJVM bool) *Regi
 	mReg = mReg.WithPrefix("perfmap")
 	discoveryDurationBuckets := metrics.MakeExponentialDurationBuckets(time.Millisecond, 10, 5)
 	reg := &Registry{
-		logger: xlog.New(logger.WithName("perfmap")),
+		logger: xlog.Wrap(logger.WithName("perfmap")),
 		procs:  make(map[linux.CurrentNamespacePID]*trackedProcess),
 		syms:   symbolpool.New(),
 		jvmDialer: &jvmattach.Dialer{
-			Logger: xlog.New(logger.WithName("perfmap.jvmattach")),
+			Logger: xlog.Wrap(logger.WithName("perfmap.jvmattach")),
 		},
 		enableJVM:     enableJVM,
 		registerQueue: make(chan *trackedProcess, 1024),

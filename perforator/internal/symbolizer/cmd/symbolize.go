@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/library/go/core/metrics/nop"
 	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/binaryprovider/downloader"
@@ -51,7 +50,9 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			profilePath := args[0]
 
-			logger, err := xlog.TryNew(zap.NewDeployLogger(log.DebugLevel))
+			logger, err := xlog.ForCLI(xlog.CLIConfig{
+				Level: log.DebugLevel,
+			})
 			if err != nil {
 				return err
 			}
@@ -109,7 +110,9 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			profileID := args[0]
 
-			logger, err := xlog.TryNew(zap.NewDeployLogger(log.DebugLevel))
+			logger, err := xlog.ForCLI(xlog.CLIConfig{
+				Level: log.DebugLevel,
+			})
 			if err != nil {
 				return err
 			}

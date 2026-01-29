@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/maxprocs"
@@ -30,15 +29,22 @@ var rootCmd = &cobra.Command{
 		ctx, stop := context.WithCancel(context.Background())
 		defer stop()
 
+		reg := xmetrics.NewRegistry(
+			xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
+		)
+
 		level, err := log.ParseLevel(logLevel)
 		if err != nil {
 			return err
 		}
 
-		logger, err := xlog.TryNew(zap.NewDeployLogger(level))
+		logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{
+			Level: level,
+		}, reg)
 		if err != nil {
 			return err
 		}
+		defer stopLogger()
 
 		err = mlock.LockExecutableMappings()
 		if err == nil {
@@ -51,10 +57,6 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		reg := xmetrics.NewRegistry(
-			xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
-		)
 
 		svc, err := eventprocessor.NewService(logger, *conf, reg)
 		if err != nil {

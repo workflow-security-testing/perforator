@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/linguist/jvm/jvmattach"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/pidfd"
@@ -30,7 +29,10 @@ func mainImpl(ctx context.Context) error {
 	if *pid == -1 {
 		return fmt.Errorf("pid is required")
 	}
-	logger := xlog.New(zap.Must(zap.ConsoleConfig(log.DebugLevel)))
+	logger, err := xlog.ForCLI(xlog.CLIConfig{Level: log.DebugLevel})
+	if err != nil {
+		return err
+	}
 
 	pfd, err := pidfd.Open(linux.CurrentNamespacePID(*pid))
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/must"
@@ -79,15 +78,20 @@ var (
 		RunE: func(_ *cobra.Command, args []string) error {
 			ctx := context.Background()
 
+			r := xmetrics.NewRegistry()
+
 			level, err := log.ParseLevel(logLevel)
 			if err != nil {
 				return err
 			}
 
-			logger, err := xlog.TryNew(zap.NewDeployLogger(level))
+			logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{
+				Level: level,
+			}, r)
 			if err != nil {
 				return err
 			}
+			defer stopLogger()
 
 			if profileGCConfig.Concurrency.Concurrency <= 0 {
 				return fmt.Errorf("%d profile concurrency must be positive", profileGCConfig.Concurrency.Concurrency)
@@ -96,8 +100,6 @@ var (
 			if profileGCConfig.Concurrency.Shards <= 0 {
 				return fmt.Errorf("%d profile shards must be positive", profileGCConfig.Concurrency.Shards)
 			}
-
-			r := xmetrics.NewRegistry()
 
 			conf, err := bundle.ParseConfig(storageConfigPath, false /* strict */)
 			if err != nil {

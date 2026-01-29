@@ -13,8 +13,6 @@ import (
 	"go.uber.org/mock/gomock"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/library/go/core/metrics"
 	metricsmock "github.com/yandex/perforator/library/go/core/metrics/mock"
 	"github.com/yandex/perforator/perforator/internal/asyncfilecache"
@@ -24,12 +22,6 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/storage/storage"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
-
-func createLogger() (xlog.Logger, error) {
-	lconf := zap.KVConfig(log.DebugLevel)
-	lconf.OutputPaths = []string{"stderr"}
-	return xlog.TryNew(zap.New(lconf))
-}
 
 func newTestObjects(
 	t *testing.T,
@@ -43,8 +35,7 @@ func newTestObjects(
 	*mock_binary.MockStorage,
 	*BinaryDownloader,
 ) {
-	l, err := createLogger()
-	require.NoError(t, err)
+	l := xlog.ForTest(t)
 	reg := metricsmock.NewRegistry(nil)
 
 	fileCache, err := asyncfilecache.NewFileCache(

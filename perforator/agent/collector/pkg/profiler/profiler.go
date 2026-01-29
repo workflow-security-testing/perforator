@@ -328,7 +328,7 @@ func (p *Profiler) initializeStorage(r metrics.Registry) (err error) {
 	if p.conf.StorageClientConfigDeprecated != nil {
 		conf := p.conf.StorageClientConfigDeprecated
 
-		l := xlog.New(p.log)
+		l := xlog.Wrap(p.log)
 
 		agentGatewayClient, err := agent_gateway_client.NewGatewayClient(conf, l)
 		if err != nil {
@@ -474,14 +474,14 @@ func (p *Profiler) initialize(r metrics.Registry) (err error) {
 	if p.conf.FeatureFlagsConfig.SframeEnabled() {
 		binaryAnalysisOptions.PreferredUnwindInfoSource = preprocessig_proto.UnwindInfoSource_Sframe
 	}
-	p.dsoStorage, err = dso.NewStorage(xlog.New(p.log.WithName("ProcessRegistry")), r.WithPrefix("ProcessRegistry"), bpfManager, binaryAnalysisOptions)
+	p.dsoStorage, err = dso.NewStorage(xlog.Wrap(p.log.WithName("ProcessRegistry")), r.WithPrefix("ProcessRegistry"), bpfManager, binaryAnalysisOptions)
 	if err != nil {
 		return fmt.Errorf("failed to create dso storage: %w", err)
 	}
 
 	// Setup process registry.
 	p.procs, err = process.NewProcessRegistry(
-		xlog.New(p.log.WithName("ProcessRegistry")),
+		xlog.Wrap(p.log.WithName("ProcessRegistry")),
 		r.WithPrefix("ProcessRegistry"),
 		p.bpf.State(),
 		p.mounts,

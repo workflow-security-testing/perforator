@@ -9,7 +9,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/library/go/core/metrics/mock"
 	"github.com/yandex/perforator/perforator/pkg/linux"
 	"github.com/yandex/perforator/perforator/pkg/linux/procfs"
@@ -17,19 +16,8 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func createLogger() (xlog.Logger, error) {
-	lconf := zap.KVConfig(log.DebugLevel)
-	lconf.OutputPaths = []string{"stderr"}
-	raw, err := zap.New(lconf)
-	if err != nil {
-		return nil, err
-	}
-	return xlog.New(raw), nil
-}
-
 func TestRegistry_Simple(t *testing.T) {
-	logger, err := createLogger()
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	ctx := context.Background()
 
 	registry, err := NewRegistry(logger, mock.NewRegistry(nil), nil, nil)
@@ -59,8 +47,7 @@ func TestRegistry_Simple(t *testing.T) {
 }
 
 func TestRegistry_Concurrent(t *testing.T) {
-	l, err := createLogger()
-	require.NoError(t, err)
+	l := xlog.ForTest(t)
 
 	registry, err := NewRegistry(l, mock.NewRegistry(nil), nil, nil)
 	require.NoError(t, err)
@@ -127,8 +114,7 @@ func TestRegistry_Concurrent(t *testing.T) {
 }
 
 func TestStorage_Simple(t *testing.T) {
-	logger, err := createLogger()
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	ctx := context.Background()
 	storage, err := NewStorage(
 		logger,
@@ -155,8 +141,7 @@ func TestStorage_Simple(t *testing.T) {
 }
 
 func TestStorage_OneMapping(t *testing.T) {
-	logger, err := createLogger()
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	ctx := context.Background()
 	storage, err := NewStorage(
 		logger,
@@ -216,8 +201,7 @@ func TestStorage_OneMapping(t *testing.T) {
 }
 
 func TestStorage_OverlappingMappings(t *testing.T) {
-	logger, err := createLogger()
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	ctx := context.Background()
 	storage, err := NewStorage(
 		logger,
@@ -291,8 +275,7 @@ func TestStorage_OverlappingMappings(t *testing.T) {
 }
 
 func TestStorage_MultipleProcsAndMappings(t *testing.T) {
-	logger, err := createLogger()
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	ctx := context.Background()
 	storage, err := NewStorage(
 		logger,
@@ -386,8 +369,7 @@ func TestStorage_MultipleProcsAndMappings(t *testing.T) {
 }
 
 func TestStorage_SameMappings(t *testing.T) {
-	logger, err := createLogger()
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	ctx := context.Background()
 	storage, err := NewStorage(
 		logger,
@@ -441,8 +423,7 @@ func TestStorage_SameMappings(t *testing.T) {
 }
 
 func TestStorage_Concurrent(t *testing.T) {
-	logger, err := createLogger()
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	storage, err := NewStorage(
 		logger,
 		mock.NewRegistry(

@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	standardLog "log"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/quality_monitoring/internal/config"
 	"github.com/yandex/perforator/perforator/internal/symbolizer/quality_monitoring/internal/service"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
@@ -21,18 +19,19 @@ func main() {
 
 	flag.Parse()
 
-	logger, err := setupLogger(*logLevel)
+	reg := xmetrics.NewRegistry()
+
+	logger, stopLogger, err := setupLogger(*logLevel, reg)
 	if err != nil {
 		standardLog.Fatalf("can't create logger: %s", err)
 	}
+	defer stopLogger()
 	ctx := context.Background()
 
 	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {
 		standardLog.Fatalf("can't load config: %s", err)
 	}
-
-	reg := xmetrics.NewRegistry()
 
 	serv, err := service.NewMonitoringService(ctx, cfg, logger, reg)
 	if err != nil {
@@ -50,16 +49,13 @@ func main() {
 	}
 }
 
-func setupLogger(logLevel string) (xlog.Logger, error) {
+func setupLogger(logLevel string, reg xmetrics.Registry) (xlog.Logger, func(), error) {
 	level, err := log.ParseLevel(logLevel)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	logger, err := zap.NewDeployLogger(level)
-	if err != nil {
-		return nil, fmt.Errorf("can't create logger: %w", err)
-	}
-
-	return xlog.New(logger), nil
+	return xlog.ForDaemon(xlog.DaemonConfig{
+		Level: level,
+	}, reg)
 }

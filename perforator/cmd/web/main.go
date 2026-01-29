@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
+	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/library/go/core/resource"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	service "github.com/yandex/perforator/perforator/internal/web"
@@ -69,17 +69,18 @@ func main() {
 func run() error {
 	ctx := context.Background()
 
-	logger, err := setupLogger(logLevel)
+	reg := xmetrics.NewRegistry()
+
+	logger, stopLogger, err := setupLogger(logLevel, reg)
 	if err != nil {
 		return err
 	}
+	defer stopLogger()
 
 	cfg, err := service.ParseConfig(configPath)
 	if err != nil {
 		return err
 	}
-
-	reg := xmetrics.NewRegistry()
 
 	fs := afero.NewMemMapFs()
 
@@ -100,18 +101,15 @@ func run() error {
 	)
 }
 
-func setupLogger(logLevel string) (xlog.Logger, error) {
+func setupLogger(logLevel string, metrics metrics.Registry) (xlog.Logger, func(), error) {
 	level, err := log.ParseLevel(logLevel)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	logger, err := xlog.TryNew(zap.NewDeployLogger(level))
-	if err != nil {
-		return nil, fmt.Errorf("can't create logger: %w", err)
-	}
-
-	return logger, nil
+	return xlog.ForDaemon(xlog.DaemonConfig{
+		Level: level,
+	}, metrics)
 }
 
 // untarToFs untars a tar archive from data into the provided Afero filesystem

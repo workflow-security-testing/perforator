@@ -84,7 +84,7 @@ func NewPerforatorAgent(
 		l: l,
 	}
 
-	xLogger := xlog.New(l)
+	xLogger := xlog.Wrap(l)
 
 	clientConfig := options.agentGatewayConfig
 	if clientConfig == nil {

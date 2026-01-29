@@ -45,7 +45,7 @@ var _ Logger = (*logger)(nil)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func New(log log.Logger) Logger {
+func Wrap(log log.Logger) Logger {
 	return &logger{log}
 }
 
@@ -53,15 +53,8 @@ func NewNop() Logger {
 	return &logger{&nop.Logger{}}
 }
 
-func TryNew(log log.Logger, err error) (Logger, error) {
-	if err != nil {
-		return nil, err
-	}
-	return New(log), nil
-}
-
 func ForTest(t *testing.T) Logger {
-	return New(&yzap.Logger{L: zaptest.NewLogger(t, zaptest.WrapOptions(zap.AddCaller(), zap.AddCallerSkip(1)))})
+	return Wrap(&yzap.Logger{L: zaptest.NewLogger(t, zaptest.WrapOptions(zap.AddCaller(), zap.AddCallerSkip(1)))})
 }
 
 func (l *logger) Logger() log.Logger {

@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/offline_processing/app"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/mlock"
@@ -24,15 +23,20 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 
+			reg := xmetrics.NewRegistry(
+				xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
+			)
+
 			logLevel, err := log.ParseLevel(logLevelStr)
 			if err != nil {
 				return err
 			}
 
-			logger, err := xlog.TryNew(zap.NewDeployLogger(logLevel))
+			logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{Level: logLevel}, reg)
 			if err != nil {
 				return err
 			}
+			defer stopLogger()
 
 			err = mlock.LockExecutableMappings()
 			if err == nil {
@@ -45,10 +49,6 @@ var (
 			if err != nil {
 				return err
 			}
-
-			reg := xmetrics.NewRegistry(
-				xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
-			)
 
 			app, err := app.NewOfflineProcessingApp(conf, logger, reg)
 			if err != nil {

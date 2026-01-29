@@ -58,19 +58,22 @@ func New(config *Config) (*App, error) {
 		return nil, fmt.Errorf("failed to parse log level: %w", err)
 	}
 
-	var logFormat LogFormat
+	var logFormat xlog.LogFormat
 	switch config.LogFormat {
 	case "text":
-		logFormat = LogFormatText
+		logFormat = xlog.LogFormatText
 	case "json":
-		logFormat = LogFormatJson
+		logFormat = xlog.LogFormatJson
 	case "":
 		// TODO: add --log-format flag to all subcommands and remove this case
-		logFormat = LogFormatText
+		logFormat = xlog.LogFormatText
 	default:
 		return nil, fmt.Errorf("unknown log format %q", config.LogFormat)
 	}
-	logger, err := NewLogger(level, logFormat)
+	logger, err := xlog.ForCLI(xlog.CLIConfig{
+		Level:  level,
+		Format: logFormat,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}

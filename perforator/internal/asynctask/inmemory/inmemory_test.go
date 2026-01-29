@@ -8,8 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/library/go/core/metrics/nop"
 	"github.com/yandex/perforator/perforator/internal/asynctask"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
@@ -17,8 +15,7 @@ import (
 )
 
 func TestCreateServiceAndAddTasks(t *testing.T) {
-	logger, err := xlog.TryNew(zap.NewDeployLogger(log.DebugLevel))
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	taskService, err := NewInMemoryTaskService(&Config{}, logger, nop.Registry{})
 	require.NoError(t, err)
 
@@ -53,8 +50,7 @@ func TestCreateServiceAndAddTasks(t *testing.T) {
 
 func TestFinishTask(t *testing.T) {
 	config := &Config{}
-	logger, err := xlog.TryNew(zap.NewDeployLogger(log.DebugLevel))
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	taskService, err := NewInMemoryTaskService(config, logger, nil)
 
 	require.NoError(t, err)
@@ -81,8 +77,7 @@ func TestFinishTask(t *testing.T) {
 
 func TestFailTask(t *testing.T) {
 	config := &Config{}
-	logger, err := xlog.TryNew(zap.NewDeployLogger(log.DebugLevel))
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	taskService, err := NewInMemoryTaskService(config, logger, nil)
 
 	require.NoError(t, err)
@@ -108,8 +103,7 @@ func TestFailTask(t *testing.T) {
 }
 
 func TestListTasks(t *testing.T) {
-	logger, err := xlog.TryNew(zap.NewDeployLogger(log.DebugLevel))
-	require.NoError(t, err)
+	logger := xlog.ForTest(t)
 	taskService, err := NewInMemoryTaskService(&Config{}, logger, nop.Registry{})
 	require.NoError(t, err)
 

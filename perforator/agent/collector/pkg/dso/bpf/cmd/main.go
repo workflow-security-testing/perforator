@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/library/go/core/metrics/mock"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/bpf/binary"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/dso/parser"
@@ -15,10 +15,16 @@ import (
 )
 
 func main() {
-	l := zap.Must(zap.TSKVConfig(log.DebugLevel))
-
-	if err := run(context.Background(), xlog.New(l)); err != nil {
-		l.Fatal("Failed to analyze binary", log.Error(err))
+	l, err := xlog.ForCLI(xlog.CLIConfig{
+		Level: log.DebugLevel,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: failed to initialize logging: %v\n", err)
+		os.Exit(1)
+	}
+	ctx := context.Background()
+	if err := run(ctx, l); err != nil {
+		l.Fatal(ctx, "Failed to analyze binary", log.Error(err))
 	}
 }
 

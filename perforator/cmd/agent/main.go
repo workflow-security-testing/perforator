@@ -12,14 +12,10 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	logzap "github.com/yandex/perforator/library/go/core/log/zap"
-	"github.com/yandex/perforator/library/go/core/log/zap/asynczap"
-	"github.com/yandex/perforator/library/go/core/log/zap/encoders"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/agent"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
@@ -118,23 +114,23 @@ func run() error {
 		return err
 	}
 
-	logLevelZap, err := zapcore.ParseLevel(logLevel)
-	if err != nil {
-		return err
-	}
-	l, stop, err := newLogger(logLevelZap)
-	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
-	}
-	defer stop()
-
 	r := xmetrics.NewRegistry(
 		xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
 		xmetrics.WithFormat(xmetrics.FormatText),
 	)
 
+	logLevelZap, err := zapcore.ParseLevel(logLevel)
+	if err != nil {
+		return err
+	}
+	l, stop, err := newLogger(logLevelZap, r)
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
+	}
+	defer stop()
+
 	c := &agent.Config{}
-	err = parseYaml(l, configPath, c)
+	err = parseYaml(l.Logger(), configPath, c)
 	if err != nil {
 		return err
 	}
@@ -149,7 +145,7 @@ func run() error {
 
 	cgroupsConfig := &CgroupsConfig{}
 	if cgroupConfigPath != "" {
-		err = parseYaml(l, cgroupConfigPath, cgroupsConfig)
+		err = parseYaml(l.Logger(), cgroupConfigPath, cgroupsConfig)
 		if err != nil {
 			return err
 		}
@@ -188,15 +184,18 @@ func run() error {
 		profilerOpts = append(profilerOpts, profiler.WithCgroupTarget(cgroupConfig))
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	for _, pid := range pids {
-		l.Info("Register pid", log.Int("pid", pid))
+		l.Info(ctx, "Register pid", log.Int("pid", pid))
 		profilerOpts = append(profilerOpts, profiler.WithProcessTarget(pid, map[string]string{
 			"host": hostname,
 		}))
 	}
 
 	for _, tid := range tids {
-		l.Info("Register tid", log.Int("tid", tid))
+		l.Info(ctx, "Register tid", log.Int("tid", tid))
 		profilerOpts = append(profilerOpts, profiler.WithThreadTarget(tid, map[string]string{
 			"host": hostname,
 		}))
@@ -205,7 +204,7 @@ func run() error {
 	agentOpts = append(agentOpts, agent.WithProfilerOptions(profilerOpts...))
 
 	perforatorAgent, err := agent.NewPerforatorAgent(
-		l,
+		l.Logger(),
 		r,
 		&c.Profiler,
 		agentOpts...,
@@ -214,11 +213,8 @@ func run() error {
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
 	// Setup http puller server
-	http.Handle("/metrics", r.HTTPHandler(ctx, xlog.New(l)))
+	http.Handle("/metrics", r.HTTPHandler(ctx, l))
 	err = polyheapprof.StartHeapProfileRecording()
 	if err != nil {
 		return fmt.Errorf("failed to start heap profiling")
@@ -230,26 +226,19 @@ func run() error {
 	go func() {
 		err := http.ListenAndServe(":9156", nil)
 		if err != nil {
-			l.Error("Failed to run http server", log.Error(err))
+			l.Error(ctx, "Failed to run http server", log.Error(err))
 		}
 	}()
 
 	return perforatorAgent.Run(ctx)
 }
 
-func newLogger(level zapcore.Level) (l log.Logger, stop func(), err error) {
-	encoderconf := zap.NewProductionEncoderConfig()
-	encoderconf.EncodeTime = zapcore.RFC3339NanoTimeEncoder
-	encoder, err := encoders.NewTSKVEncoder(encoderconf)
+func newLogger(level zapcore.Level, reg xmetrics.Registry) (l xlog.Logger, stop func(), err error) {
+	logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{}, reg)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	core := asynczap.NewCore(encoder, zapcore.Lock(os.Stdout), level, asynczap.Options{
-		FlushInterval: time.Second,
-	})
-
-	return logzap.NewWithCore(core), core.Stop, nil
+	return logger, stopLogger, nil
 }
 
 var prometheusMetricSanitizer = strings.NewReplacer(

@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/binaryprocessor"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
@@ -34,15 +33,22 @@ var (
 		RunE: func(_ *cobra.Command, _ []string) error {
 			ctx := context.Background()
 
+			reg := xmetrics.NewRegistry(
+				xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
+			)
+
 			level, err := log.ParseLevel(logLevel)
 			if err != nil {
 				return err
 			}
 
-			logger, err := xlog.TryNew(zap.NewDeployLogger(level))
+			logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{
+				Level: level,
+			}, reg)
 			if err != nil {
 				return err
 			}
+			defer stopLogger()
 
 			err = mlock.LockExecutableMappings()
 			if err == nil {
@@ -55,10 +61,6 @@ var (
 			if err != nil {
 				return err
 			}
-
-			reg := xmetrics.NewRegistry(
-				xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
-			)
 
 			if cachePath != "" {
 				conf.BinaryProvider.FileCache.RootPath = cachePath

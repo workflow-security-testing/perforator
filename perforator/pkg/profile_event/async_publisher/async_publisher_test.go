@@ -11,8 +11,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	coreLog "github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/kafka/producer"
 	"github.com/yandex/perforator/perforator/pkg/profile_event"
@@ -130,7 +128,7 @@ func (c *countingProducer) Close() error {
 }
 
 func TestParallelWorkers(t *testing.T) {
-	logger, _ := xlog.TryNew(zap.NewDeployLogger(coreLog.DebugLevel))
+	logger := xlog.ForTest(t)
 	reg := xmetrics.NewRegistry()
 
 	const workernumber = 4
@@ -161,7 +159,7 @@ func TestParallelWorkers(t *testing.T) {
 }
 
 func TestCancelStopsAndClosesProducer(t *testing.T) {
-	logger, _ := xlog.TryNew(zap.NewDeployLogger(coreLog.DebugLevel))
+	logger := xlog.ForTest(t)
 	reg := xmetrics.NewRegistry()
 	delay := 10 * time.Millisecond
 	pr := &countingProducer{delay: delay}
@@ -191,7 +189,7 @@ func TestCancelStopsAndClosesProducer(t *testing.T) {
 }
 
 func TestTryEnqueueAfterCancel(t *testing.T) {
-	logger, _ := xlog.TryNew(zap.NewDeployLogger(coreLog.DebugLevel))
+	logger := xlog.ForTest(t)
 	reg := xmetrics.NewRegistry()
 
 	pr := &countingProducer{}
@@ -218,7 +216,7 @@ func TestTryEnqueueAfterCancel(t *testing.T) {
 }
 
 func TestErrorsDoNotBlockSubsequentPublishes(t *testing.T) {
-	logger, _ := xlog.TryNew(zap.NewDeployLogger(coreLog.DebugLevel))
+	logger := xlog.ForTest(t)
 	reg := xmetrics.NewRegistry()
 
 	// Fail first 3.
@@ -244,7 +242,7 @@ func TestErrorsDoNotBlockSubsequentPublishes(t *testing.T) {
 }
 
 func TestManyConcurrentTryEnqueue(t *testing.T) {
-	logger, _ := xlog.TryNew(zap.NewDeployLogger(coreLog.InfoLevel))
+	logger := xlog.ForTest(t)
 	reg := xmetrics.NewRegistry()
 
 	pr := &countingProducer{delay: 2 * time.Millisecond}

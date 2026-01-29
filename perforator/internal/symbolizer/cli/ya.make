@@ -2,7 +2,6 @@ GO_LIBRARY()
 
 SRCS(
     cli.go
-    logger.go
 )
 
 IF (OPENSOURCE)

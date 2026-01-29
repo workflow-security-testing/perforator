@@ -13,22 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	metricsmock "github.com/yandex/perforator/library/go/core/metrics/mock"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
-func createLogger() (xlog.Logger, error) {
-	lconf := zap.KVConfig(log.DebugLevel)
-	lconf.OutputPaths = []string{"stderr"}
-	return xlog.TryNew(zap.New(lconf))
-}
-
 func initTest(t *testing.T, maxSize uint64) (context.Context, xlog.Logger, *FileCache) {
 	reg := metricsmock.NewRegistry(nil)
-	l, err := createLogger()
-	require.NoError(t, err)
+	l := xlog.ForTest(t)
 
 	cache, err := NewFileCache(&Config{
 		MaxSize:  fmt.Sprintf("%dB", maxSize),

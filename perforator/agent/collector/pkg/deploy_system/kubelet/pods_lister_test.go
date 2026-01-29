@@ -10,11 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"go.uber.org/zap/zaptest"
 	kube "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -27,10 +25,6 @@ func assertEncode(t *testing.T, w io.Writer, data any) {
 }
 
 func TestGetPods(t *testing.T) {
-	l := &zap.Logger{
-		L: zaptest.NewLogger(t),
-	}
-
 	fakePods := kube.PodList{
 		Items: []kube.Pod{
 			{
@@ -48,7 +42,7 @@ func TestGetPods(t *testing.T) {
 	client := &http.Client{}
 
 	podLister := &PodsLister{
-		logger:       xlog.New(l),
+		logger:       xlog.ForTest(t),
 		nodeName:     "test-node",
 		nodeURL:      server.URL,
 		client:       client,
@@ -65,9 +59,6 @@ func TestGetPods(t *testing.T) {
 }
 
 func TestResolveKubeletContainerPrefix(t *testing.T) {
-	l := &zap.Logger{
-		L: zaptest.NewLogger(t),
-	}
 	// Create a temporary directory to act as our fake cgroup prefix.
 	tmpDir, err := os.MkdirTemp("", "cgroups")
 	if err != nil {
@@ -103,7 +94,7 @@ func TestResolveKubeletContainerPrefix(t *testing.T) {
 	client := &http.Client{}
 
 	podLister := &PodsLister{
-		logger:       xlog.New(l),
+		logger:       xlog.ForTest(t),
 		nodeName:     "test-node",
 		nodeURL:      server.URL,
 		client:       client,

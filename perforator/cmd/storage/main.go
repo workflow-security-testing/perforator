@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/server"
 	"github.com/yandex/perforator/perforator/internal/agent_gateway/server/storage"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
@@ -19,7 +18,6 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/mlock"
 	"github.com/yandex/perforator/perforator/pkg/must"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
-	"github.com/yandex/perforator/perforator/pkg/xlog/logmetrics"
 )
 
 func calcProbableOutcome(probabilityPercent uint32) bool {
@@ -50,12 +48,14 @@ var (
 			if err != nil {
 				return err
 			}
-
-			logBackend, err := zap.NewDeployLogger(level)
+			logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{
+				Level:         level,
+				EnableMetrics: true,
+			}, registry)
 			if err != nil {
 				return err
 			}
-			logger := xlog.New(logmetrics.NewMeteredLogger(logBackend, registry))
+			defer stopLogger()
 
 			err = mlock.LockExecutableMappings()
 			if err != nil {
