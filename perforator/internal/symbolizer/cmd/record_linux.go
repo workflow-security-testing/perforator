@@ -19,6 +19,7 @@ import (
 	"time"
 
 	pprof "github.com/google/pprof/profile"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -378,7 +379,12 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 			EnablePHP:    ptr.Bool(opts.enablePHP),
 			EnableSframe: ptr.Bool(opts.enableSframe),
 		},
-	}, logger.WithContext(ctx), registry, profiler.WithStorage(storage))
+	},
+		logger.WithContext(ctx),
+		registry,
+		profiler.WithStorage(storage),
+		profiler.WithDefaultBPFPinPrefix(fmt.Sprint("perforator-internal-cli", uuid.New().String(), "-")),
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize profiler: %w", err)

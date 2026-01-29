@@ -247,6 +247,10 @@ func (c *Config) FillDefault() {
 		defaultSlice(&c.Signals, defaultTracedSignals...)
 	}
 
+	if c.BPF.BPFFSRoot == "" {
+		c.BPF.BPFFSRoot = "/sys/fs/bpf"
+	}
+
 	if len(c.SampleConsumer.EnvWhitelist) == 0 {
 		c.SampleConsumer.EnvWhitelist = []string{"YT_OPERATION_ID"}
 	}

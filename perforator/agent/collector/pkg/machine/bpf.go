@@ -55,6 +55,10 @@ type Config struct {
 	TracePython *bool `yaml:"trace_python"`
 	// Configuration for uprobes tracing (deprecated, this field has moved to profiler config)
 	UprobesDeprecated []uprobe.Config `yaml:"uprobes,omitempty"`
+	// bpffs mount point.
+	BPFFSRoot string `yaml:"bpffs_root"`
+	// Path prefix to use when pinning BPF objects.
+	PinPrefix string `yaml:"pin_prefix"`
 }
 
 type Options struct {
@@ -78,6 +82,8 @@ type BPF struct {
 	// some maps that we need in runtime
 	samplesMap   *ebpf.Map
 	processesMap *ebpf.Map
+
+	mapsToUnpin []*ebpf.Map
 
 	progsmu   sync.RWMutex
 	progdebug bool
@@ -279,6 +285,11 @@ func (b *BPF) configureAndSetupMaps() (err error) {
 		return fmt.Errorf("failed to assign maps: %w", err)
 	}
 
+	err = b.pinIfNeeded(maps)
+	if err != nil {
+		return fmt.Errorf("failed to pin maps: %w", err)
+	}
+
 	// Prepare map replacements to be used by programs later.
 	b.mapreplacements = make(map[string]*ebpf.Map)
 	_ = maps.ForEachNamedMap(func(name string, m *ebpf.Map) error {
@@ -349,7 +360,19 @@ func (b *BPF) UnlinkPrograms() error {
 func (b *BPF) Close() error {
 	b.progsmu.Lock()
 	defer b.progsmu.Unlock()
-	return errors.Join(b.state.Close(), b.progs.Close(), b.links.close())
+	var errs []error
+	errs = append(errs, b.progs.Close(), b.links.close())
+	// let's unpin maps before closing them.
+	for _, m := range b.mapsToUnpin {
+		e := m.Unpin()
+		if e != nil {
+			// We don't preserve map name here, but it should be available in
+			// the underlying FS error anyway.
+			errs = append(errs, fmt.Errorf("failed to unpin map: %w", e))
+		}
+	}
+	errs = append(errs, b.state.Close())
+	return errors.Join(errs...)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

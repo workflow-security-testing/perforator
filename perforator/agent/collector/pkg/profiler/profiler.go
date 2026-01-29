@@ -121,6 +121,8 @@ type Profiler struct {
 
 	enablePerfMaps    bool
 	enablePerfMapsJVM bool
+
+	defaultBPFPinPrefix string
 }
 
 type languageCollectionMetrics struct {
@@ -217,6 +219,15 @@ func WithThreadTarget(tid int, labels map[string]string) Option {
 			tid:    tid,
 			labels: labels,
 		})
+		return nil
+	}
+}
+
+// WithDefaultBPFPinPrefix sets the default BPF pin prefix that will be used if no other prefix
+// is set in config.BPF.
+func WithDefaultBPFPinPrefix(pinPrefix string) Option {
+	return func(p *Profiler) error {
+		p.defaultBPFPinPrefix = pinPrefix
 		return nil
 	}
 }
@@ -344,6 +355,9 @@ func (p *Profiler) initializeStorage(r metrics.Registry) (err error) {
 // Initialize the profiler.
 // Prepare and load eBPF programs, tune rlimits, ...
 func (p *Profiler) initialize(r metrics.Registry) (err error) {
+	if p.conf.BPF.PinPrefix == "" {
+		p.conf.BPF.PinPrefix = p.defaultBPFPinPrefix
+	}
 	// Load eBPF programs
 	p.bpf, err = machine.NewBPF(
 		&p.conf.BPF,
