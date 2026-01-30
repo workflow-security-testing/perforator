@@ -14412,6 +14412,14 @@ github.com/sethgrid/pester
 # github.com/sethvargo/go-retry v0.3.0
 ## explicit; go 1.21
 github.com/sethvargo/go-retry
+# github.com/shakinm/xlsReader v0.9.12
+## explicit; go 1.13
+github.com/shakinm/xlsReader
+github.com/shakinm/xlsReader/cfb
+github.com/shakinm/xlsReader/helpers
+github.com/shakinm/xlsReader/xls
+github.com/shakinm/xlsReader/xls/record
+github.com/shakinm/xlsReader/xls/structure
 # github.com/shibumi/go-pathspec v1.3.0
 ## explicit; go 1.17
 github.com/shibumi/go-pathspec
@@ -16945,6 +16953,9 @@ github.com/zimmski/osutil
 ## explicit; go 1.16
 # github.com/zmap/zlint/v3 v3.6.0-rc1
 ## explicit; go 1.18
+# gitlab.com/metakeule/fmtdate v1.2.2
+## explicit
+gitlab.com/metakeule/fmtdate
 # gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20230209143738-95328d8c4438
 ## explicit; go 1.16
 # go.etcd.io/bbolt v1.4.1

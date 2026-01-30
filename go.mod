@@ -739,6 +739,7 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b
 	github.com/sethvargo/go-retry v0.3.0
+	github.com/shakinm/xlsReader v0.9.12
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/shirou/gopsutil/v3 v3.24.2
 	github.com/shopspring/decimal v1.4.0
@@ -865,6 +866,7 @@ require (
 	github.com/zeebo/bencode v1.0.0
 	github.com/zhangjianweibj/prometheus-libvirt-exporter v1.1.0
 	github.com/zimmski/go-mutesting v0.0.0-20210610104036-6d9217011a00
+	gitlab.com/metakeule/fmtdate v1.2.2
 	go.etcd.io/bbolt v1.4.1
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20240613141046-5cd1d285d744
 	go.etcd.io/etcd/raft/v3 v3.5.13
