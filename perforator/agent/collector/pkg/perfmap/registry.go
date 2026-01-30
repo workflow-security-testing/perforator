@@ -348,15 +348,15 @@ func (r *Registry) findProcess(pid linux.CurrentNamespacePID) *trackedProcess {
 	return r.procs[pid]
 }
 
-func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizaterOutput, bool) {
+func (r *Registry) Resolve(pid linux.CurrentNamespacePID, ip uint64) (profilerext.JITSymbolizerOutput, bool) {
 	name, ok := r.syms.Resolve(pid, ip)
 	if ok {
-		return profilerext.JITSymbolizaterOutput{
+		return profilerext.JITSymbolizerOutput{
 			SymbolName:  name,
 			MappingName: profile.JITSpecialMapping,
 		}, true
 	}
-	return profilerext.JITSymbolizaterOutput{}, false
+	return profilerext.JITSymbolizerOutput{}, false
 }
 
 func trySleepContext(ctx context.Context, dur time.Duration) {
