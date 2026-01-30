@@ -271,6 +271,16 @@ static ALWAYS_INLINE u64 get_perf_event_id(struct bpf_perf_event_data* ctx) {
     return BPF_CORE_READ(kctx, event, id);
 }
 
+static ALWAYS_INLINE u32 get_perf_event_type(struct bpf_perf_event_data* ctx) {
+    struct bpf_perf_event_data_kern* kctx = (void*)ctx;
+    return BPF_CORE_READ(kctx, event, attr.type);
+}
+
+static ALWAYS_INLINE u32 get_perf_event_config(struct bpf_perf_event_data* ctx) {
+    struct bpf_perf_event_data_kern* kctx = (void*)ctx;
+    return BPF_CORE_READ(kctx, event, attr.config);
+}
+
 static NOINLINE u64 calculate_perf_counter_delta(struct bpf_perf_event_data* ctx, u64 id) {
     struct bpf_perf_event_value zero = {};
     struct bpf_perf_event_value* prev = bpf_map_lookup_elem(&perf_event_values, &id);
@@ -578,7 +588,7 @@ struct profiler_sample_args {
     u64 event_count;
     u64 starttime;
     enum sample_type sample_type;
-    u64 sample_config;
+    union sample_config sample_config;
     bool needs_lbr_stack;
     bool normalize_walltime;
     bool record_walltime;
@@ -688,8 +698,9 @@ int perforator_perf_event(struct bpf_perf_event_data* ctx) {
     args.record_walltime = true;
 
     args.sample_type = SAMPLE_TYPE_PERF_EVENT;
-    args.sample_config = get_perf_event_id(ctx);
-    args.event_count = calculate_perf_counter_delta(ctx, args.sample_config);
+    args.sample_config.attr.type = get_perf_event_type(ctx);
+    args.sample_config.attr.config = get_perf_event_config(ctx);
+    args.event_count = calculate_perf_counter_delta(ctx, get_perf_event_id(ctx));
     if (args.event_count == 0) {
         return 0;
     }
@@ -730,8 +741,9 @@ int perforator_amd_fam19h_brs_event(struct bpf_perf_event_data* ctx) {
     args.record_walltime = false;
 
     args.sample_type = SAMPLE_TYPE_PERF_EVENT;
-    args.sample_config = get_perf_event_id(ctx);
-    args.event_count = calculate_perf_counter_delta(ctx, args.sample_config);
+    args.sample_config.attr.type = get_perf_event_type(ctx);
+    args.sample_config.attr.config = get_perf_event_config(ctx);
+    args.event_count = calculate_perf_counter_delta(ctx, get_perf_event_id(ctx));
     if (args.event_count == 0) {
         return 0;
     }
@@ -768,7 +780,6 @@ int perforator_finish_task_switch(struct pt_regs* ctx) {
     struct profiler_sample_args args = {};
     args.starttime = bpf_ktime_get_ns();
     args.sample_type = SAMPLE_TYPE_KPROBE_FINISH_TASK_SWITCH;
-    args.sample_config = 0;
     args.event_count = 0;
     args.needs_lbr_stack = false;
     args.normalize_walltime = true;
@@ -817,7 +828,7 @@ int perforator_signal_deliver(struct trace_event_signal_deliver* ctx) {
     struct profiler_sample_args args = {};
     args.starttime = bpf_ktime_get_ns();
     args.sample_type = SAMPLE_TYPE_TRACEPOINT_SIGNAL_DELIVER;
-    args.sample_config = ctx->sig;
+    args.sample_config.sig = ctx->sig;
     args.event_count = 0;
     args.needs_lbr_stack = false;
     args.record_walltime = false;
@@ -846,7 +857,6 @@ int perforator_uprobe(struct pt_regs* ctx) {
     struct profiler_sample_args args = {};
     args.starttime = bpf_ktime_get_ns();
     args.sample_type = SAMPLE_TYPE_UPROBE;
-    args.sample_config = 0;
     args.event_count = 1;
     args.needs_lbr_stack = false;
     args.record_walltime = false;
@@ -859,7 +869,7 @@ int perforator_uprobe(struct pt_regs* ctx) {
         BPF_TRACE("Failed to load user_regs\n");
         return 1;
     }
-    args.sample_config = regs_get_current_instruction(regs);
+    args.sample_config.ip = regs_get_current_instruction(regs);
 
     profiler_do_sample_other(ctx, regs, &args);
 

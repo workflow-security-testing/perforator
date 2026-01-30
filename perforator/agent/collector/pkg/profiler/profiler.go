@@ -543,7 +543,15 @@ func (p *Profiler) setupPerfEvents() error {
 
 		p.log.Debug("Trying to open perf event bundle", log.Any("config", event))
 
-		if p.events[event.Type] != nil {
+		typ := perfevent.GetTypeByNameOrAlias(event.Type)
+		if typ == nil {
+			return fmt.Errorf("failed to find event %q", event.Type)
+		}
+		eventType, ok := typ.(*perfevent.PerfEventType)
+		if !ok {
+			return fmt.Errorf("found event %q, but it is not a perf event", event.Type)
+		}
+		if p.events[eventType] != nil {
 			return fmt.Errorf("duplicate perf event type %s", event.Type)
 		}
 
@@ -552,7 +560,7 @@ func (p *Profiler) setupPerfEvents() error {
 		}
 
 		options := &perfevent.Options{
-			Type:                   event.Type,
+			Type:                   eventType,
 			Frequency:              event.Frequency,
 			SampleRate:             event.SampleRate,
 			TryToSampleBranchStack: perfevent.ShouldTryToEnableBranchSampling(),
@@ -563,7 +571,7 @@ func (p *Profiler) setupPerfEvents() error {
 			return fmt.Errorf("failed to create perf event bundle: %w", err)
 		}
 
-		p.events[event.Type] = bundle
+		p.events[eventType] = bundle
 		p.log.Debug("Successfully opened perf event bundle")
 	}
 
@@ -625,7 +633,7 @@ func (p *Profiler) maybeInitializeAmdFam19hBRSPerfEvent() {
 		WholeSystem: true,
 	}
 	options := &perfevent.Options{
-		Type: perfevent.AMD_RetiredTakenBranchInstructions,
+		Type: perfevent.AMDFam19hBRS,
 		// Frequency is not supported here, so we have to provide sampling period.
 		// This value seems reasonable to me, but could be easily changed.
 		SampleRate:             ptr.T(uint64(1000009)),

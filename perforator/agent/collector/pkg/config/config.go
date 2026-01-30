@@ -35,7 +35,7 @@ type EgressConfig struct {
 type PerfEventConfig struct {
 	// Type of the event to collect.
 	// perfevent.CPUCycles by default.
-	Type perfevent.Type `yaml:"type"`
+	Type string `yaml:"type"`
 
 	// Number of events to collect per second.
 	// Mutually exclusive with Rate.
@@ -211,7 +211,7 @@ func (c *Config) FillDefault() {
 
 	if (c.BPF.TraceSignals == nil || !*c.BPF.TraceSignals) && len(c.PerfEvents) == 0 && len(uprobes) == 0 {
 		c.PerfEvents = []PerfEventConfig{{
-			Type:      perfevent.CPUCycles,
+			Type:      perfevent.CPUCycles.Name(),
 			Frequency: ptr.Uint64(99),
 		}}
 	}

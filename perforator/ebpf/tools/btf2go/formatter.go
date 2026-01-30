@@ -450,6 +450,59 @@ func (f *GoFormatter) getPrimitiveParseFunc(typ *btf.Int) string {
 	}
 }
 
+func (f *GoFormatter) generateUnionMemberGetters(w *strings.Builder, v *btf.Union, name string) error {
+	for _, member := range v.Members {
+		// We do not support anonymous members.
+		if member.Name == "" {
+			continue
+		}
+
+		memberTypeName := f.typname(member.Type)
+		memberName := snakeToPascal(member.Name)
+
+		offsetBytes := member.Offset.Bytes()
+
+		fmt.Fprintf(w, "func (v *%s) Get%s() %s {\n", name, memberName, memberTypeName)
+
+		switch typ := member.Type.(type) {
+		case *btf.Int:
+			parseFunc := f.getPrimitiveParseFunc(typ)
+			if parseFunc == "" {
+				return fmt.Errorf("unsupported primitive type with size %d and encoding %d", typ.Size, typ.Encoding)
+			}
+			fmt.Fprintf(w, "  return %s(v.UnionBuf[%d:])\n", parseFunc, offsetBytes)
+		case *btf.Struct:
+			fmt.Fprintf(w, "  return parse%s(v.UnionBuf[%d:])\n", strings.Title(memberTypeName), offsetBytes)
+		case *btf.Array:
+			_, isArr := typ.Type.(*btf.Array)
+			if isArr {
+				return fmt.Errorf("nested arrays are not supported")
+			}
+			elemTypeName := f.typname(typ.Type)
+			elemSize, _ := btf.Sizeof(typ.Type)
+			fmt.Fprintf(w, "  arr := make([]%s, %d)", elemTypeName, typ.Nelems)
+			fmt.Fprintf(w, "  for i := 0; i < %d; i++ {\n", typ.Nelems)
+			fmt.Fprintf(w, "    arr[i] = parse%s(v.UnionBuf[%d+i*%d:])\n", strings.Title(elemTypeName), offsetBytes, elemSize)
+			fmt.Fprintf(w, "  }\n")
+			fmt.Fprintf(w, "  return arr\n")
+		case *btf.Pointer:
+			fmt.Fprintf(w, "  ptr := parseUint64(v.UnionBuf[%d:])\n", offsetBytes)
+			fmt.Fprintf(w, "  return unsafe.Pointer(uintptr(ptr))\n")
+		case *btf.Enum:
+			fmt.Fprintf(w, "  return parse%s(v.UnionBuf[%d:])\n", strings.Title(memberTypeName), offsetBytes)
+		case *btf.Typedef:
+			fmt.Fprintf(w, "  return parse%s(v.UnionBuf[%d:])\n", strings.Title(memberTypeName), offsetBytes)
+		case *btf.Union:
+			fmt.Fprintf(w, "  return parse%s(v.UnionBuf[%d:])\n", strings.Title(memberTypeName), offsetBytes)
+		default:
+			return fmt.Errorf("unsupported type %s for field %s", memberTypeName, memberName)
+		}
+
+		fmt.Fprint(w, "}\n")
+	}
+	return nil
+}
+
 func (f *GoFormatter) generateStructParser(w *strings.Builder, v *btf.Struct, name string) error {
 	fmt.Fprintf(w, "func parse%s(data []byte) %s {\n", strings.Title(name), name)
 	fmt.Fprintf(w, "  var result %s\n", name)
@@ -577,6 +630,10 @@ func (f *GoFormatter) visitUnion(v *btf.Union) (*typeInfo, error) {
 	_, _ = w.WriteString("}\n")
 
 	f.generateUnionParser(w, v, name)
+
+	if err := f.generateUnionMemberGetters(w, v, name); err != nil {
+		return nil, err
+	}
 
 	return &typeInfo{
 		SystemName: v.Name,

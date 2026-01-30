@@ -60,7 +60,7 @@ type Target struct {
 
 type Options struct {
 	// Type of the perf event.
-	Type Type
+	Type *PerfEventType
 
 	// Event sampling rate.
 	SampleRate *uint64
@@ -193,10 +193,8 @@ func makePerfEventAttr(options *Options, branchStackOptions *branchStackOptions)
 	attr := &unix.PerfEventAttr{}
 	attr.Size = uint32(unsafe.Sizeof(*attr))
 
-	err := fillPerfAttrConfig(attr, options)
-	if err != nil {
-		return nil, err
-	}
+	attr.Type = options.Type.Type
+	attr.Config = options.Type.Config
 
 	attr.Sample_type = 0 |
 		unix.PERF_SAMPLE_CALLCHAIN |
@@ -228,101 +226,4 @@ func makePerfEventAttr(options *Options, branchStackOptions *branchStackOptions)
 	}
 
 	return attr, nil
-}
-
-func fillPerfAttrConfig(attr *unix.PerfEventAttr, options *Options) error {
-	switch options.Type {
-	// Hardware events
-	case CPUCycles:
-		attr.Type = unix.PERF_TYPE_HARDWARE
-		attr.Config = unix.PERF_COUNT_HW_CPU_CYCLES
-
-	case CPUInstructions:
-		attr.Type = unix.PERF_TYPE_HARDWARE
-		attr.Config = unix.PERF_COUNT_HW_INSTRUCTIONS
-
-	case CacheReferences:
-		attr.Type = unix.PERF_TYPE_HARDWARE
-		attr.Config = unix.PERF_COUNT_HW_CACHE_REFERENCES
-
-	case CacheMisses:
-		attr.Type = unix.PERF_TYPE_HARDWARE
-		attr.Config = unix.PERF_COUNT_HW_CACHE_MISSES
-
-	case LLCacheLoadMisses:
-		attr.Type = unix.PERF_TYPE_HW_CACHE
-		attr.Config = cache(
-			unix.PERF_COUNT_HW_CACHE_LL,
-			unix.PERF_COUNT_HW_CACHE_OP_READ,
-			unix.PERF_COUNT_HW_CACHE_RESULT_MISS,
-		)
-
-	case LLCacheStoreMisses:
-		attr.Type = unix.PERF_TYPE_HW_CACHE
-		attr.Config = cache(
-			unix.PERF_COUNT_HW_CACHE_LL,
-			unix.PERF_COUNT_HW_CACHE_OP_WRITE,
-			unix.PERF_COUNT_HW_CACHE_RESULT_MISS,
-		)
-
-	// AMD-specific hardware events
-	case AMD_RetiredTakenBranchInstructions:
-		// Has to be a raw event
-		attr.Type = unix.PERF_TYPE_RAW
-		// AMD-specific constant, not present in unix package
-		// https://github.com/torvalds/linux/blob/07e27ad16399afcd693be20211b0dfae63e0615f/arch/x86/events/perf_event.h#L1453
-		attr.Config = AMD_RetiredTakenBranchInstructions_PerfEventConfig
-
-	// Software events
-	case CPUClock:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_CPU_CLOCK
-
-	case TaskClock:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_TASK_CLOCK
-
-	case PageFaults:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_PAGE_FAULTS
-
-	case ContextSwitches:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_CONTEXT_SWITCHES
-
-	case CPUMigrations:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_CPU_MIGRATIONS
-
-	case PageFaultsMin:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_PAGE_FAULTS_MIN
-
-	case PageFaultsMaj:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_PAGE_FAULTS_MAJ
-
-	case AlignmentFaults:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_ALIGNMENT_FAULTS
-
-	case EmulationFaults:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_EMULATION_FAULTS
-
-	case Dummy:
-		attr.Type = unix.PERF_TYPE_SOFTWARE
-		attr.Config = unix.PERF_COUNT_SW_DUMMY
-
-		// FIXME(sskvor): Support more events
-
-	default:
-		return fmt.Errorf("unsupported perf event type: %s", options.Type)
-	}
-
-	return nil
-}
-
-func cache(id, op, result uint32) uint64 {
-	return uint64(id | (op << 8) | (result << 16))
 }
