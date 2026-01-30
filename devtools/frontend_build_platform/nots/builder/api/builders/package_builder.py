@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from devtools.frontend_build_platform.libraries.logging import timeit
 
-from .base_builder import BaseBuilder
+from .base_builder import BaseLegacyBuilder
 from ..models import CommonBuildersOptions
 
 
@@ -16,10 +16,7 @@ class PackageBuilderOptions(CommonBuildersOptions):
     pass
 
 
-class PackageBuilder(BaseBuilder):
-    def __init__(self, options):
-        super(PackageBuilder, self).__init__(options, copy_package_json=True)
-
+class PackageBuilder(BaseLegacyBuilder):
     @timeit
     def bundle(self):
         if self.options.with_after_build and self.options.after_build_outdir:

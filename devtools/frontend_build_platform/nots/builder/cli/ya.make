@@ -3,6 +3,7 @@ PY3_LIBRARY()
 STYLE_PYTHON()
 
 PY_SRCS(
+    commands/build_library.py
     commands/build_next.py
     commands/build_package.py
     commands/build_ts_proto.py

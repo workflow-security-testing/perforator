@@ -67,10 +67,22 @@ class BaseOptions:
 
 
 @dataclass
-class CommonBuildersOptions(BaseOptions):
+class BaseBuildersOptions(BaseOptions):
     output_file: str
     """Absolute path to `output.tar`, expecting to be after building"""
 
+    vcs_info: str | None
+    """
+    path to json file with VCS details.
+    See https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#vcs-info-file
+    """
+
+    env: list[str]
+    """Environment variables lint in VAR format"""
+
+
+@dataclass
+class CommonBuildersOptions(BaseBuildersOptions):
     with_after_build: bool
     """Shows if should run after build script"""
 
@@ -88,15 +100,6 @@ class CommonBuildersOptions(BaseOptions):
 class CommonTsBuildersOptions(CommonBuildersOptions):
     tsconfigs: list[str]
     """list of the tsconfig files. For bundlers only the first record used."""
-
-    vcs_info: str | None
-    """
-    path to json file with VCS details.
-    See https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#vcs-info-file
-    """
-
-    env: list[str]
-    """Environment variables lint in VAR format"""
 
 
 @dataclass

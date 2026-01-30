@@ -9,6 +9,7 @@ from build.plugins.lib.nots.package_manager import (
 )
 from devtools.frontend_build_platform.libraries.logging import timeit
 from .commands.build_next import build_next_parser, NextBuilderOptions
+from .commands.build_library import build_library_parser, TsLibraryBuilderOptions
 from .commands.build_package import build_package_parser, PackageBuilderOptions
 from .commands.build_ts_proto import build_ts_proto_parser, TsProtoBuilderOptions
 from .commands.build_tsc import build_tsc_parser, TscBuilderOptions
@@ -53,23 +54,14 @@ def register_base_args(parser: ArgumentParser) -> None:
 
 
 @timeit
-def __with_bundlers_options(parser: ArgumentParser) -> ArgumentParser:
-    """Common arguments for bundlers"""
+def __with_base_builders_options(parser: ArgumentParser) -> ArgumentParser:
+    """Arguments for BaseBuildersOptions"""
 
-    parser.add_argument('--output-dirs', required=True, nargs='+', help="Defined output directories for the bundler")
     parser.add_argument(
-        '--bundler-config-path',
+        '--output-file',
         required=True,
-        nargs='+',
-        help="Path to the bundler config (vite.config.ts, webpack.config.js, rspack.config.js, etc...)",
+        help="Absolute path to output.tar, expected to be generated during build",
     )
-
-    return parser
-
-
-@timeit
-def __with_ts_builders_options(parser: ArgumentParser):
-    """Common arguments for ts builders"""
 
     parser.add_argument(
         '--vcs-info',
@@ -77,13 +69,6 @@ def __with_ts_builders_options(parser: ArgumentParser):
         nargs='?',
         default='',
         help="Path to the VCS_INFO_FILE, see https://docs.yandex-team.ru/ya-make/manual/package/macros#vcs_info_file",
-    )
-
-    parser.add_argument(
-        '--tsconfigs',
-        required=True,
-        nargs='+',
-        help="List of the tsconfigs (multiple tsconfigs are supported only in `build-tsc` command)",
     )
 
     parser.add_argument(
@@ -98,14 +83,44 @@ def __with_ts_builders_options(parser: ArgumentParser):
 
 
 @timeit
-def __with_builders_options(parser: ArgumentParser):
-    """Common arguments for all builders"""
+def __with_common_bundlers_options(parser: ArgumentParser) -> ArgumentParser:
+    """Arguments for CommonBundlersOptions (extends CommonTsBuildersOptions)"""
+
+    __with_common_ts_builders_options(parser)  # Add TS builder options first
+
+    parser.add_argument('--output-dirs', required=True, nargs='+', help="Defined output directories for the bundler")
 
     parser.add_argument(
-        '--output-file',
+        '--bundler-config-path',
         required=True,
-        help="Absolute path to output.tar, expected to be generated during build",
+        nargs='+',
+        help="Path to the bundler config (vite.config.ts, webpack.config.js, rspack.config.js, etc...)",
     )
+
+    return parser
+
+
+@timeit
+def __with_common_ts_builders_options(parser: ArgumentParser) -> ArgumentParser:
+    """Arguments for CommonTsBuildersOptions (extends CommonBuildersOptions)"""
+
+    __with_common_builders_options(parser)  # Add common builder options first
+
+    parser.add_argument(
+        '--tsconfigs',
+        required=True,
+        nargs='+',
+        help="List of the tsconfigs (multiple tsconfigs are supported only in `build-tsc` command)",
+    )
+
+    return parser
+
+
+@timeit
+def __with_common_builders_options(parser: ArgumentParser) -> ArgumentParser:
+    """Arguments for CommonBuildersOptions (extends BaseBuildersOptions)"""
+
+    __with_base_builders_options(parser)  # Add base options first
 
     parser.add_argument(
         "--with-after-build",
@@ -143,24 +158,21 @@ def register_builders(subparsers):
     # Only build node_modules
     create_node_modules_parser(subparsers)
 
-    # Based builder
-    __with_builders_options(build_package_parser(subparsers))
+    # Builders extending BaseBuildersOptions
+    __with_base_builders_options(build_library_parser(subparsers))
 
-    # TS transpilers
-    def add_ts_builder_options(s):
-        return __with_builders_options(__with_ts_builders_options(s))
+    # Builders extending CommonBuildersOptions
+    __with_common_builders_options(build_package_parser(subparsers))
 
-    add_ts_builder_options(build_tsc_parser(subparsers))
-    add_ts_builder_options(build_ts_proto_parser(subparsers))
+    # Builders extending CommonTsBuildersOptions
+    __with_common_ts_builders_options(build_tsc_parser(subparsers))
+    __with_common_ts_builders_options(build_ts_proto_parser(subparsers))
 
-    # Bundlers
-    def add_bundler_options(s):
-        return __with_bundlers_options(add_ts_builder_options(s))
-
-    add_bundler_options(build_next_parser(subparsers))
-    add_bundler_options(build_vite_parser(subparsers))
-    add_bundler_options(build_webpack_parser(subparsers))
-    add_bundler_options(build_rspack_parser(subparsers))
+    # Builders extending CommonBundlersOptions
+    __with_common_bundlers_options(build_next_parser(subparsers))
+    __with_common_bundlers_options(build_vite_parser(subparsers))
+    __with_common_bundlers_options(build_webpack_parser(subparsers))
+    __with_common_bundlers_options(build_rspack_parser(subparsers))
 
 
 @timeit
@@ -180,6 +192,7 @@ AllOptions = (
     CreateNodeModulesOptions
     | NextBuilderOptions
     | PackageBuilderOptions
+    | TsLibraryBuilderOptions
     | TsProtoBuilderOptions
     | TscBuilderOptions
     | ViteBuilderOptions

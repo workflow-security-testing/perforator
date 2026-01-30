@@ -100,6 +100,55 @@ def test_create_node_modules_bundle_args():
     )
 
 
+def test_build_library_args():
+    # arrange
+    command_args = """
+        --arcadia-root /Users/khoden/arcadia
+        --arcadia-build-root /Users/khoden/.ya/build/build_root/5gxr/000067
+        --moddir devtools/dummy_arcadia/typescript/library
+        --nodejs-bin /Users/khoden/.ya/tools/v4/5356355025/node
+        --pm-script /Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs
+        --pm-type pnpm
+        --verbose no
+        build-library
+        --output-file /Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/library/output.tar
+        --outputs dist build
+        --build-script build
+        --exclude-globs ya.make (.idea|.vscode|node_modules)/**/*
+        --vcs-info /path/to/vcs_info.json
+        --env NODE_ENV=production
+    """
+
+    # act + assert
+    assert __convert_args_to_dict(command_args) == dict(
+        # Base
+        arcadia_build_root='/Users/khoden/.ya/build/build_root/5gxr/000067',
+        arcadia_root='/Users/khoden/arcadia',
+        moddir='devtools/dummy_arcadia/typescript/library',
+        nodejs_bin='/Users/khoden/.ya/tools/v4/5356355025/node',
+        pm_script='/Users/khoden/.ya/tools/v4/4992859933/node_modules/pnpm/dist/pnpm.cjs',
+        pm_type='pnpm',
+        yatool_prebuilder_path=None,
+        use_legacy_pnpm_virtual_store=False,
+        env=['NODE_ENV=production'],
+        # Flags
+        local_cli=False,
+        nm_bundle=False,
+        verbose=False,
+        # Calculated
+        bindir='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/library',
+        curdir='/Users/khoden/arcadia/devtools/dummy_arcadia/typescript/library',
+        node_modules_bundle=False,
+        # Command-specific
+        command='build-library',
+        output_file='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/library/output.tar',
+        vcs_info='/path/to/vcs_info.json',
+        outputs=['dist', 'build'],
+        build_script='build',
+        exclude_globs=["ya.make", "(.idea|.vscode|node_modules)/**/*"],
+    )
+
+
 def test_build_package_args():
     # arrange
     command_args = """
@@ -125,6 +174,7 @@ def test_build_package_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        env=[],
         # Flags
         local_cli=False,
         nm_bundle=False,
@@ -136,6 +186,7 @@ def test_build_package_args():
         # Command-specific
         command='build-package',
         output_file='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/output.tar',
+        vcs_info='',
         with_after_build=False,
         after_build_js=None,
         after_build_args=None,
@@ -169,6 +220,7 @@ def test_build_package_nm_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        env=[],
         # Flags
         local_cli=False,
         nm_bundle=True,
@@ -180,6 +232,7 @@ def test_build_package_nm_args():
         # Command-specific
         command='build-package',
         output_file='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/output.tar',
+        vcs_info='',
         with_after_build=False,
         after_build_js=None,
         after_build_args=None,
@@ -654,6 +707,7 @@ def test_build_verbose_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        env=[],
         # Flags
         local_cli=False,
         nm_bundle=False,
@@ -665,6 +719,7 @@ def test_build_verbose_args():
         # Command-specific
         command='build-package',
         output_file='/Users/khoden/.ya/build/build_root/5gxr/000067/devtools/dummy_arcadia/typescript/simple/output.tar',
+        vcs_info='',
         with_after_build=False,
         after_build_js=None,
         after_build_args=None,

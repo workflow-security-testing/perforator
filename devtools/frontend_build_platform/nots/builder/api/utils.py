@@ -12,6 +12,7 @@ from build.plugins.lib.nots.package_manager import (
     utils as pm_utils,
 )
 from devtools.frontend_build_platform.libraries.logging import timeit
+from .globs import GlobMatcher
 
 
 def eprint(*args, **kwargs):
@@ -130,6 +131,59 @@ def recursive_copy(src, dest, overwrite=False, recurse_level=0):
 
 
 @timeit
+def copy_files_with_exclusions(src_dir: str, dst_dir: str, exclude_globs: list[str]):
+    """
+    Copy files from src_dir to dst_dir, excluding files matching exclude_globs patterns.
+
+    Args:
+        src_dir: Source directory path
+        dst_dir: Destination directory path
+        exclude_globs: List of glob patterns to exclude (supports *, **, (a|b|c) alternation)
+    """
+    # Create glob matcher from exclusion patterns
+    matcher = GlobMatcher(exclude_globs)
+
+    # Walk through src_dir recursively
+    for root, dirs, files in os.walk(src_dir):
+        # Calculate relative path from src_dir
+        rel_root = os.path.relpath(root, src_dir)
+        if rel_root == '.':
+            rel_root = ''
+
+        # Filter directories to avoid walking into excluded ones
+        dirs_to_remove = []
+        for dir_name in dirs:
+            rel_dir_path = os.path.join(rel_root, dir_name) if rel_root else dir_name
+            # Check if directory would be excluded using matches_whole_dir
+            if matcher.matches_whole_dir(rel_dir_path):
+                dirs_to_remove.append(dir_name)
+
+        # Remove excluded directories from dirs list to prevent os.walk from descending
+        for dir_name in dirs_to_remove:
+            dirs.remove(dir_name)
+
+        # Create destination directory once for all files in current directory
+        if files:
+            dst_subdir = os.path.join(dst_dir, rel_root) if rel_root else dst_dir
+            os.makedirs(dst_subdir, exist_ok=True)
+
+        # Copy files that are not excluded
+        for file_name in files:
+            rel_file_path = os.path.join(rel_root, file_name) if rel_root else file_name
+
+            # Check if file matches any exclusion pattern
+            if matcher.matches(rel_file_path):
+                continue
+
+            # Copy file to dst_dir maintaining directory structure
+            src_path = os.path.join(root, file_name)
+            dst_path = os.path.join(dst_dir, rel_file_path)
+            if not os.path.exists(dst_path):
+                shutil.copy(src_path, dst_path)
+                __add_write_permissions(dst_path)
+
+
+@timeit
 def simplify_colors(data):
     """
     Some tools use light-* colors instead of simple ones, this yet to be supported by ya make
@@ -197,3 +251,19 @@ def parse_opt_to_dict(opts: list[str]) -> dict[str, str]:
 
 def dict_to_ts_proto_opt(d: dict[str, str]) -> str:
     return ','.join(f'{key}={value}' for key, value in d.items())
+
+
+@timeit
+def bundle_fs_entries(dirs_and_files: list[str], build_path: str, bundle_path: str):
+    if not dirs_and_files:
+        raise RuntimeError("Please define `output_dirs`")
+
+    paths_to_pack = {}
+    for dir_or_file in dirs_and_files:
+        arcname = os.path.normpath(dir_or_file)
+        path_to_pack = os.path.normpath(os.path.join(build_path, dir_or_file))
+        paths_to_pack[path_to_pack] = arcname
+
+    archive.tar(
+        list(paths_to_pack.items()), bundle_path, compression_filter=None, compression_level=None, fixed_mtime=0
+    )

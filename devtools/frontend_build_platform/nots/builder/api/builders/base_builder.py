@@ -7,7 +7,6 @@ from abc import ABCMeta, abstractmethod
 from six import add_metaclass
 
 import click
-import library.python.archive as archive
 from build.plugins.lib.nots.package_manager import (
     constants as pm_constants,
     PackageJson,
@@ -15,41 +14,127 @@ from build.plugins.lib.nots.package_manager import (
 )
 from build.plugins.lib.nots.typescript import TsConfig
 from devtools.frontend_build_platform.libraries.logging import timeit
-from ..models import BuildError, CommonBuildersOptions, CommonTsBuildersOptions
-from ..utils import recursive_copy, extract_peer_tars, popen, resolve_bin
+from ..models import BuildError, BaseBuildersOptions, CommonBuildersOptions, CommonTsBuildersOptions
+from ..utils import recursive_copy, extract_peer_tars, popen, resolve_bin, bundle_fs_entries
 
 
 @add_metaclass(ABCMeta)
 class BaseBuilder(object):
-    @staticmethod
-    @timeit
-    def bundle_dirs(output_dirs: list[str], build_path: str, bundle_path: str):
-        if not output_dirs:
-            raise RuntimeError("Please define `output_dirs`")
-
-        paths_to_pack = {}
-        for output_dir in output_dirs:
-            arcname = os.path.normpath(output_dir)
-            path_to_pack = os.path.normpath(os.path.join(build_path, output_dir))
-            paths_to_pack[path_to_pack] = arcname
-
-        archive.tar(
-            list(paths_to_pack.items()), bundle_path, compression_filter=None, compression_level=None, fixed_mtime=0
-        )
-
-    def __init__(self, options: CommonBuildersOptions, copy_package_json=True):
+    def __init__(self, options: BaseBuildersOptions):
         self.options = options
-        self.copy_package_json = copy_package_json
 
-    @timeit
     def build(self):
         self._prepare_bindir()
         self._build()
-        self._run_javascript_after_build()
+
+    def _prepare_bindir(self):
+        self._prepare_dependencies()
+
+    @timeit
+    def __extract_peer_tars(self, *args, **kwargs):
+        return extract_peer_tars(*args, **kwargs)
 
     @abstractmethod
-    def _build(self):
-        pass
+    def _build(self): ...
+
+    @timeit
+    def _prepare_dependencies(self):
+        # package.json should be in BINDIR in order for extract_peer_tars to work
+        recursive_copy(
+            pm_utils.build_pj_path(self.options.curdir),
+            pm_utils.build_pj_path(self.options.bindir),
+        )
+        self.__extract_peer_tars(self.options.bindir)
+
+    def _get_base_env(self, extra_paths: list[str] = []) -> dict[str, str]:
+        env = {}
+
+        # MODDIR is persistent API for users. Do not change without project changes.
+        # Other variables is not persistent and can not be exposed to users application
+        # See contract documentation: https://docs.yandex-team.ru/ya-make/manual/common/vars
+        env['MODDIR'] = self.options.moddir
+
+        # Set directory with the `node` executable as the PATH
+        env_paths = [os.path.dirname(self.options.nodejs_bin)] + extra_paths
+        env['PATH'] = os.pathsep.join(env_paths)
+
+        bindir_node_modules_path = os.path.join(self.options.bindir, pm_constants.NODE_MODULES_DIRNAME)
+        node_path = [
+            os.path.join(
+                pm_utils.build_vs_store_path(self.options.arcadia_build_root, self.options.moddir),
+                pm_constants.NODE_MODULES_DIRNAME,
+            ),
+            # TODO: remove - no longer needed
+            os.path.join(
+                bindir_node_modules_path, pm_constants.VIRTUAL_STORE_DIRNAME, pm_constants.NODE_MODULES_DIRNAME
+            ),
+            bindir_node_modules_path,
+        ]
+
+        env['NODE_PATH'] = os.pathsep.join(node_path)
+
+        return env
+
+    def _get_vcs_info_env(self, vcs_info_file: str) -> dict[str, str]:
+        """convert vcs_info.json to environment variables (as dict)"""
+        assert vcs_info_file
+
+        vcs_info_path = os.path.join(self.options.bindir, vcs_info_file)
+        with open(vcs_info_path) as f:
+            data = json.load(f)
+
+        def get_env_name(field: str) -> str:
+            return f'VCS_INFO_{field.upper().replace("-", "_")}'
+
+        return {get_env_name(k): str(v) for k, v in data.items()}
+
+    def _get_user_defined_env(self) -> dict[str, str]:
+        env = {}
+        for pair in self.options.env:
+            key, value = pair.split("=", 1)
+            env[key] = value
+        return env
+
+    @timeit
+    def _get_envs(self, extra_paths: list[str] = []) -> dict[str, str]:
+        env = self._get_base_env(extra_paths)
+
+        if self.options.vcs_info:
+            env.update(self._get_vcs_info_env(self.options.vcs_info))
+
+        if self.options.env:
+            env.update(self._get_user_defined_env())
+
+        return env
+
+    @timeit
+    def _make_bins_executable(self):
+        pj = PackageJson.load(pm_utils.build_pj_path(self.options.bindir))
+        for bin_tool in pj.bins_iter():
+            bin_path = os.path.join(self.options.bindir, bin_tool)
+            bin_stat = os.stat(bin_path)
+            os.chmod(bin_path, bin_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
+@add_metaclass(ABCMeta)
+class BaseLegacyBuilder(BaseBuilder):
+    @staticmethod
+    def bundle_dirs(output_dirs: list[str], build_path: str, bundle_path: str):
+        bundle_fs_entries(output_dirs, build_path, bundle_path)
+
+    def __init__(self, options: CommonBuildersOptions):
+        super(BaseLegacyBuilder, self).__init__(options)
+        self.options = options  # this is for type hints to understand real options' type
+
+    @timeit
+    def build(self):
+        super(BaseLegacyBuilder, self).build()
+        self._run_javascript_after_build()
+
+    @timeit
+    def _prepare_bindir(self):
+        super(BaseLegacyBuilder, self)._prepare_bindir()
+        self._copy_src_files_to_bindir()
 
     def _get_copy_ignore_list(self) -> set[str]:
         return {
@@ -83,13 +168,6 @@ class BaseBuilder(object):
             recursive_copy(entry.path, dst)
 
     @timeit
-    def _copy_package_json(self):
-        recursive_copy(
-            pm_utils.build_pj_path(self.options.curdir),
-            pm_utils.build_pj_path(self.options.bindir),
-        )
-
-    @timeit
     def _exec_nodejs_script(self, script_path: str, script_args: list[str], env: dict):
         args = [self.options.nodejs_bin, script_path] + script_args
 
@@ -116,35 +194,6 @@ class BaseBuilder(object):
             raise BuildError(self.options.command, return_code, stdout, stderr)
 
     @timeit
-    def _get_envs(self):
-        env = {}
-
-        # MODDIR is persistent API for users. Do not change without project changes.
-        # Other variables is not persistent and can not be exposed to users application
-        # See contract documentation: https://docs.yandex-team.ru/ya-make/manual/common/vars
-        env['MODDIR'] = self.options.moddir
-
-        # Set directory with the `node` executable as the PATH
-        env['PATH'] = os.path.dirname(self.options.nodejs_bin)
-
-        bindir_node_modules_path = os.path.join(self.options.bindir, pm_constants.NODE_MODULES_DIRNAME)
-        node_path = [
-            os.path.join(
-                pm_utils.build_vs_store_path(self.options.arcadia_build_root, self.options.moddir),
-                pm_constants.NODE_MODULES_DIRNAME,
-            ),
-            # TODO: remove - no longer needed
-            os.path.join(
-                bindir_node_modules_path, pm_constants.VIRTUAL_STORE_DIRNAME, pm_constants.NODE_MODULES_DIRNAME
-            ),
-            bindir_node_modules_path,
-        ]
-
-        env['NODE_PATH'] = os.pathsep.join(node_path)
-
-        return env
-
-    @timeit
     def _run_javascript_after_build(self):
         if not self.options.with_after_build:
             return
@@ -155,24 +204,9 @@ class BaseBuilder(object):
             env=self._get_envs(),
         )
 
-    @timeit
-    def _prepare_bindir(self):
-        if self.copy_package_json:
-            self._copy_package_json()
-        self._prepare_dependencies()
-        self._copy_src_files_to_bindir()
-
-    @timeit
-    def _prepare_dependencies(self):
-        self.__extract_peer_tars(self.options.bindir)
-
-    @timeit
-    def __extract_peer_tars(self, *args, **kwargs):
-        return extract_peer_tars(*args, **kwargs)
-
 
 @add_metaclass(ABCMeta)
-class BaseTsBuilder(BaseBuilder):
+class BaseTsBuilder(BaseLegacyBuilder):
     @staticmethod
     @timeit
     def load_ts_config(ts_config_file: str, sources_path: str) -> TsConfig:
@@ -192,17 +226,14 @@ class BaseTsBuilder(BaseBuilder):
         output_dirs: list[str],
         # TODO consider supporting multiple ts_config_path?
         ts_config_path: str,
-        copy_package_json=True,
     ):
         """
         :param output_dirs: output directory names
         :type output_dirs: str
         :param ts_config_path: path to tsconfig.json (in srcdir)
         :type ts_config_path: str
-        :param copy_package_json: whether package.json should be copied to build path
-        :type copy_package_json: bool
         """
-        super(BaseTsBuilder, self).__init__(options, copy_package_json)
+        super(BaseTsBuilder, self).__init__(options)
         self.options = options  # this is for type hints to understand real options' type
         self.output_dirs = output_dirs
         self.ts_config_path = ts_config_path
@@ -286,41 +317,6 @@ class BaseTsBuilder(BaseBuilder):
         Should return arguments for the build script
         """
         pass
-
-    @timeit
-    def _get_vcs_info_env(self, vcs_info_file: str) -> dict[str, str]:
-        """convert vcs_info.json to environment variables (as dict)"""
-        assert vcs_info_file
-
-        vcs_info_path = os.path.join(self.options.bindir, vcs_info_file)
-        with open(vcs_info_path) as f:
-            data = json.load(f)
-
-        def get_env_name(field: str) -> str:
-            return f'VCS_INFO_{field.upper().replace("-", "_")}'
-
-        return {get_env_name(k): str(v) for k, v in data.items()}
-
-    @timeit
-    def _get_envs(self):
-        env = super(BaseTsBuilder, self)._get_envs()
-
-        if self.options.vcs_info:
-            env.update(self._get_vcs_info_env(self.options.vcs_info))
-
-        for pair in self.options.env:
-            key, value = pair.split("=", 1)
-            env[key] = value
-
-        return env
-
-    @timeit
-    def _make_bins_executable(self):
-        pj = PackageJson.load(pm_utils.build_pj_path(self.options.bindir))
-        for bin_tool in pj.bins_iter():
-            bin_path = os.path.join(self.options.bindir, bin_tool)
-            bin_stat = os.stat(bin_path)
-            os.chmod(bin_path, bin_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     @timeit
     def bundle(self):
