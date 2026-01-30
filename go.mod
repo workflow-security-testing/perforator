@@ -549,6 +549,7 @@ require (
 	github.com/jhump/protoreflect v1.17.0
 	github.com/jingyugao/rowserrcheck v1.1.1
 	github.com/jinzhu/inflection v1.0.0
+	github.com/jlaffaye/ftp v0.2.0
 	github.com/jmattheis/goverter v1.7.0
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/jmespath/go-jmespath/internal/testify v1.5.1

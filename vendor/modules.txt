@@ -10894,6 +10894,9 @@ github.com/jinzhu/inflection
 # github.com/jinzhu/now v1.1.5
 ## explicit; go 1.12
 github.com/jinzhu/now
+# github.com/jlaffaye/ftp v0.2.0
+## explicit; go 1.17
+github.com/jlaffaye/ftp
 # github.com/jmattheis/goverter v1.7.0
 ## explicit; go 1.18
 github.com/jmattheis/goverter
