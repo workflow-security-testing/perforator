@@ -14,6 +14,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/mlock"
 	"github.com/yandex/perforator/perforator/pkg/must"
 	eventprocessor "github.com/yandex/perforator/perforator/pkg/profile_event/event_processor"
+	"github.com/yandex/perforator/perforator/pkg/validateconfig"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
 
@@ -89,6 +90,17 @@ func init() {
 		"log-level",
 		"info",
 		"Logging level - ('info') {'debug', 'info', 'warn', 'error'}",
+	)
+
+	rootCmd.AddCommand(validateconfig.NewValidateConfigCmd(
+		"signal_profile_processor",
+		validateconfig.ValidateConfigFunc(
+			func(configPath string) error {
+				_, err := eventprocessor.ParseConfig(configPath)
+				return err
+			},
+		),
+	),
 	)
 
 	cobrabuildinfo.Init(rootCmd)
