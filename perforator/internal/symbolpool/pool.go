@@ -84,10 +84,10 @@ func (p *Pool) Resolve(pid linux.CurrentNamespacePID, ip uint64) (string, bool) 
 	}
 	pos, ok := slices.BinarySearchFunc(syms, ip, func(s Symbol, target uint64) int {
 		if target < s.Begin {
-			return -1
+			return 1
 		}
 		if target >= s.Begin+s.Size {
-			return 1
+			return -1
 		}
 		return 0
 	})
