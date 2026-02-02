@@ -7,6 +7,7 @@
 #include <library/cpp/json/json_writer.h>
 
 #include <util/datetime/base.h>
+#include <util/generic/array_ref.h>
 #include <util/generic/function_ref.h>
 #include <util/generic/iterator.h>
 #include <util/generic/maybe.h>
@@ -1088,6 +1089,16 @@ public:
 class TProfile {
 public:
     explicit TProfile(const NProto::NProfile::Profile* profile);
+
+    ////////////////////////////////////////////////////////////////////////////////
+
+    // Returns the main label key for a well-known label.
+    // Pre-computed from proto reflection, returns view into static data.
+    static TStringBuf GetWellKnownLabelKey(NProto::NProfile::WellKnownLabel label);
+
+    // Returns all label keys (current + deprecated) for a well-known label.
+    // Pre-computed from proto reflection, returns view into static data.
+    static TConstArrayRef<TString> GetAllWellKnownLabelKeys(NProto::NProfile::WellKnownLabel label);
 
     ////////////////////////////////////////////////////////////////////////////////
 
