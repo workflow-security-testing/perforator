@@ -9,6 +9,7 @@
 #include <library/cpp/containers/absl_flat_hash/flat_hash_set.h>
 
 #include <util/digest/numeric.h>
+#include <util/generic/algorithm.h>
 
 #include <bitset>
 #include <cctype>
@@ -96,6 +97,14 @@ public:
 
     bool MergeSourceLocations() const {
         return Options_.ignore_source_locations();
+    }
+
+    bool StripGarbageRootFrames() const {
+        return Options_.strip_garbage_root_frames();
+    }
+
+    bool SanitizeThreadNames() const {
+        return Options_.sanitize_thread_names();
     }
 
     bool AllowSample(TSample sample) const {
@@ -319,7 +328,13 @@ public:
         , Functions_{*Profile_.Functions().GetPastTheEndIndex()}
         , LabelGroups_{*Profile_.LabelGroups().GetPastTheEndIndex()}
         , Labels_{*Profile_.Labels().GetPastTheEndIndex()}
-    {}
+    {
+        if (Policy_.SanitizeThreadNames()) {
+            for (const TString& key : TProfile::GetAllWellKnownLabelKeys(NProto::NProfile::ThreadCommand)) {
+                ThreadLabelKeyIds_.push_back(Builder_.AddString(key));
+            }
+        }
+    }
 
     void Merge() {
         MergeMetadata();
@@ -390,14 +405,52 @@ private:
         });
     }
 
+    // Check if a frame is a "garbage root" frame (no mapping, no lines)
+    static bool IsGarbageRootFrame(TStackFrame frame) {
+        return frame.GetBinary().GetIndex() == TBinaryId::Zero()
+            && frame.GetInlineChain().GetLineCount() == 0;
+    }
+
     TSampleKeyId MapSampleKey(TSampleKey key) {
         return SampleKeys_.TryMap(key.GetIndex(), [&key, this] {
             auto builder = Builder_.AddSampleKey();
 
             builder.SetLabelGroup(MapLabelGroup(key.GetLabelGroup()));
 
-            for (TStack stack : key.GetStacks()) {
-                builder.AddStack(MapStack(stack));
+            if (Policy_.StripGarbageRootFrames() && key.GetStackCount() > 0) {
+                // Find first non-garbage frame from root side
+                i32 stopStackIdx = key.GetStackCount();
+                i32 stopFrameIdx = 0;
+
+                for (i32 stackIdx = key.GetStackCount() - 1; stackIdx >= 0 && stopStackIdx == key.GetStackCount(); --stackIdx) {
+                    TStack stack = key.GetStack(stackIdx);
+                    for (i32 frameIdx = stack.GetFrameCount() - 1; frameIdx >= 0; --frameIdx) {
+                        if (!IsGarbageRootFrame(stack.GetFrame(frameIdx))) {
+                            stopStackIdx = stackIdx;
+                            stopFrameIdx = frameIdx;
+                            break;
+                        }
+                    }
+                }
+
+                // Emit complete stacks before the boundary
+                for (i32 stackIdx = 0; stackIdx < stopStackIdx; ++stackIdx) {
+                    builder.AddStack(MapStack(key.GetStack(stackIdx)));
+                }
+
+                // Handle boundary stack (partial or full)
+                if (stopStackIdx < key.GetStackCount()) {
+                    TStack stack = key.GetStack(stopStackIdx);
+                    if (stopFrameIdx < stack.GetFrameCount() - 1) {
+                        builder.AddStack(MapStackPartial(stack, stopFrameIdx + 1));
+                    } else {
+                        builder.AddStack(MapStack(stack));
+                    }
+                }
+            } else {
+                for (TStack stack : key.GetStacks()) {
+                    builder.AddStack(MapStack(stack));
+                }
             }
 
             for (TLabel label : key.GetLabels()) {
@@ -450,12 +503,12 @@ private:
                     MapString(label.GetKey()),
                     label.GetNumber()
                 );
-            } else {
-                return Builder_.AddStringLabel(
-                    MapString(label.GetKey()),
-                    MapString(label.GetString())
-                );
             }
+            TStringId keyId = MapString(label.GetKey());
+            if (Policy_.SanitizeThreadNames() && AnyOf(ThreadLabelKeyIds_, [keyId](TStringId id) { return id == keyId; })) {
+                return Builder_.AddStringLabel(keyId, SanitizeThreadName(label.GetString()));
+            }
+            return Builder_.AddStringLabel(keyId, MapString(label.GetString()));
         });
     }
 
@@ -468,6 +521,22 @@ private:
 
             return builder.Finish();
         });
+    }
+
+    // Map a stack partially, keeping only specified number of frames.
+    // Not cached - partial stacks are unique per stripping point.
+    TStackId MapStackPartial(TStack stack, i32 frameCount) {
+        auto builder = Builder_.AddStack();
+        builder.SetTopFrame(MapStackFrame(stack.GetTopFrame()));
+
+        auto segmentBuilder = Builder_.AddStackSegment();
+        TStackSegment segment = stack.GetStackSegment();
+        for (i32 i = 0; i < frameCount - 1; ++i) {
+            segmentBuilder.AddFrame(MapStackFrame(segment.GetFrame(i)));
+        }
+        builder.SetStackSegment(segmentBuilder.Finish());
+
+        return builder.Finish();
     }
 
     TStackSegmentId MapStackSegment(TStackSegment segment) {
@@ -570,6 +639,7 @@ private:
     TIndexRemapping<TFunctionId> Functions_;
     TIndexRemapping<TLabelGroupId> LabelGroups_;
     TIndexRemapping<TLabelId> Labels_;
+    TVector<TStringId> ThreadLabelKeyIds_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
