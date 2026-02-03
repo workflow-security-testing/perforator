@@ -10,11 +10,13 @@ IF (CGO_ENABLED)
 
     CGO_SRCS(
         error_cgo.go
+        flamegraph_cgo.go
         merge_cgo.go
         profile_cgo.go
     )
 ELSE()
     SRCS(
+        flamegraph_nocgo.go
         merge_nocgo.go
         profile_nocgo.go
     )
