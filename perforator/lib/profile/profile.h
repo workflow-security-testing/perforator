@@ -1100,6 +1100,10 @@ public:
     // Pre-computed from proto reflection, returns view into static data.
     static TConstArrayRef<TString> GetAllWellKnownLabelKeys(NProto::NProfile::WellKnownLabel label);
 
+    // Returns all well-known labels that have at least one label key defined.
+    // Pre-computed from proto reflection, returns view into static data.
+    static TConstArrayRef<NProto::NProfile::WellKnownLabel> GetWellKnownLabels();
+
     ////////////////////////////////////////////////////////////////////////////////
 
     const NProto::NProfile::Metadata& GetMetadata() const;

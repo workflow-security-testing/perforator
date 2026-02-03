@@ -86,6 +86,7 @@ enum WellKnownLabel {
     ThreadCommand = 2   [(label_key) = "thread_comm", (deprecated_label_key) = "comm"];
     ProcessCommand = 3  [(label_key) = "process_comm"];
     Workload = 4        [(label_key) = "workload"];
+    SignalName = 5      [(label_key) = "signal:name"];
 }
 
 // SampleStacks represents the stack trace information for a sample.

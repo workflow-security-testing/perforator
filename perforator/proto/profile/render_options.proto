@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+package NPerforator.NProto.NProfile;
+
+option go_package = "github.com/yandex/perforator/perforator/proto/profile";
+
+// RenderOptions defines options for flamegraph rendering.
+message RenderOptions {
+    // Maximum depth to render. 0 means no limit.
+    // Stacks deeper than this will be truncated.
+    optional uint32 max_depth = 1 [default = 0];
+
+    // Minimum weight threshold (fraction of total, 0-1).
+    // Nodes with weight below this threshold will be pruned.
+    // 0 means no filtering.
+    optional double min_weight = 2 [default = 0];
+}

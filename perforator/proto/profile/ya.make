@@ -6,6 +6,7 @@ SRCS(
     container.proto
     merge_options.proto
     profile.proto
+    render_options.proto
 )
 
 END()

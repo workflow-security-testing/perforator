@@ -49,6 +49,23 @@ TConstArrayRef<TString> TProfile::GetAllWellKnownLabelKeys(NProto::NProfile::Wel
     return GetWellKnownLabelKeysMap()[label];
 }
 
+TConstArrayRef<NProto::NProfile::WellKnownLabel> TProfile::GetWellKnownLabels() {
+    static const auto labels = [] {
+        TVector<NProto::NProfile::WellKnownLabel> result;
+        const auto* descriptor = NProto::NProfile::WellKnownLabel_descriptor();
+        const auto& map = GetWellKnownLabelKeysMap();
+        for (int i = 0; i < descriptor->value_count(); ++i) {
+            int index = descriptor->value(i)->number();
+            Y_ENSURE(
+                index >= 0 && static_cast<size_t>(index) < map.size() && !map[index].empty(),
+                "WellKnownLabel " << descriptor->value(i)->name() << " has no label_key defined");
+            result.push_back(static_cast<NProto::NProfile::WellKnownLabel>(index));
+        }
+        return result;
+    }();
+    return labels;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 TProfile::TProfile(const NProto::NProfile::Profile* profile)
