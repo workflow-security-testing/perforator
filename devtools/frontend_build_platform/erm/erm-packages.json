@@ -6237,7 +6237,7 @@
     "title": "Stylelint",
     "description": "Инструмент для линтинга файлов стилей.\n\nИспользуется в макросе [TS_STYLELINT()](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint).",
     "type": "NPM_PACKAGE",
-    "default": "16.26.1",
+    "default": "17.0.0",
     "links": {
       "Home": "https://stylelint.io/",
       "Sources": "https://github.com/stylelint/stylelint",
@@ -6247,6 +6247,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "17.0.0": {
+        "add_date": "2026-02-03T05:50:07",
+        "resources": []
+      },
       "16.26.1": {
         "add_date": "2025-12-16T05:34:20",
         "resources": []
