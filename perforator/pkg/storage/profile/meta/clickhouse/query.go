@@ -25,8 +25,8 @@ const (
 )
 
 var (
-	AllColumns    string = ""
-	allColumnsMap map[string]struct{}
+	AllColumns        string = ""
+	allowedSortFields map[string]struct{}
 )
 
 func forEachCHField(row interface{}, callback func(fieldIndex int, structField reflect.StructField, fieldValue *reflect.Value) error) error {
@@ -74,10 +74,14 @@ func generateAllColumns(row interface{}) []string {
 func init() {
 	allColumns := generateAllColumns(ProfileRow{})
 	AllColumns = strings.Join(allColumns, ", ")
-	allColumnsMap = make(map[string]struct{})
+	allowedSortFields = make(map[string]struct{})
 	for _, c := range allColumns {
-		allColumnsMap[c] = struct{}{}
+		allowedSortFields[c] = struct{}{}
 	}
+	allowedSortFields["envValue"] = struct{}{}
+	allowedSortFields["service"] = struct{}{}
+	allowedSortFields["max_timestamp"] = struct{}{}
+	allowedSortFields["profile_count"] = struct{}{}
 }
 
 var (
@@ -382,8 +386,8 @@ func buildSelectProfilesQuery(query *meta.ProfileQuery) (string, []any, error) {
 
 func makeOrderBy(order *util.SortOrder, builder sq.SelectBuilder) (sq.SelectBuilder, error) {
 	for _, c := range order.Columns {
-		_, ok := allColumnsMap[c.Name]
-		if !ok && c.Name != "envValue" {
+		_, ok := allowedSortFields[c.Name]
+		if !ok {
 			return builder, fmt.Errorf("invalid sort order requested: unknown column %q", c.Name)
 		}
 		if c.Descending {
