@@ -310,6 +310,7 @@ require (
 	github.com/czerwonk/bird_exporter v0.0.0-20231026083236-f24f1ab36c60
 	github.com/czerwonk/bird_socket v0.0.0-20230831050638-df62ae583e1d
 	github.com/czerwonk/testutils v0.0.0-20170526233935-dd9dabe360d4
+	github.com/daku10/go-lz-string v0.0.6
 	github.com/dave/dst v0.27.2
 	github.com/dave/jennifer v1.7.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc

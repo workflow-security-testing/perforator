@@ -6100,6 +6100,12 @@ github.com/czerwonk/testutils/assert
 # github.com/cznic/mathutil v0.0.0-20181122101859-297441e03548
 ## explicit
 github.com/cznic/mathutil
+# github.com/daku10/go-lz-string v0.0.6
+## explicit; go 1.18
+github.com/daku10/go-lz-string
+github.com/daku10/go-lz-string/cli
+github.com/daku10/go-lz-string/cmd/go-lz-string
+github.com/daku10/go-lz-string/version
 # github.com/dave/dst v0.27.2
 ## explicit; go 1.18
 github.com/dave/dst
