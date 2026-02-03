@@ -193,7 +193,8 @@ func (d *Downloader) performDownload(ctx context.Context, binary *binary) error 
 		}
 	}()
 
-	return binary.load(ctx, writer, done)
+	err = binary.load(ctx, writer, done)
+	return err
 }
 
 func (d *Downloader) runDownload(ctx context.Context, download *binary) {
