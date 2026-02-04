@@ -165,6 +165,8 @@ func (o *operationController) setupSampleConsumer(ctx context.Context) (err erro
 		switch feature.Feature.(type) {
 		case *cpo_proto.Feature_CollectStackAbsoluteTimestampsFeature:
 			sampleConsumerFeatures.EnableSampleTimeCollection = true
+		case *cpo_proto.Feature_CollectInnermostPidnsFeature:
+			sampleConsumerFeatures.EnableInnermostPidnsCollection = true
 		}
 	}
 
