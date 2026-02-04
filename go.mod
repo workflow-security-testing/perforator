@@ -200,6 +200,7 @@ require (
 	github.com/Vonng/pg_exporter v0.8.1
 	github.com/XSAM/otelsql v0.23.0
 	github.com/a-h/templ v0.2.663
+	github.com/a2aproject/a2a-go v0.3.3
 	github.com/abema/go-mp4 v1.4.1
 	github.com/agnivade/levenshtein v1.2.1
 	github.com/airbusgeo/godal v0.0.16
@@ -382,6 +383,8 @@ require (
 	github.com/ghostiam/protogetter v0.3.5
 	github.com/gin-contrib/gzip v0.0.5
 	github.com/gin-gonic/gin v1.10.1
+	github.com/glebarez/go-sqlite v1.22.0
+	github.com/glebarez/sqlite v1.8.0
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/go-ble/ble v0.0.0-20220207185428-60d1eecf2633
 	github.com/go-chi/chi/v5 v5.2.2
@@ -468,6 +471,7 @@ require (
 	github.com/google/osv-scanner v1.8.1
 	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e
 	github.com/google/renameio/v2 v2.0.0
+	github.com/google/safehtml v0.1.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/tink/go v1.7.0
 	github.com/google/uuid v1.6.0
@@ -1003,9 +1007,10 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	gonum.org/v1/gonum v0.15.1
 	google.golang.org/api v0.228.0
+	google.golang.org/genai v1.30.0
 	google.golang.org/genproto v0.0.0-20250324211829-b45e905df463
-	google.golang.org/genproto/googleapis/api v0.0.0-20250528174236-200df99c418a
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a
+	google.golang.org/genproto/googleapis/api v0.0.0-20250715232539-7130f93afb79
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250715232539-7130f93afb79
 	google.golang.org/grpc v1.73.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/grpc/examples v0.0.0-20250219164421-42fc25a9b496
@@ -1047,6 +1052,8 @@ require (
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
 	nhooyr.io/websocket v1.8.17
 	oras.land/oras-go/v2 v2.6.0
+	rsc.io/omap v1.2.0
+	rsc.io/ordered v1.1.1
 	sigs.k8s.io/controller-runtime v0.20.4
 	sigs.k8s.io/kustomize/api v0.20.1
 	sigs.k8s.io/kustomize/kyaml v0.20.1
@@ -1469,6 +1476,7 @@ require (
 	github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385 // indirect
 	github.com/elazarl/goproxy v1.7.2 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20220901064549-fbd10ff4f5a1 // indirect
+	github.com/eliben/go-sentencepiece v0.6.0 // indirect
 	github.com/emersion/go-message v0.16.0 // indirect
 	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21 // indirect
 	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 // indirect
@@ -1522,7 +1530,6 @@ require (
 	github.com/gkampitakis/ciinfo v0.3.1 // indirect
 	github.com/gkampitakis/go-diff v1.3.2 // indirect
 	github.com/gkampitakis/go-snaps v0.5.8 // indirect
-	github.com/glebarez/go-sqlite v1.22.0 // indirect
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/go-acme/lego/v3 v3.9.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
@@ -1633,7 +1640,6 @@ require (
 	github.com/google/renameio v1.0.1 // indirect
 	github.com/google/rpmpack v0.6.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/google/safehtml v0.1.0 // indirect
 	github.com/google/subcommands v1.2.0 // indirect
 	github.com/google/tiff v0.0.0-20161109161721-4b31f3041d9a // indirect
 	github.com/google/wire v0.5.0 // indirect

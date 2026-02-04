@@ -3868,6 +3868,33 @@ github.com/Yiling-J/theine-go/internal/xruntime
 github.com/a-h/templ
 github.com/a-h/templ/safehtml
 github.com/a-h/templ/turbo
+# github.com/a2aproject/a2a-go v0.3.3
+## explicit; go 1.24.4
+github.com/a2aproject/a2a-go
+github.com/a2aproject/a2a-go/a2a
+github.com/a2aproject/a2a-go/a2aclient
+github.com/a2aproject/a2a-go/a2aclient/agentcard
+github.com/a2aproject/a2a-go/a2agrpc
+github.com/a2aproject/a2a-go/a2apb
+github.com/a2aproject/a2a-go/a2apb/pbconv
+github.com/a2aproject/a2a-go/a2asrv
+github.com/a2aproject/a2a-go/a2asrv/eventqueue
+github.com/a2aproject/a2a-go/a2asrv/limiter
+github.com/a2aproject/a2a-go/a2asrv/push
+github.com/a2aproject/a2a-go/e2e
+github.com/a2aproject/a2a-go/examples/helloworld/client
+github.com/a2aproject/a2a-go/examples/helloworld/server/grpc
+github.com/a2aproject/a2a-go/examples/helloworld/server/jsonrpc
+github.com/a2aproject/a2a-go/internal/eventpipe
+github.com/a2aproject/a2a-go/internal/jsonrpc
+github.com/a2aproject/a2a-go/internal/sse
+github.com/a2aproject/a2a-go/internal/taskexec
+github.com/a2aproject/a2a-go/internal/taskstore
+github.com/a2aproject/a2a-go/internal/taskupdate
+github.com/a2aproject/a2a-go/internal/testutil
+github.com/a2aproject/a2a-go/internal/testutil/testexecutor
+github.com/a2aproject/a2a-go/internal/utils
+github.com/a2aproject/a2a-go/log
 # github.com/abema/go-mp4 v1.4.1
 ## explicit; go 1.14
 github.com/abema/go-mp4
@@ -6672,6 +6699,12 @@ github.com/elazarl/goproxy/internal/http1parser
 github.com/elazarl/goproxy/internal/signer
 # github.com/elazarl/goproxy/ext v0.0.0-20220901064549-fbd10ff4f5a1
 ## explicit
+# github.com/eliben/go-sentencepiece v0.6.0
+## explicit; go 1.22.5
+github.com/eliben/go-sentencepiece
+github.com/eliben/go-sentencepiece/internal/model
+github.com/eliben/go-sentencepiece/internal/prefixmatcher
+github.com/eliben/go-sentencepiece/internal/priorityqueue
 # github.com/elimity-com/scim v0.0.0-20220121082953-15165b1a61c8
 ## explicit; go 1.16
 github.com/elimity-com/scim
@@ -7670,6 +7703,12 @@ github.com/gkampitakis/go-snaps/snaps
 # github.com/glebarez/go-sqlite v1.22.0
 ## explicit; go 1.17
 github.com/glebarez/go-sqlite
+github.com/glebarez/go-sqlite/compat
+github.com/glebarez/go-sqlite/examples/example1
+github.com/glebarez/go-sqlite/functest
+# github.com/glebarez/sqlite v1.8.0
+## explicit; go 1.18
+github.com/glebarez/sqlite
 # github.com/gliderlabs/ssh v0.3.8
 ## explicit; go 1.17
 github.com/gliderlabs/ssh
@@ -9392,6 +9431,15 @@ github.com/google/s2a-go/retry
 github.com/google/s2a-go/stream
 # github.com/google/safehtml v0.1.0
 ## explicit; go 1.14
+github.com/google/safehtml
+github.com/google/safehtml/internal/raw
+github.com/google/safehtml/internal/safehtmlutil
+github.com/google/safehtml/internal/template/raw
+github.com/google/safehtml/legacyconversions
+github.com/google/safehtml/template
+github.com/google/safehtml/template/uncheckedconversions
+github.com/google/safehtml/testconversions
+github.com/google/safehtml/uncheckedconversions
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13
 github.com/google/shlex
@@ -19477,6 +19525,10 @@ google.golang.org/api/transport/http
 ## explicit; go 1.11
 # google.golang.org/cloud v0.0.0-20151119220103-975617b05ea8
 ## explicit
+# google.golang.org/genai v1.30.0
+## explicit; go 1.24
+google.golang.org/genai
+google.golang.org/genai/tokenizer
 # google.golang.org/genproto v0.0.0-20250324211829-b45e905df463
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/appengine/logging/v1
@@ -19548,7 +19600,7 @@ google.golang.org/genproto/protobuf/api
 google.golang.org/genproto/protobuf/field_mask
 google.golang.org/genproto/protobuf/ptype
 google.golang.org/genproto/protobuf/source_context
-# google.golang.org/genproto/googleapis/api v0.0.0-20250528174236-200df99c418a
+# google.golang.org/genproto/googleapis/api v0.0.0-20250715232539-7130f93afb79
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
@@ -19566,8 +19618,9 @@ google.golang.org/genproto/googleapis/api/serviceconfig
 google.golang.org/genproto/googleapis/api/visibility
 # google.golang.org/genproto/googleapis/bytestream v0.0.0-20250313205543-e70fdf4c4cb4
 ## explicit; go 1.23.0
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20250715232539-7130f93afb79
 ## explicit; go 1.23.0
+google.golang.org/genproto/googleapis/rpc
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/context
 google.golang.org/genproto/googleapis/rpc/context/attribute_context
@@ -21675,6 +21728,12 @@ rsc.io/binaryregexp
 rsc.io/binaryregexp/syntax
 # rsc.io/letsencrypt v0.0.3
 ## explicit
+# rsc.io/omap v1.2.0
+## explicit; go 1.23rc1
+rsc.io/omap
+# rsc.io/ordered v1.1.1
+## explicit; go 1.22.0
+rsc.io/ordered
 # rsc.io/pdf v0.1.1
 ## explicit
 rsc.io/pdf
