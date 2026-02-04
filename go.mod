@@ -632,6 +632,7 @@ require (
 	github.com/neo4j/neo4j-go-driver/v5 v5.6.0
 	github.com/neovim/go-client v1.2.1
 	github.com/nexus-rpc/sdk-go v0.3.0
+	github.com/nginxinc/nginx-go-crossplane v0.4.86
 	github.com/nishanths/exhaustive v0.12.0
 	github.com/nishanths/predeclared v0.2.2
 	github.com/nxadm/tail v1.4.8

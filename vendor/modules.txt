@@ -12368,6 +12368,11 @@ github.com/nexus-rpc/sdk-go/nexus
 # github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 ## explicit
 github.com/nfnt/resize
+# github.com/nginxinc/nginx-go-crossplane v0.4.86
+## explicit; go 1.19
+github.com/nginxinc/nginx-go-crossplane
+github.com/nginxinc/nginx-go-crossplane/cmd/generate
+github.com/nginxinc/nginx-go-crossplane/internal/generator
 # github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e
 ## explicit; go 1.12
 # github.com/nishanths/exhaustive v0.12.0
