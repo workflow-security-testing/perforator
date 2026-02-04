@@ -87,7 +87,7 @@ function createCachedDarken(factor = DARKEN_FACTOR): (color: string) => string {
 export function prerenderColors(data: ProfileData, opts?: { theme?: 'light' | 'dark' }): ProfileData {
 
     function readString(id?: number) {
-        if (!id) {return '';}
+        if (id === undefined) {return '';}
         return data.stringTable[id];
     }
 
