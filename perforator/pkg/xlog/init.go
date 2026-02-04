@@ -41,6 +41,7 @@ func ForCLI(cfg CLIConfig) (Logger, error) {
 	case LogFormatJson:
 		logger, err = zap.NewDeployLogger(cfg.Level)
 	case LogFormatUnspecified:
+		fallthrough
 	case LogFormatText:
 		config := uberzap.NewDevelopmentConfig()
 		config.Level = uberzap.NewAtomicLevelAt(zap.ZapifyLevel(cfg.Level))
@@ -77,6 +78,7 @@ func ForDaemon(cfg DaemonConfig, metrics metrics.Registry) (Logger, func(), erro
 	var encoder zapcore.Encoder
 	switch cfg.Format {
 	case LogFormatUnspecified:
+		fallthrough
 	case LogFormatJson:
 		encoderconf := zap.NewDeployEncoderConfig()
 		fields = append(fields, uberzap.Namespace("@fields"))
