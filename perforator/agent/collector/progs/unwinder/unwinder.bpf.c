@@ -276,7 +276,7 @@ static ALWAYS_INLINE u32 get_perf_event_type(struct bpf_perf_event_data* ctx) {
     return BPF_CORE_READ(kctx, event, attr.type);
 }
 
-static ALWAYS_INLINE u32 get_perf_event_config(struct bpf_perf_event_data* ctx) {
+static ALWAYS_INLINE u64 get_perf_event_config(struct bpf_perf_event_data* ctx) {
     struct bpf_perf_event_data_kern* kctx = (void*)ctx;
     return BPF_CORE_READ(kctx, event, attr.config);
 }
