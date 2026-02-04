@@ -22,7 +22,7 @@ const (
 var offsetsFS embed.FS
 
 // Map from Python version (encoded as uint32) to offsets
-var pythonVersionOffsets map[uint32]*unwinder.PythonInternalsOffsets
+var pythonVersionOffsets map[encodedVersion]*unwinder.PythonInternalsOffsets
 
 // unfilledOffsets is a PythonInternalsOffsets with all numeric fields set to UnspecifiedOffset
 var unfilledOffsets unwinder.PythonInternalsOffsets
@@ -68,7 +68,7 @@ func fillUnspecifiedOffsets(val reflect.Value) {
 }
 
 // Convert a version string (major.minor.micro or major.minor) to an encoded uint32
-func encodeVersionFromString(version string) uint32 {
+func encodeVersionFromString(version string) encodedVersion {
 	parts := strings.Split(version, ".")
 	if len(parts) < 2 {
 		return 0
@@ -107,7 +107,7 @@ func init() {
 	// Initialize unfilledOffsets
 	fillUnspecifiedOffsets(reflect.ValueOf(&unfilledOffsets))
 
-	pythonVersionOffsets = make(map[uint32]*unwinder.PythonInternalsOffsets)
+	pythonVersionOffsets = make(map[encodedVersion]*unwinder.PythonInternalsOffsets)
 
 	// Read all files from the embedded filesystem
 	entries, err := offsetsFS.ReadDir("offsets")
