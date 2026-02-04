@@ -86,6 +86,7 @@
     position: absolute;
     white-space: nowrap;
     padding: 0 3px;
+    box-sizing: border-box;
 }
 
 .flamegraph__highlight {
