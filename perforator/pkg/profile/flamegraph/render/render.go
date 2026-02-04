@@ -13,6 +13,7 @@ import (
 	"math"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	pprof "github.com/google/pprof/profile"
@@ -122,11 +123,11 @@ type FlameGraph struct {
 
 	locationFrameOptions LocationFrameOptions
 
-	title     string
-	maxDepth  int
-	minWeight float64
-	frameType string
-	eventType string
+	title      string
+	maxDepth   int
+	minWeight  float64
+	frameType  string
+	sampleType string // Sample type in type.unit format (e.g., cpu.cycles)
 
 	width               float64
 	blockHeight         float64
@@ -152,7 +153,7 @@ func NewFlameGraph() *FlameGraph {
 		format:              HTMLFormatV2,
 		title:               "Flame Graph",
 		frameType:           "Function",
-		eventType:           "cycles",
+		sampleType:          "",
 		width:               1200,
 		blockHeight:         15.0,
 		blockVerticalMargin: 1.0,
@@ -190,8 +191,10 @@ func (f *FlameGraph) SetFrameType(typ string) {
 	f.frameType = typ
 }
 
+// SetSampleType sets the sample type in type.unit format (e.g., cpu.cycles).
+// If empty, uses the first sample type from the profile.
 func (f *FlameGraph) SetSampleType(typ string) {
-	f.eventType = typ
+	f.sampleType = typ
 }
 
 func (f *FlameGraph) SetWidth(value float64) {
@@ -322,14 +325,12 @@ func (f *FlameGraph) color(block *block) color.RGBA {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (f *FlameGraph) AddProfile(profile *pprof.Profile) error {
-	f.addProfile(profile, false)
-	return nil
+	return f.addProfile(profile, false)
 }
 
 func (f *FlameGraph) AddBaselineProfile(profile *pprof.Profile) error {
 	f.diff = true
-	f.addProfile(profile, true)
-	return nil
+	return f.addProfile(profile, true)
 }
 
 func (f *FlameGraph) AddCollapsedProfile(profile *collapsed.Profile) error {
@@ -506,7 +507,7 @@ func (f *FlameGraph) encodeBlocksToJSON(blocks []*block, enc *json.Encoder) erro
 	}
 
 	profileMeta := format.ProfileMeta{
-		EventType: strtab.Add(f.eventType),
+		EventType: strtab.Add(f.sampleType),
 		FrameType: strtab.Add(f.frameType),
 		Version:   2,
 	}
@@ -639,16 +640,16 @@ func (f *FlameGraph) renderBlocksToHTML(blocks []*block, w io.Writer) error {
 		Diff                    bool
 		Inverted                bool
 		Title                   string
-		EventType               string
+		SampleType              string
 		Frames                  []frame
 		FrameLevels             [][]*frame
 		Strings                 []string
 		HandRenderedFrameLevels template.JS
 	}{
-		Diff:      f.diff,
-		Inverted:  f.inverted,
-		Title:     f.title,
-		EventType: f.eventType,
+		Diff:       f.diff,
+		Inverted:   f.inverted,
+		Title:      f.title,
+		SampleType: f.sampleType,
 		// NOTE: is only used for {{len .Frames}} in tmpl.html
 		// but was actively used in SVG
 		// probably should be removed from args later
@@ -766,18 +767,66 @@ func (f *FlameGraph) clearLocationsCache() {
 	f.locationsCache = make(map[locationMeta][]locationData)
 }
 
-func (f *FlameGraph) addProfile(p *pprof.Profile, baseline bool) {
+// resolveSampleIndex resolves a sample type selector to an actual index.
+// Selector can be a numeric index, "type", or "type.unit" format. Empty selector
+// uses pprof default behavior: match DefaultSampleType by Type, or fall back to last sample type.
+func resolveSampleIndex(p *pprof.Profile, selector string) (int, error) {
+	if len(p.SampleType) == 0 {
+		return 0, fmt.Errorf("profile has no sample types")
+	}
+
+	// Empty selector: use pprof default behavior
+	if selector == "" {
+		// First, try to find DefaultSampleType by Type field
+		for i, st := range p.SampleType {
+			if st.Type == p.DefaultSampleType {
+				return i, nil
+			}
+		}
+		// Fall back to last sample type (pprof behavior)
+		return len(p.SampleType) - 1, nil
+	}
+
+	// Try numeric index
+	if idx, err := strconv.Atoi(selector); err == nil {
+		if idx < 0 || idx >= len(p.SampleType) {
+			return 0, fmt.Errorf("sample type index %d out of range [0, %d)", idx, len(p.SampleType))
+		}
+		return idx, nil
+	}
+
+	// Try type.unit format
+	if parts := strings.SplitN(selector, ".", 2); len(parts) == 2 {
+		typeName, unitName := parts[0], parts[1]
+		for i, st := range p.SampleType {
+			if st.Type == typeName && st.Unit == unitName {
+				return i, nil
+			}
+		}
+		return 0, fmt.Errorf("sample type %q not found in profile", selector)
+	}
+
+	// Match by Type only (like pprof does)
+	for i, st := range p.SampleType {
+		if st.Type == selector {
+			return i, nil
+		}
+	}
+	return 0, fmt.Errorf("sample type %q not found in profile", selector)
+}
+
+func (f *FlameGraph) addProfile(p *pprof.Profile, baseline bool) error {
 	defer func() {
 		f.clearLocationsCache()
 	}()
 
-	sampleIndex := 0
-	for i, name := range p.SampleType {
-		if name.Type == p.DefaultSampleType {
-			sampleIndex = i
-		}
+	sampleIndex, err := resolveSampleIndex(p, f.sampleType)
+	if err != nil {
+		return err
 	}
-	f.SetSampleType(p.SampleType[sampleIndex].Unit)
+	// Set sampleType to full type.unit format for display
+	st := p.SampleType[sampleIndex]
+	f.sampleType = st.Type + "." + st.Unit
 
 	for _, sample := range p.Sample {
 		procinfo := labels.ExtractProcessInfo(sample)
@@ -853,6 +902,7 @@ func (f *FlameGraph) addProfile(p *pprof.Profile, baseline bool) {
 		}
 	done:
 	}
+	return nil
 }
 
 func sanitizeFileName(name string) string {

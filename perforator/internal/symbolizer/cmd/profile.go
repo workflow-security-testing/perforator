@@ -20,7 +20,7 @@ func makeFlamegraphCmd() *cobra.Command {
 	var maxDepth = 0
 	var format = render.HTMLFormatV2
 	var title = "Flamegraph"
-	var sampleType = "cycles"
+	var sampleType string
 
 	flamegraphPerfCmd := &cobra.Command{
 		Use:   "perf",
@@ -55,7 +55,7 @@ func makeFlamegraphCmd() *cobra.Command {
 	flamegraphCmd.PersistentFlags().Float64VarP(&minWeight, "min-weight", "w", 0, "Minimum function weight to draw")
 	flamegraphCmd.PersistentFlags().IntVarP(&maxDepth, "max-depth", "d", 0, "Maximum flamegraph height. Use 0 to disable")
 	flamegraphCmd.PersistentFlags().StringVarP(&title, "title", "t", "Flamegraph", "Flamegraph title")
-	flamegraphCmd.PersistentFlags().StringVarP(&sampleType, "sample-type", "T", "cycles", "Flamegraph sample type")
+	flamegraphCmd.PersistentFlags().StringVarP(&sampleType, "sample-type", "T", "", "Sample type: index, type, or type.unit (e.g., 0, cpu, cpu.cycles)")
 	must.Must(flamegraphCmd.MarkPersistentFlagFilename("input"))
 
 	flamegraphCmd.AddCommand(flamegraphPerfCmd)

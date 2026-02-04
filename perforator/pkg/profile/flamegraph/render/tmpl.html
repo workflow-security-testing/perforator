@@ -362,7 +362,7 @@ a {color: #0366d6}
                             hl.firstChild.textContent = f.title;
                             hl.style.display = 'block';
 
-                            const title = f.title + '\n(' + hugenum(f.eventCount) + ' {{.EventType}}, ' + hugenum(f.sampleCount) + ' samples, ' + pct(f.eventCount, frame(root).eventCount) + '%';
+                            const title = f.title + '\n(' + hugenum(f.eventCount) + ' {{.SampleType}}, ' + hugenum(f.sampleCount) + ' samples, ' + pct(f.eventCount, frame(root).eventCount) + '%';
                             if (diff) {
                                 let delta = 0;
                                 if (frame(root).baseEventCount > 1e-3) {
