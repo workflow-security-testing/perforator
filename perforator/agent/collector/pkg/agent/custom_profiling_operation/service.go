@@ -78,7 +78,7 @@ func (p *Service) runPoller(ctx context.Context) error {
 	defer close(p.polledOperationsQueue)
 
 	poller := p.cpoClient.CreateLongPoller()
-	for {
+	for ctx.Err() == nil {
 		// TODO: later add pod names argument. This requires moving deploy system to PerforatorAgent type
 		operations, err := poller.PollOperations(ctx, p.config.Host, nil)
 		if err != nil {
@@ -94,6 +94,8 @@ func (p *Service) runPoller(ctx context.Context) error {
 			p.polledOperationsQueue <- operation
 		}
 	}
+
+	return ctx.Err()
 }
 
 func (p *Service) runHandleLoop(ctx context.Context) error {
