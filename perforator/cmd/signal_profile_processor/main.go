@@ -13,7 +13,7 @@ import (
 	"github.com/yandex/perforator/perforator/pkg/maxprocs"
 	"github.com/yandex/perforator/perforator/pkg/mlock"
 	"github.com/yandex/perforator/perforator/pkg/must"
-	eventprocessor "github.com/yandex/perforator/perforator/pkg/profile_event/event_processor"
+	profileprocessor "github.com/yandex/perforator/perforator/pkg/profile_event/signal_profile_processor"
 	"github.com/yandex/perforator/perforator/pkg/validateconfig"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -54,12 +54,12 @@ var rootCmd = &cobra.Command{
 			logger.Error(ctx, "Failed to lock self executable", log.Error(err))
 		}
 
-		conf, err := eventprocessor.ParseConfig(configPath)
+		conf, err := profileprocessor.ParseConfig(configPath)
 		if err != nil {
 			return err
 		}
 
-		svc, err := eventprocessor.NewService(logger, *conf, reg)
+		svc, err := profileprocessor.NewService(logger, *conf, reg)
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func init() {
 		"signal_profile_processor",
 		validateconfig.ValidateConfigFunc(
 			func(configPath string) error {
-				_, err := eventprocessor.ParseConfig(configPath)
+				_, err := profileprocessor.ParseConfig(configPath)
 				return err
 			},
 		),

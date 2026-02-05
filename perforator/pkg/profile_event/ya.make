@@ -14,5 +14,5 @@ END()
 
 RECURSE(
     async_publisher
-    event_processor
+    signal_profile_processor
 )

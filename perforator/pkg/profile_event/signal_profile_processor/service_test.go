@@ -1,4 +1,4 @@
-package event_processor
+package signal_profile_processor
 
 import (
 	"context"

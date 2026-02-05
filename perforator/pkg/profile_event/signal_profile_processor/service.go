@@ -1,4 +1,4 @@
-package event_processor
+package signal_profile_processor
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/core/metrics"
-	"github.com/yandex/perforator/perforator/internal/symbolizer/cli"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/kafka/consumer"
 	"github.com/yandex/perforator/perforator/pkg/kafka/producer"
@@ -77,7 +76,7 @@ func NewService(log xlog.Logger, cfg Config, reg xmetrics.Registry) (*Service, e
 		return nil, errors.New("kafka_producer config is required")
 	}
 
-	client, err := newClient(context.TODO(), &cfg.ProxyClient, log)
+	client, err := client.NewClient(context.TODO(), &cfg.ProxyClient, log.WithName("client"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize client: %w", err)
 	}
@@ -111,7 +110,7 @@ func newEventProcessor(p producer.Producer, c consumer.Consumer, proc Processor,
 	}
 
 	return &Service{
-		logger:                     log.WithName("event_processor"),
+		logger:                     log.WithName("signal_profile_processor"),
 		cfg:                        cfg,
 		reg:                        reg,
 		proc:                       proc,
@@ -121,25 +120,6 @@ func newEventProcessor(p producer.Producer, c consumer.Consumer, proc Processor,
 		messageChan:                make(chan *profile_event.SignalProfileEvent, cfg.QueueSize),
 		metrics:                    newServiceMetrics(reg),
 	}, nil
-}
-
-func newClient(ctx context.Context, config *client.Config, logger xlog.Logger) (*client.Client, error) {
-	if !config.Insecure && config.Token == "" {
-		token, err := cli.FindToken(ctx, logger)
-		if err != nil {
-			return nil, err
-		}
-		if token != "" {
-			config.Token = token
-			logger.Debug(ctx, "Found OAuth token", log.Int("len", len(token)))
-		}
-	} else if config.Insecure {
-		logger.Warn(ctx, "Running in insecure mode, disabling TLS & OAuth")
-	} else {
-		logger.Debug(ctx, "Using provided OAuth token")
-	}
-
-	return client.NewClient(ctx, config, logger.WithName("client"))
 }
 
 // Run starts the consume process produce loop.
