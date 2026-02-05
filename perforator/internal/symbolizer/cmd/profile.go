@@ -21,6 +21,7 @@ func makeFlamegraphCmd() *cobra.Command {
 	var format = render.HTMLFormatV2
 	var title = "Flamegraph"
 	var sampleType string
+	var useNewRenderer = false
 
 	flamegraphPerfCmd := &cobra.Command{
 		Use:   "perf",
@@ -33,9 +34,10 @@ func makeFlamegraphCmd() *cobra.Command {
 		Use:   "pprof",
 		Short: "Render flamegraph from pprof profile",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return buildPProfFlamegraph(inputPath, baselinePath, format, minWeight, maxDepth, title, sampleType)
+			return buildPProfFlamegraph(inputPath, baselinePath, format, minWeight, maxDepth, title, sampleType, useNewRenderer)
 		},
 	}
+	flamegraphPProfCmd.Flags().BoolVar(&useNewRenderer, "use-new-renderer", false, "Use C++ renderer instead of Go")
 	flamegraphCollapsedCmd := &cobra.Command{
 		Use:   "collapsed",
 		Short: "Render flamegraph from collapsed stacks",
@@ -163,8 +165,14 @@ func buildPerfFlamegraph(inputPath, baselinePath string, format render.Format, m
 	return nil
 }
 
-func buildPProfFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string) error {
-	fg := render.NewFlameGraph()
+func buildPProfFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string, useNewRenderer bool) error {
+	var fg render.FlameGraphRenderer
+	if useNewRenderer {
+		fg = render.NewCGOFlameGraph()
+	} else {
+		fg = render.NewFlameGraph()
+	}
+
 	fg.SetTitle(title)
 	fg.SetMinWeight(minWeight)
 	fg.SetDepthLimit(maxDepth)
@@ -175,8 +183,7 @@ func buildPProfFlamegraph(inputPath, baselinePath string, format render.Format, 
 	if err != nil {
 		return err
 	}
-	err = fg.AddProfile(prof)
-	if err != nil {
+	if err = fg.AddProfile(prof); err != nil {
 		return err
 	}
 
@@ -185,18 +192,12 @@ func buildPProfFlamegraph(inputPath, baselinePath string, format render.Format, 
 		if err != nil {
 			return err
 		}
-		err = fg.AddBaselineProfile(prof)
-		if err != nil {
+		if err = fg.AddBaselineProfile(prof); err != nil {
 			return err
 		}
 	}
 
-	err = fg.Render(os.Stdout)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return fg.Render(os.Stdout)
 }
 
 func buildCollapsedFlamegraph(inputPath, baselinePath string, format render.Format, minWeight float64, maxDepth int, title string, sampleType string) error {

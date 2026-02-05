@@ -433,13 +433,15 @@ private:
                     }
                 }
 
-                // Emit complete stacks before the boundary
-                for (i32 stackIdx = 0; stackIdx < stopStackIdx; ++stackIdx) {
-                    builder.AddStack(MapStack(key.GetStack(stackIdx)));
-                }
-
-                // Handle boundary stack (partial or full)
+                // Only emit if we found at least one non-garbage frame
+                // If all frames are garbage (stopStackIdx == stackCount), emit nothing
                 if (stopStackIdx < key.GetStackCount()) {
+                    // Emit complete stacks before the boundary
+                    for (i32 stackIdx = 0; stackIdx < stopStackIdx; ++stackIdx) {
+                        builder.AddStack(MapStack(key.GetStack(stackIdx)));
+                    }
+
+                    // Handle boundary stack (partial or full)
                     TStack stack = key.GetStack(stopStackIdx);
                     if (stopFrameIdx < stack.GetFrameCount() - 1) {
                         builder.AddStack(MapStackPartial(stack, stopFrameIdx + 1));

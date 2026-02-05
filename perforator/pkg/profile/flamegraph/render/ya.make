@@ -12,16 +12,31 @@ ENDIF()
 SRCS(
     blocks.go
     hsv.go
+    json_renderer.go
+    output.go
     render.go
+    renderer.go
     strtab.go
     text_format.go
 )
+
+IF (CGO_ENABLED)
+    SRCS(cgo_flamegraph.go)
+ELSE()
+    SRCS(cgo_flamegraph_nocgo.go)
+ENDIF()
 IF (NOT OPENSOURCE)
     GO_TEST_SRCS(
         blocks_test.go
         render_json_test.go
     )
-    GO_XTEST_SRCS(render_test.go)
+    GO_XTEST_SRCS(
+        render_golden_test.go
+        render_test.go
+    )
+    IF (CGO_ENABLED)
+        GO_TEST_SRCS(cgo_equivalence_test.go)
+    ENDIF()
 ENDIF()
 
 GO_TEST_SRCS(text_format_test.go)
@@ -42,6 +57,5 @@ IF (NOT OPENSOURCE)
 ENDIF()
 
 RECURSE(
-    cmd
     format
 )

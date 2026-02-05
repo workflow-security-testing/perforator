@@ -62,6 +62,36 @@ func (b *block) setLevelPos(i int) {
 	b.levelPos = i
 }
 
+// populateWithIndexes traverses the block tree in BFS order and assigns level positions.
+// Returns blocks organized by level for efficient iteration.
+func populateWithIndexes(root *block, depth, queueSize int) [][]*block {
+	q := make([]*block, 0, queueSize)
+	q = append(q, root)
+	blocksByLevels := make([][]*block, depth)
+	lastLevel := 0
+	lastIndex := 0
+	for len(q) != 0 {
+		currentBlock := q[0]
+		q = q[1:]
+		if currentBlock.level > lastLevel {
+			lastLevel = currentBlock.level
+			lastIndex = 0
+		}
+		currentBlock.setLevelPos(lastIndex)
+		lastIndex += 1
+		blocksByLevels[lastLevel] = append(blocksByLevels[lastLevel], currentBlock)
+		children := currentBlock.children
+		keys := maps.Keys(children)
+		slices.Sort(keys)
+		for _, key := range keys {
+			q = append(q, children[key])
+		}
+	}
+	return blocksByLevels
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 type blocksBuilder struct {
 	root       *block
 	blocks     []*block

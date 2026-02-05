@@ -36,20 +36,27 @@ func RenderProfile(ctx context.Context, profile *profile.Profile, format *perfor
 	return nil, fmt.Errorf("unsupported render format %s", format.String())
 }
 
-func buildProfileFlamegraph(profile *profile.Profile, options *perforator.FlamegraphOptions, format render.Format) ([]byte, error) {
+func buildProfileFlamegraph(prof *profile.Profile, options *perforator.FlamegraphOptions, format render.Format) ([]byte, error) {
 	buffer := bytes.NewBuffer(make([]byte, 0))
 
-	flamegraph := render.NewFlameGraph()
-	flamegraph.SetFormat(format)
+	var fg render.FlameGraphRenderer
+	if options.GetUseNewRenderer() {
+		fg = render.NewCGOFlameGraph()
+	} else {
+		fg = render.NewFlameGraph()
+	}
 
-	err := fillFlamegraphOptions(flamegraph, options)
-	if err != nil {
+	fg.SetFormat(format)
+	if err := fillFlamegraphOptions(fg, options); err != nil {
 		return nil, fmt.Errorf("failed to fill flamegraph options: %w", err)
 	}
 
-	err = flamegraph.RenderPProf(profile, buffer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to render profile flamegraph: %w", err)
+	if err := fg.AddProfile(prof); err != nil {
+		return nil, fmt.Errorf("failed to add profile: %w", err)
+	}
+
+	if err := fg.Render(buffer); err != nil {
+		return nil, fmt.Errorf("failed to render flamegraph: %w", err)
 	}
 
 	return buffer.Bytes(), nil
@@ -61,7 +68,7 @@ const (
 	textFormatDefaultMaxSamples = 100
 )
 
-func fillFlamegraphOptions(fg *render.FlameGraph, options *perforator.FlamegraphOptions) error {
+func fillFlamegraphOptions(fg render.FlameGraphRenderer, options *perforator.FlamegraphOptions) error {
 	if options == nil {
 		return nil
 	}

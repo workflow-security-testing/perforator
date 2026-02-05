@@ -717,6 +717,12 @@ func bindFlamegraphRenderOptions(flags *pflag.FlagSet, options *proto.Flamegraph
 		"flamegraph-show-addresses",
 		"Show addresses inside flamegraph, one of "+AddressRenderPolicies,
 	)
+	flags.BoolVar(
+		maybe(&options.UseNewRenderer),
+		"flamegraph-use-new-renderer",
+		false,
+		"Use new C++ renderer instead of Go renderer",
+	)
 }
 
 func maybe[T any, P **T](ptr P) *T {

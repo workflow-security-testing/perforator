@@ -556,6 +556,9 @@ message FlamegraphOptions {
 
     // Whether to ignore file paths (can be useful in diffs)
     optional bool IgnoreFilePaths = 8;
+
+    // Use new (C++) renderer instead of Go renderer.
+    optional bool UseNewRenderer = 9;
 }
 
 message TextProfileOptions {

@@ -439,6 +439,26 @@ private:
         }
     }
 
+    void ParseDefaultSampleType(NInPlaceProto::TRegionParser& parent) {
+        i64 stringIndex = parent.GetInt64();
+        if (stringIndex > 0) {
+            TStringId stringId = StringMapping_.at(stringIndex);
+            Builder_.Metadata().GetProto().set_default_sample_type(*stringId);
+        }
+    }
+
+    void ParseDurationNanos(NInPlaceProto::TRegionParser& parent) {
+        i64 duration = parent.GetInt64();
+        Builder_.Metadata().GetProto().set_duration_nanoseconds(duration);
+    }
+
+    void ParseTimeNanos(NInPlaceProto::TRegionParser& parent) {
+        i64 timeNanos = parent.GetInt64();
+        auto* timestamp = Builder_.Metadata().GetProto().mutable_timestamp();
+        timestamp->set_seconds(timeNanos / 1'000'000'000);
+        timestamp->set_nanos(timeNanos % 1'000'000'000);
+    }
+
     struct TCachedValue {
         const char* Start = nullptr;
         const char* End = nullptr;
@@ -499,6 +519,15 @@ private:
                 case Profile::kCommentFieldNumber:
                     ParseComment(parser);
                     break;
+                case Profile::kDefaultSampleTypeFieldNumber:
+                    ParseDefaultSampleType(parser);
+                    break;
+                case Profile::kDurationNanosFieldNumber:
+                    ParseDurationNanos(parser);
+                    break;
+                case Profile::kTimeNanosFieldNumber:
+                    ParseTimeNanos(parser);
+                    break;
                 default:
                     parser.SkipField();
             }
@@ -517,6 +546,9 @@ private:
         // Fields should be processed in the specific order because of dependencies.
         for (auto&& desiredFieldNumber : {
             Profile::kStringTableFieldNumber,
+            Profile::kDefaultSampleTypeFieldNumber,
+            Profile::kDurationNanosFieldNumber,
+            Profile::kTimeNanosFieldNumber,
             Profile::kMappingFieldNumber,
             Profile::kFunctionFieldNumber,
             Profile::kLocationFieldNumber,
@@ -774,6 +806,33 @@ public:
         }
     }
 
+    void WriteMetadata() {
+        using NProto::NPProf::Profile;
+
+        const auto& metadata = Profile_.GetMetadata();
+
+        // Write default_sample_type
+        if (metadata.default_sample_type() > 0) {
+            TValueTraits<Profile::kDefaultSampleTypeFieldNumber, WireFormatLite::TYPE_INT64>::Write(
+                metadata.default_sample_type(), Out_);
+        }
+
+        // Write duration_nanos
+        if (metadata.duration_nanoseconds() > 0) {
+            TValueTraits<Profile::kDurationNanosFieldNumber, WireFormatLite::TYPE_INT64>::Write(
+                metadata.duration_nanoseconds(), Out_);
+        }
+
+        // Write time_nanos
+        if (metadata.has_timestamp()) {
+            const auto& ts = metadata.timestamp();
+            i64 timeNanos = ts.seconds() * 1'000'000'000 + ts.nanos();
+            if (timeNanos > 0) {
+                TValueTraits<Profile::kTimeNanosFieldNumber, WireFormatLite::TYPE_INT64>::Write(timeNanos, Out_);
+            }
+        }
+    }
+
     void WriteSampleTypes() {
         using NProto::NPProf::Profile;
         using NProto::NPProf::ValueType;
@@ -875,6 +934,7 @@ public:
         WriteFunctions();
         WriteStackFrames();
         WriteComments();
+        WriteMetadata();
         WriteSampleTypes();
         WriteSamples();
     }
@@ -908,7 +968,28 @@ public:
         ConvertLocations();
         ConvertComments();
         ConvertSamples();
+        ConvertMetadata();
         std::move(Builder_).Finish();
+    }
+
+    void ConvertMetadata() {
+        // Convert default_sample_type if set
+        if (OldProfile_.default_sample_type() > 0) {
+            TStringId defaultType = ConvertString(OldProfile_.default_sample_type());
+            Builder_.Metadata().GetProto().set_default_sample_type(*defaultType);
+        }
+
+        // Convert duration_nanos if set
+        if (OldProfile_.duration_nanos() > 0) {
+            Builder_.Metadata().GetProto().set_duration_nanoseconds(OldProfile_.duration_nanos());
+        }
+
+        // Convert time_nanos if set
+        if (OldProfile_.time_nanos() > 0) {
+            auto* timestamp = Builder_.Metadata().GetProto().mutable_timestamp();
+            timestamp->set_seconds(OldProfile_.time_nanos() / 1'000'000'000);
+            timestamp->set_nanos(OldProfile_.time_nanos() % 1'000'000'000);
+        }
     }
 
 private:
@@ -1129,6 +1210,7 @@ public:
         ConvertStringTable();
         ConvertValueTypes();
         ConvertComments();
+        ConvertMetadata();
         ConvertMappings();
         ConvertFunctions();
         ConvertLocations();
@@ -1164,6 +1246,29 @@ private:
     void ConvertComments() {
         for (TComment comment : SourceProfile_.Comments()) {
             OldProfile_.add_comment(*comment.GetString().GetIndex());
+        }
+    }
+
+    void ConvertMetadata() {
+        const auto& metadata = SourceProfile_.GetMetadata();
+
+        // Convert default_sample_type
+        if (metadata.default_sample_type() > 0) {
+            OldProfile_.set_default_sample_type(metadata.default_sample_type());
+        }
+
+        // Convert duration_nanoseconds
+        if (metadata.duration_nanoseconds() > 0) {
+            OldProfile_.set_duration_nanos(metadata.duration_nanoseconds());
+        }
+
+        // Convert timestamp
+        if (metadata.has_timestamp()) {
+            const auto& ts = metadata.timestamp();
+            i64 timeNanos = ts.seconds() * 1'000'000'000 + ts.nanos();
+            if (timeNanos > 0) {
+                OldProfile_.set_time_nanos(timeNanos);
+            }
         }
     }
 

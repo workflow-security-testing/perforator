@@ -2,10 +2,7 @@ package render
 
 import (
 	"bytes"
-	"compress/gzip"
 	_ "embed"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"image/color"
@@ -17,12 +14,9 @@ import (
 	"strings"
 
 	pprof "github.com/google/pprof/profile"
-	"golang.org/x/exp/maps"
 
-	"github.com/yandex/perforator/library/go/core/resource"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profile"
 	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/collapsed"
-	"github.com/yandex/perforator/perforator/pkg/profile/flamegraph/render/format"
 	"github.com/yandex/perforator/perforator/pkg/profile/labels"
 )
 
@@ -140,9 +134,11 @@ type FlameGraph struct {
 
 	locationsCache map[locationMeta][]locationData
 	bb             *blocksBuilder
-	blocks         []*block
 	diffmult       float64
 }
+
+// Compile-time check that FlameGraph implements FlameGraphRenderer.
+var _ FlameGraphRenderer = (*FlameGraph)(nil)
 
 func NewFlameGraph() *FlameGraph {
 	return &FlameGraph{
@@ -346,9 +342,10 @@ func (f *FlameGraph) AddCollapsedBaselineProfile(profile *collapsed.Profile) err
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Render implements FlameGraphRenderer.
 func (f *FlameGraph) Render(w io.Writer) error {
-	f.blocks = f.bb.Finish(f.minWeight)
-	return f.renderBlocks(f.blocks, w)
+	blocks := f.bb.Finish(f.minWeight)
+	return f.renderBlocks(blocks, w)
 }
 
 func (f *FlameGraph) RenderBytes() ([]byte, error) {
@@ -430,136 +427,20 @@ func renderFramesByHand(frameLevels [][]*frame, diff bool) string {
 	return w.String()
 }
 
-func (f *FlameGraph) renderBlocksToPrettyJSON(blocks []*block, w io.Writer) error {
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", "  ")
-	return f.encodeBlocksToJSON(blocks, enc)
-}
-func (f *FlameGraph) renderBlocksToJSON(blocks []*block, w io.Writer) error {
-	enc := json.NewEncoder(w)
-	return f.encodeBlocksToJSON(blocks, enc)
-}
-
-func populateWithIndexes(root *block, depth, queueSize int) [][]*block {
-	// every block will be in the queue once;
-	// the queue becomes smaller by cutting off its first element
-	// the underlying array elements will stay in place and we will move over that section of memory
-	// so we cannot allocate less than the amount of blocks
-	q := make([]*block, 0, queueSize)
-	q = append(q, root)
-	blocksByLevels := make([][]*block, depth)
-	lastLevel := 0
-	lastIndex := 0
-	for len(q) != 0 {
-		currentBlock := q[0]
-		q = q[1:]
-		if currentBlock.level > lastLevel {
-			lastLevel = currentBlock.level
-			lastIndex = 0
-		}
-		currentBlock.setLevelPos(lastIndex)
-		lastIndex += 1
-		blocksByLevels[lastLevel] = append(blocksByLevels[lastLevel], currentBlock)
-		children := currentBlock.children
-		keys := maps.Keys(children)
-		slices.Sort(keys)
-		for _, key := range keys {
-			q = append(q, children[key])
-		}
-	}
-	return blocksByLevels
-}
-
-func (f *FlameGraph) encodeBlocksToJSON(blocks []*block, enc *json.Encoder) error {
-	strtab := NewStringTable()
-
-	maxLevel := 0
-	for _, block := range blocks {
-		if block.level > maxLevel {
-			maxLevel = block.level
-		}
-	}
-
-	nodeLevels := make([][]format.RenderingNode, maxLevel+1)
-
-	blocksByLevels := populateWithIndexes(blocks[0], maxLevel+1, len(blocks))
-
-	for _, blocksOnLevel := range blocksByLevels {
-		for _, currentBlock := range blocksOnLevel {
-			parentIndex := -1
-			if currentBlock.parent != nil {
-				parentIndex = currentBlock.parent.levelPos
-			}
-			node := format.RenderingNode{
-				ParentIndex:     parentIndex,
-				TextID:          strtab.Add(currentBlock.name),
-				SampleCount:     currentBlock.nextCount.count,
-				EventCount:      currentBlock.nextCount.events,
-				BaseEventCount:  currentBlock.prevCount.events,
-				BaseSampleCount: currentBlock.prevCount.count,
-				FrameOrigin:     strtab.Add(string(currentBlock.frameOrigin)),
-				Kind:            strtab.Add(currentBlock.kind),
-				File:            strtab.Add(currentBlock.file),
-				Inlined:         currentBlock.inlined,
-			}
-			nodeLevels[currentBlock.level] = append(nodeLevels[currentBlock.level], node)
-		}
-	}
-
-	profileMeta := format.ProfileMeta{
-		EventType: strtab.Add(f.sampleType),
-		FrameType: strtab.Add(f.frameType),
-		Version:   2,
-	}
-
-	profileData := format.ProfileData{
-		Nodes:   nodeLevels,
-		Strings: strtab.Table(),
-		Meta:    profileMeta,
-	}
-
-	err := enc.Encode(profileData)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *FlameGraph) renderBlocksToHTMLV2(blocks []*block, w io.Writer) error {
-	buf := new(bytes.Buffer)
-	compressable := gzip.NewWriter(buf)
-	err := f.renderBlocksToJSON(blocks, compressable)
-	if err != nil {
-		return err
-	}
-	if err = compressable.Close(); err != nil {
-		return err
-	}
-	jsCode := template.HTML("<script>" + string(resource.Get("viewer.js")) + "</script>")
-
-	jsonData := template.HTML("<script>window.__data__=\"" + base64.StdEncoding.EncodeToString(buf.Bytes()) + "\"</script>")
-
-	return tmpl.ExecuteTemplate(w, string(f.format), &struct {
-		Json   template.HTML
-		Script template.HTML
-	}{
-		Json:   jsonData,
-		Script: jsCode,
-	})
-
+func (f *FlameGraph) newBlocksJSONRenderer(blocks []*block) *BlocksJSONRenderer {
+	return NewBlocksJSONRenderer(blocks, f.sampleType, f.frameType)
 }
 
 func (f *FlameGraph) renderBlocks(blocks []*block, w io.Writer) error {
 	switch f.format {
 	case JSONFormat:
-		return f.renderBlocksToJSON(blocks, w)
+		return f.newBlocksJSONRenderer(blocks).RenderJSON(w)
 	case JSONPrettyFormat:
-		return f.renderBlocksToPrettyJSON(blocks, w)
+		return f.newBlocksJSONRenderer(blocks).RenderPrettyJSON(w)
 	case HTMLFormat:
 		return f.renderBlocksToHTML(blocks, w)
 	case HTMLFormatV2:
-		return f.renderBlocksToHTMLV2(blocks, w)
+		return RenderJSONAsHTML(f.newBlocksJSONRenderer(blocks), w)
 	default:
 		return fmt.Errorf("unsupported format: %s", f.format)
 	}
@@ -849,9 +730,8 @@ func (f *FlameGraph) addProfile(p *pprof.Profile, baseline bool) error {
 		}
 
 		startdepth := iter.Depth()
-		locs := sample.Location
-		slices.Reverse(locs)
-		for _, loc := range locs {
+		for i := len(sample.Location) - 1; i >= 0; i-- {
+			loc := sample.Location[i]
 			origin := FrameOriginNative
 			if loc.Mapping != nil {
 				switch loc.Mapping.File {
