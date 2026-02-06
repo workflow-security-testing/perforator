@@ -24,6 +24,7 @@ import (
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/pkg/endpointsetresolver"
+	"github.com/yandex/perforator/perforator/pkg/sampletype"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 	"github.com/yandex/perforator/perforator/proto/lib/pagination"
 	"github.com/yandex/perforator/perforator/proto/lib/time_interval"
@@ -631,6 +632,13 @@ func (c *Client) UploadRenderedProfile(
 	// Temporary kludge until we have a better way to synchronously upload profile.
 	time.Sleep(time.Second * 5)
 
+	// Derive event type from profile for the selector.
+	// The server requires event_type to be specified, otherwise it defaults to cpu.cycles.
+	eventType := sampletype.SampleTypeCPUCycles
+	if len(profile.SampleType) > 0 {
+		eventType = sampletype.SampleTypeToString(profile.SampleType[0])
+	}
+
 	// Render the profile.
 	req := &perforator.MergeProfilesRequest{
 		Format: &perforator.RenderFormat{
@@ -639,7 +647,7 @@ func (c *Client) UploadRenderedProfile(
 			},
 		},
 		Query: &perforator.ProfileQuery{
-			Selector: fmt.Sprintf(`{system_name = "uploads", id="%s"}`, profileID),
+			Selector: fmt.Sprintf(`{system_name = "uploads", id="%s", event_type="%s"}`, profileID, eventType),
 			TimeInterval: &time_interval.TimeInterval{
 				From: timestamppb.New(meta.GetTimestamp().AsTime().Add(-time.Minute)),
 			},
