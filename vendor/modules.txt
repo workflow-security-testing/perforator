@@ -16688,7 +16688,7 @@ github.com/ydb-platform/ydb-go-sdk-zap/internal/cmd/bench
 ## explicit; go 1.16
 github.com/ydb-platform/ydb-go-sdk-zerolog
 github.com/ydb-platform/ydb-go-sdk-zerolog/internal/cmd/bench
-# github.com/ydb-platform/ydb-go-sdk/v3 v3.121.1
+# github.com/ydb-platform/ydb-go-sdk/v3 v3.126.4
 ## explicit; go 1.23.9
 github.com/ydb-platform/ydb-go-sdk/v3
 github.com/ydb-platform/ydb-go-sdk/v3/balancers
@@ -16715,7 +16715,6 @@ github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination
 github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/coordination/conversation
 github.com/ydb-platform/ydb-go-sdk/v3/internal/credentials
-github.com/ydb-platform/ydb-go-sdk/v3/internal/decimal
 github.com/ydb-platform/ydb-go-sdk/v3/internal/discovery
 github.com/ydb-platform/ydb-go-sdk/v3/internal/discovery/config
 github.com/ydb-platform/ydb-go-sdk/v3/internal/dsn
@@ -16791,6 +16790,7 @@ github.com/ydb-platform/ydb-go-sdk/v3/log
 github.com/ydb-platform/ydb-go-sdk/v3/meta
 github.com/ydb-platform/ydb-go-sdk/v3/metrics
 github.com/ydb-platform/ydb-go-sdk/v3/operation
+github.com/ydb-platform/ydb-go-sdk/v3/pkg/decimal
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/xslices
 github.com/ydb-platform/ydb-go-sdk/v3/pkg/xstring
