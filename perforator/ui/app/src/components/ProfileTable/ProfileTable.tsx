@@ -149,9 +149,6 @@ export function ProfileTable({ query, compact }: ProfileTableProps) {
     const [paginationState, setPaginationState] = useState(initialPaginationState);
 
     useEffect(() => {
-        if (prevQueryRef.current === null) {
-            prevQueryRef.current = query;
-        }
         const newQuery = prevQueryRef.current !== null && prevQueryRef.current !== query;
         if (newQuery) {
             prevQueryRef.current = query;
@@ -168,13 +165,15 @@ export function ProfileTable({ query, compact }: ProfileTableProps) {
             setData([]);
             setError(null);
 
-            if (!query.selector) {
-                setData([]);
-                return;
+            let selector;
+            if (query.selector) {
+                selector = query.selector;
+            } else {
+                selector = '{}';
             }
 
             const params: any = {
-                'Query.Selector': query.selector,
+                'Query.Selector': selector,
                 'Query.TimeInterval.From': getIsoDate(query.from ?? ''),
                 'Query.TimeInterval.To': getIsoDate(query.to ?? ''),
                 'Paginated.Offset': (paginationState.page - 1) * paginationState.pageSize,
@@ -210,7 +209,7 @@ export function ProfileTable({ query, compact }: ProfileTableProps) {
         };
 
         fetchData();
-    }, [query, sortState, paginationState]);
+    }, [query, sortState, paginationState, columns]);
 
     const SortedTable = useMemo(() => compact ? withTableSorting(Table<Profile>) : withTableCopy(withTableSorting(Table<Profile>)), [compact]);
 
