@@ -9,16 +9,21 @@ export function escapeRegex(str: string) {
     return str.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
+export function makeTestFn(query: RegExp | string | undefined) {
+    if (typeof query === 'string') {
+        const regex = (new RegExp(escapeRegex(query)));
+        return (str: string) => regex.test(str);
+    }
+    if (typeof query === 'object' && query instanceof RegExp) {
+        return (str: string) => query.test(str);
+    }
+    return () => false;
+}
 
-export function search(readString: ReadString, shorten: StringModifier, shouldShorten: boolean, rows: ProfileData['rows'], query: RegExp | string): Coordinate[] {
+export function search(readString: ReadString, shorten: StringModifier, shouldShorten: boolean, rows: ProfileData['rows'], query: RegExp | string, excludeQuery?: RegExp | string): Coordinate[] {
     const res: Coordinate[] = [];
-    const test = (() => {
-        if (typeof query === 'string') {
-            const regex = (new RegExp(escapeRegex(query)));
-            return (str: string) => regex.test(str);
-        }
-        return (str: string)=> query.test(str);
-    })();
+    const test = makeTestFn(query);
+    const excludeTest = makeTestFn(excludeQuery);
 
     const getNodeTitle = getNodeTitleFull.bind(null, readString, shorten, shouldShorten);
 
@@ -27,7 +32,8 @@ export function search(readString: ReadString, shorten: StringModifier, shouldSh
             const node = rows[h][i];
             const name = getNodeTitle(node);
             const matched = test(name);
-            if (matched) {
+            const excluded = excludeTest(name);
+            if (matched && !excluded) {
                 res.push([h, i]);
             }
         }

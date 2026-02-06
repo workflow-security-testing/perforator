@@ -15,6 +15,7 @@ import { FlamegraphOffseter, renderFlamegraph as newFlame } from '../../renderer
 import { getCanvasTitleFull, renderTitleFull } from '../../title';
 import { cn } from '../../utils/cn';
 import { Hotkey } from '../Hotkey/Hotkey';
+import type { SearchUpdate } from '../RegexpDialog/RegexpDialog';
 import { RegexpDialog } from '../RegexpDialog/RegexpDialog';
 
 import type { ContextMenuProps, PopupData } from './ContextMenu';
@@ -95,6 +96,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     const [showDialog, setShowDialog] = useState(false);
     const flamegraphOffsets = React.useRef<FlamegraphOffseter | null>(null);
     const search = getQuery('flamegraphQuery');
+    const excludeSearch = getQuery('flamegraphExclude');
     const reverse = (getQuery('flamegraphReverse') ?? String(userSettings.reverseFlameByDefault)) === 'true';
     const isDiffSwitchingSupported = profileData.meta.version > 1;
     const [shouldTrim, setShouldTrim] = React.useState(false);
@@ -147,9 +149,13 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
         onResetOmitted?.();
     }, [setQuery]);
 
-    const handleSearchUpdate = (text: string, exactMatch?: boolean) => {
-        setQuery({ 'flamegraphQuery': encodeURIComponent(text), exactMatch: exactMatch ? 'true' : undefined });
-        onSearch?.(text);
+    const handleSearchUpdate = (update: SearchUpdate) => {
+        setQuery({
+            'flamegraphQuery': encodeURIComponent(update.text),
+            exactMatch: update.exactMatch ? 'true' : undefined,
+            'flamegraphExclude': update.excludeText ? encodeURIComponent(update.excludeText) : false,
+        });
+        onSearch?.(update.text);
         setShowDialog(false);
     };
     const exactMatch = getQuery('exactMatch');
@@ -163,13 +169,14 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
 
     React.useEffect(() => {
         if (flamegraphContainer.current && profileData && flamegraphOffsets.current) {
-            const renderOptions = {
+            const renderOptions: RenderFlamegraphOptions = {
                 setState: setQuery,
                 getState: getQuery,
                 theme,
                 shortenFrameTexts: userSettings.shortenFrameTexts,
                 isDiff,
                 searchPattern: search ? exactMatch === 'true' ? decodeURIComponent(search) : RegExp(decodeURIComponent(search)) : null,
+                excludeSearchPattern: excludeSearch ? exactMatch === 'true' ? decodeURIComponent(excludeSearch) : RegExp(decodeURIComponent(excludeSearch)) : null,
                 reverse,
                 keepOnlyFound,
                 onFinishRendering,
@@ -345,6 +352,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     onSearchUpdate={handleSearchUpdate}
                     initialSearch={search}
                     initialExact={getQuery('exactMatch') === 'true'}
+                    initialExcludeText={excludeSearch}
                 />}
                 <div className="flamegraph__header">
                     <div className="flamegraph__buttons">

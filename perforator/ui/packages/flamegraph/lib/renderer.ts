@@ -41,6 +41,7 @@ export type Interval = [I, I];
 export type QueryKeys =
     | 'flamegraphReverse'
     | 'flamegraphQuery'
+    | 'flamegraphExclude'
     | 'omittedIndexes'
     | 'keepOnlyFound'
     | 'exactMatch'
@@ -58,6 +59,7 @@ export type RenderFlamegraphOptions = {
     shortenFrameTexts: 'true' | 'false' | 'hover';
     onFinishRendering?: (opts?: {textNodesCount: number; delta: number; exceededLimit: boolean}) => void;
     searchPattern: RegExp | string | null;
+    excludeSearchPattern: RegExp | string | null;
     reverse: boolean;
     keepOnlyFound: boolean;
     disableHighlightRender: boolean;
@@ -76,6 +78,7 @@ function makeByH(coords: Coordinate[]): Record<H, Set<I>> {
 
 interface RenderOpts {
     pattern?: RegExp | string | null;
+    excludePattern?: RegExp | string | null;
 }
 
 
@@ -315,7 +318,9 @@ export class FlamegraphOffseter {
         if (keepFoundCoordinates) {
             this.backpropagateKeepOnlyFound(keepFoundCoordinates);
         }
-        this.backpropagateOmittedEventCount(omittedOffsetCoordinates);
+        if (omittedOffsetCoordinates && omittedOffsetCoordinates.length) {
+            this.backpropagateOmittedEventCount(omittedOffsetCoordinates);
+        }
         const root = this.rows[initialH][initialI];
         this.widthRatio = (this.getEvents(root) - (root.omittedEventCount ?? 0)) / canvasWidth!;
         this.minVisibleEv = minVisibleWidth * this.widthRatio;
@@ -462,7 +467,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     flamegraphContainer,
     profileData,
     fg,
-    { getState, setState, theme, isDiff, onFinishRendering, shortenFrameTexts, searchPattern, reverse, keepOnlyFound, disableHighlightRender },
+    { getState, setState, theme, isDiff, onFinishRendering, shortenFrameTexts, excludeSearchPattern, searchPattern, reverse, keepOnlyFound, disableHighlightRender },
 ) => {
     const shouldSwapDiff = getState('flameBase') === 'diff';
 
@@ -529,10 +534,10 @@ export const renderFlamegraph: RenderFlamegraphType = (
     const shouldShortenTextForHover = shortenFrameTexts === 'true';
     const search = outerSearch.bind(null, readString, shorten, shouldShortenTextForOverview, profileData.rows);
 
-    const maybeSearch = (query: RegExp | string | null): Coordinate[] | null => {
+    const maybeSearch = (query: RegExp | string | null, excludeQuery?: RegExp | string | null): Coordinate[] | null => {
         let foundCoords: Coordinate[] | null;
         if (keepOnlyFound && query) {
-            foundCoords = search(query);
+            foundCoords = search(query, excludeQuery);
         } else {
             foundCoords = null;
         }
@@ -639,6 +644,10 @@ export const renderFlamegraph: RenderFlamegraphType = (
         if (typeof pattern === 'string') {
             pattern = new RegExp(escapeRegex(pattern));
         }
+        let excludePattern = opts?.excludePattern;
+        if (typeof excludePattern === 'string') {
+            excludePattern = new RegExp(escapeRegex(excludePattern));
+        }
 
         for (let h = 0; h < rows.length; h++) {
             const y = fg.calcTopOffset(h);
@@ -652,7 +661,9 @@ export const renderFlamegraph: RenderFlamegraphType = (
                 const width = fg.countWidth(node);
                 const nodeTitle = getNodeTitle(node);
 
-                const isMarked = pattern?.test(nodeTitle);
+                const matched = pattern?.test(nodeTitle);
+                const matchedExclude = excludePattern?.test(nodeTitle);
+                const isMarked = matched && !matchedExclude;
                 if (isMarked) {
                     mark(node);
                 }
@@ -857,10 +868,10 @@ export const renderFlamegraph: RenderFlamegraphType = (
     const pos = parseInt(getState('framePos', '0'));
     const omittedStacks = parseStacks(getState('omittedIndexes', '') || '');
 
-    const foundCoords = maybeSearch(searchPattern);
+    const foundCoords = maybeSearch(searchPattern, excludeSearchPattern);
 
     fg.prerenderOffsets(canvasWidth!, [h, pos], omittedStacks, foundCoords, shouldSwapDiff);
-    render({ pattern: searchPattern });
+    render({ pattern: searchPattern, excludePattern: excludeSearchPattern });
     if (!disableHighlightRender) {
         renderHighlightRect(h, pos);
     }
@@ -874,7 +885,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
         canvas.style.width = null;
         initCanvas();
         fg.prerenderOffsets(canvasWidth!, [initialH, initialI], omittedStacks, foundCoords, shouldSwapDiff);
-        render({ pattern: searchPattern });
+        render({ pattern: searchPattern, excludePattern: excludeSearchPattern });
     });
     window.addEventListener('resize', onResize);
 
@@ -892,4 +903,3 @@ export const renderFlamegraph: RenderFlamegraphType = (
         canvas.style.cursor = 'pointer';
     }
 };
-
