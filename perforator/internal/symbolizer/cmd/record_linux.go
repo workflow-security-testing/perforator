@@ -167,12 +167,12 @@ func record(opts *recordOptions, args []string) error {
 		return fmt.Errorf("failed to build render format: %w", err)
 	}
 
-	storage, err := runProfiler(ctx, logger, opts, args)
+	storage, sampleType, err := runProfiler(ctx, logger, opts, args)
 	if err != nil {
 		return err
 	}
 
-	profile, err := symbolizeProfile(ctx, logger, storage, opts, format)
+	profile, err := symbolizeProfile(ctx, logger, storage, sampleType, format)
 	if err != nil {
 		return err
 	}
@@ -292,8 +292,9 @@ func parsePerfEvent(event string, opts *recordOptions) (*config.PerfEventConfig,
 }
 
 type events struct {
-	perfEvents []config.PerfEventConfig
-	uprobes    []uprobe.Config
+	perfEvents     []config.PerfEventConfig
+	uprobes        []uprobe.Config
+	sampleTypeName string
 }
 
 func parseEvents(opts *recordOptions) (events events, err error) {
@@ -337,20 +338,40 @@ func parseEvents(opts *recordOptions) (events events, err error) {
 		}
 	}
 
+	// Deduce sample type name
+	switch {
+	case opts.walltime:
+		events.sampleTypeName = sampletype.SampleTypeWall
+	case opts.signals:
+		events.sampleTypeName = sampletype.SampleTypeSignal
+	case len(events.uprobes) > 0:
+		if len(opts.events) == 1 {
+			events.sampleTypeName = opts.events[0]
+		} else {
+			events.sampleTypeName = sampletype.SampleTypeUprobe
+		}
+	default:
+		if eventType := perfevent.GetTypeByNameOrAlias(opts.events[0]); eventType != nil {
+			events.sampleTypeName = eventType.Name()
+		} else {
+			events.sampleTypeName = opts.events[0]
+		}
+	}
+
 	return
 }
 
-func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, args []string) (*binaryStorage, error) {
+func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, args []string) (*binaryStorage, string, error) {
 	storage, err := newBinaryStorage(ctx, logger)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	registry := xmetrics.NewRegistry(xmetrics.WithFormat(xmetrics.FormatText))
 
 	events, err := parseEvents(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse events: %w", err)
+		return nil, "", fmt.Errorf("failed to parse events: %w", err)
 	}
 
 	prof, err := profiler.NewProfiler(&config.Config{
@@ -387,21 +408,21 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize profiler: %w", err)
+		return nil, "", fmt.Errorf("failed to initialize profiler: %w", err)
 	}
 	defer prof.Close()
 
 	for _, pid := range opts.pids {
 		_, err = prof.TracePid(linux.CurrentNamespacePID(pid))
 		if err != nil {
-			return nil, fmt.Errorf("failed to trace pid %d: %w", pid, err)
+			return nil, "", fmt.Errorf("failed to trace pid %d: %w", pid, err)
 		}
 	}
 
 	for _, tid := range opts.tids {
 		_, err = prof.TracePid(linux.CurrentNamespacePID(tid))
 		if err != nil {
-			return nil, fmt.Errorf("failed to trace tid %d: %w", tid, err)
+			return nil, "", fmt.Errorf("failed to trace tid %d: %w", tid, err)
 		}
 	}
 
@@ -410,13 +431,13 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 			Name: cgroup,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to trace cgroup %s: %w", cgroup, err)
+			return nil, "", fmt.Errorf("failed to trace cgroup %s: %w", cgroup, err)
 		}
 	}
 	if opts.wholeSystem {
 		err = prof.TraceWholeSystem(nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to trace whole system: %w", err)
+			return nil, "", fmt.Errorf("failed to trace whole system: %w", err)
 		}
 	}
 
@@ -486,22 +507,18 @@ func runProfiler(ctx context.Context, logger xlog.Logger, opts *recordOptions, a
 	})
 
 	if err = g.Wait(); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	buf := new(bytes.Buffer)
 	_ = registry.StreamMetrics(context.Background(), buf)
 	logger.Debug(ctx, "Collected profiler metrics", log.ByteString("metrics", buf.Bytes()))
 
-	return storage, nil
+	return storage, events.sampleTypeName, nil
 }
 
-func symbolizeProfile(ctx context.Context, logger xlog.Logger, storage *binaryStorage, opts *recordOptions, format *perforator.RenderFormat) (*pprof.Profile, error) {
-	sampleType, err := deduceProfileSampleType(opts)
-	if err != nil {
-		return nil, fmt.Errorf("failed to deduce profile sample type: %w", err)
-	}
-	logger.Debug(ctx, "Deduced profile sample type", log.String("type", sampleType))
+func symbolizeProfile(ctx context.Context, logger xlog.Logger, storage *binaryStorage, sampleType string, format *perforator.RenderFormat) (*pprof.Profile, error) {
+	logger.Debug(ctx, "Using profile sample type", log.String("type", sampleType))
 
 	profiles := make([]*pprof.Profile, 0, len(storage.profiles))
 	for i, profile := range storage.profiles {
@@ -586,26 +603,6 @@ func renderProfile(ctx context.Context, logger xlog.Logger, profile *pprof.Profi
 	}
 
 	return nil
-}
-
-func deduceProfileSampleType(opts *recordOptions) (string, error) {
-	if opts.walltime {
-		return sampletype.SampleTypeWall, nil
-	}
-	if opts.signals {
-		return sampletype.SampleTypeSignal, nil
-	}
-	if strings.HasPrefix(opts.events[0], "uprobe:") {
-		// this condition automatically means that all events are uprobes,
-		// because multiple perf events mixed with uprobes are not supported yet
-		if len(opts.events) == 1 {
-			return opts.events[0], nil
-		}
-
-		return sampletype.SampleTypeUprobe, nil
-	}
-
-	return sampletype.SampleTypeCPU, nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
