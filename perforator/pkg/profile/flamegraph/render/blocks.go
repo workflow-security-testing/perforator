@@ -23,8 +23,10 @@ const (
 	FrameOriginUnknown FrameOrigin = ""
 	FrameOriginNative  FrameOrigin = "native"
 	FrameOriginKernel  FrameOrigin = "kernel"
-	FrameOriginPython  FrameOrigin = "python"
-	FrameOriginPHP     FrameOrigin = "php"
+	// rest is sorted alphabetically on values
+	FrameOriginJVM    FrameOrigin = "jvm"
+	FrameOriginPHP    FrameOrigin = "php"
+	FrameOriginPython FrameOrigin = "python"
 )
 
 ////////////////////////////////////////////////////////////////////////////////

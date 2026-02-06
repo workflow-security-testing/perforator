@@ -260,11 +260,11 @@ func (f *FlameGraph) hashcolor(name string, module FrameOrigin) color.RGBA {
 			B: uint8(205 + 50*v3),
 			A: 0,
 		}
-	case FrameOriginPython:
+	case FrameOriginJVM:
 		return color.RGBA{
-			R: uint8(103 + 50*v2),
-			G: uint8(178 + 77*v1),
-			B: uint8(120 + 50*v3),
+			R: uint8(245 + 5*v3),
+			G: uint8(110 - 58*v1),
+			B: uint8(110 + 71*v2),
 			A: 0,
 		}
 	case FrameOriginPHP:
@@ -272,6 +272,13 @@ func (f *FlameGraph) hashcolor(name string, module FrameOrigin) color.RGBA {
 			R: uint8(120 + 40*v2),
 			G: uint8(130 + 40*v1),
 			B: uint8(180 + 40*v3),
+			A: 0,
+		}
+	case FrameOriginPython:
+		return color.RGBA{
+			R: uint8(103 + 50*v2),
+			G: uint8(178 + 77*v1),
+			B: uint8(120 + 50*v3),
 			A: 0,
 		}
 	default:
@@ -548,12 +555,15 @@ func guessCollapsedFrameOrigin(name string) FrameOrigin {
 	if strings.HasSuffix(name, "[kernel]") {
 		return FrameOriginKernel
 	}
-	if strings.HasSuffix(name, ".py") {
-		return FrameOriginPython
-	}
 
+	if strings.HasSuffix(name, ".java") || strings.HasSuffix(name, ".kt") {
+		return FrameOriginJVM
+	}
 	if strings.HasSuffix(name, ".php") {
 		return FrameOriginPHP
+	}
+	if strings.HasSuffix(name, ".py") {
+		return FrameOriginPython
 	}
 
 	return FrameOriginNative
@@ -737,10 +747,12 @@ func (f *FlameGraph) addProfile(p *pprof.Profile, baseline bool) error {
 				switch loc.Mapping.File {
 				case profile.KernelSpecialMapping:
 					origin = FrameOriginKernel
-				case profile.PythonSpecialMapping:
-					origin = FrameOriginPython
+				case profile.JVMSpecialMapping:
+					origin = FrameOriginJVM
 				case profile.PHPSpecialMapping:
 					origin = FrameOriginPHP
+				case profile.PythonSpecialMapping:
+					origin = FrameOriginPython
 				}
 			}
 
