@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/plain"
 	"github.com/segmentio/kafka-go/sasl/scram"
 
 	"github.com/yandex/perforator/perforator/pkg/certifi"
@@ -19,6 +20,7 @@ type Config struct {
 	GroupID       string                  `yaml:"group_id"`
 	User          string                  `yaml:"user"`
 	PasswordEnv   string                  `yaml:"password_env"`
+	SASLMechanism string                  `yaml:"sasl_mechanism"`
 	MinBytes      int                     `yaml:"min_bytes"` // preferred minimum fetch size
 	MaxBytes      int                     `yaml:"max_bytes"` // maximum fetch size
 	MaxWait       time.Duration           `yaml:"max_wait"`
@@ -62,11 +64,22 @@ func NewKafkaReader(l xlog.Logger, cfg *Config) (*kafka.Reader, error) {
 		if password == "" {
 			return nil, fmt.Errorf("kafka password environment variable %s is not set", cfg.PasswordEnv)
 		}
-		mech, err := scram.Mechanism(scram.SHA512, cfg.User, password)
-		if err != nil {
-			return nil, fmt.Errorf("unable to init scram: %w", err)
+
+		switch cfg.SASLMechanism {
+		case scram.SHA512.Name():
+			mechanism, err := scram.Mechanism(scram.SHA512, cfg.User, password)
+			if err != nil {
+				return nil, fmt.Errorf("unable to init scram: %w", err)
+			}
+			dialer.SASLMechanism = mechanism
+		case plain.Mechanism{}.Name(), "":
+			dialer.SASLMechanism = plain.Mechanism{
+				Username: cfg.User,
+				Password: password,
+			}
+		default:
+			return nil, errors.New("unknown SASL mechanism")
 		}
-		dialer.SASLMechanism = mech
 	}
 
 	if cfg.TLS.Enabled {
