@@ -16916,8 +16916,8 @@ github.com/yudai/golcs
 # github.com/yudai/pp v2.0.1+incompatible
 ## explicit
 github.com/yudai/pp
-# github.com/yuin/goldmark v1.7.8
-## explicit; go 1.19
+# github.com/yuin/goldmark v1.7.13
+## explicit; go 1.22
 github.com/yuin/goldmark
 github.com/yuin/goldmark/ast
 github.com/yuin/goldmark/extension
@@ -18654,7 +18654,7 @@ golang.org/x/arch/x86/x86csv
 golang.org/x/arch/x86/x86map
 golang.org/x/arch/x86/x86spec
 golang.org/x/arch/x86/xeddata
-# golang.org/x/crypto v0.42.0
+# golang.org/x/crypto v0.44.0
 ## explicit; go 1.24.0
 golang.org/x/crypto
 golang.org/x/crypto/acme
@@ -18729,8 +18729,8 @@ golang.org/x/exp/slog/internal/testutil
 golang.org/x/exp/slog/slogtest
 # golang.org/x/exp/shiny v0.0.0-20240707233637-46b078467d37
 ## explicit; go 1.18
-# golang.org/x/exp/typeparams v0.0.0-20250620022241-b7579e27df2b
-## explicit; go 1.23.0
+# golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546
+## explicit; go 1.24.0
 golang.org/x/exp/typeparams
 # golang.org/x/image v0.25.0
 ## explicit; go 1.23.0
@@ -18770,7 +18770,7 @@ golang.org/x/image/webp
 ## explicit; go 1.11
 # golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a
 ## explicit; go 1.18
-# golang.org/x/mod v0.28.0
+# golang.org/x/mod v0.30.0
 ## explicit; go 1.24.0
 golang.org/x/mod
 golang.org/x/mod/gosumcheck
@@ -18784,7 +18784,7 @@ golang.org/x/mod/sumdb/note
 golang.org/x/mod/sumdb/storage
 golang.org/x/mod/sumdb/tlog
 golang.org/x/mod/zip
-# golang.org/x/net v0.44.0
+# golang.org/x/net v0.47.0
 ## explicit; go 1.24.0
 golang.org/x/net
 golang.org/x/net/bpf
@@ -18806,6 +18806,7 @@ golang.org/x/net/idna
 golang.org/x/net/internal/gate
 golang.org/x/net/internal/http3
 golang.org/x/net/internal/httpcommon
+golang.org/x/net/internal/httpsfv
 golang.org/x/net/internal/iana
 golang.org/x/net/internal/quic/cmd/interop
 golang.org/x/net/internal/quic/quicwire
@@ -18872,14 +18873,14 @@ golang.org/x/oauth2/uber
 golang.org/x/oauth2/vk
 golang.org/x/oauth2/yahoo
 golang.org/x/oauth2/yandex
-# golang.org/x/sync v0.17.0 => golang.org/x/sync v0.15.0
+# golang.org/x/sync v0.18.0 => golang.org/x/sync v0.15.0
 ## explicit; go 1.23.0
 golang.org/x/sync
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.36.0
+# golang.org/x/sys v0.38.0
 ## explicit; go 1.24.0
 golang.org/x/sys
 golang.org/x/sys/cpu
@@ -18894,8 +18895,8 @@ golang.org/x/sys/windows/svc/debug
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/example
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/telemetry v0.0.0-20250807160809-1a19826ec488
-## explicit; go 1.23.0
+# golang.org/x/telemetry v0.0.0-20251111182119-bc8e575c7b54
+## explicit; go 1.24.0
 golang.org/x/telemetry
 golang.org/x/telemetry/counter
 golang.org/x/telemetry/internal/config
@@ -18905,10 +18906,10 @@ golang.org/x/telemetry/internal/crashmonitor
 golang.org/x/telemetry/internal/mmap
 golang.org/x/telemetry/internal/telemetry
 golang.org/x/telemetry/internal/upload
-# golang.org/x/term v0.35.0
+# golang.org/x/term v0.37.0
 ## explicit; go 1.24.0
 golang.org/x/term
-# golang.org/x/text v0.29.0
+# golang.org/x/text v0.31.0
 ## explicit; go 1.24.0
 golang.org/x/text
 golang.org/x/text/cases
@@ -18976,8 +18977,8 @@ golang.org/x/text/width
 # golang.org/x/time v0.11.0
 ## explicit; go 1.23.0
 golang.org/x/time/rate
-# golang.org/x/tools v0.36.0
-## explicit; go 1.23.0
+# golang.org/x/tools v0.39.1-0.20251205192105-907593008619
+## explicit; go 1.24.0
 golang.org/x/tools
 golang.org/x/tools/benchmark/parse
 golang.org/x/tools/blog
@@ -18994,7 +18995,6 @@ golang.org/x/tools/cmd/file2fuzz
 golang.org/x/tools/cmd/fiximports
 golang.org/x/tools/cmd/go-contrib-init
 golang.org/x/tools/cmd/godex
-golang.org/x/tools/cmd/godoc
 golang.org/x/tools/cmd/goimports
 golang.org/x/tools/cmd/gomvpkg
 golang.org/x/tools/cmd/gonew
@@ -19052,11 +19052,16 @@ golang.org/x/tools/go/analysis/passes/httpmux/cmd/httpmux
 golang.org/x/tools/go/analysis/passes/httpresponse
 golang.org/x/tools/go/analysis/passes/ifaceassert
 golang.org/x/tools/go/analysis/passes/ifaceassert/cmd/ifaceassert
+golang.org/x/tools/go/analysis/passes/inline
+golang.org/x/tools/go/analysis/passes/inline/cmd/inline
 golang.org/x/tools/go/analysis/passes/inspect
-golang.org/x/tools/go/analysis/passes/internal/analysisutil
+golang.org/x/tools/go/analysis/passes/internal/ctrlflowinternal
+golang.org/x/tools/go/analysis/passes/internal/gofixdirective
 golang.org/x/tools/go/analysis/passes/loopclosure
 golang.org/x/tools/go/analysis/passes/lostcancel
 golang.org/x/tools/go/analysis/passes/lostcancel/cmd/lostcancel
+golang.org/x/tools/go/analysis/passes/modernize
+golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize
 golang.org/x/tools/go/analysis/passes/nilfunc
 golang.org/x/tools/go/analysis/passes/nilness
 golang.org/x/tools/go/analysis/passes/nilness/cmd/nilness
@@ -19116,22 +19121,16 @@ golang.org/x/tools/go/ssa/ssautil
 golang.org/x/tools/go/types/internal/play
 golang.org/x/tools/go/types/objectpath
 golang.org/x/tools/go/types/typeutil
-golang.org/x/tools/godoc
-golang.org/x/tools/godoc/analysis
-golang.org/x/tools/godoc/redirect
-golang.org/x/tools/godoc/static
-golang.org/x/tools/godoc/util
-golang.org/x/tools/godoc/vfs
-golang.org/x/tools/godoc/vfs/gatefs
-golang.org/x/tools/godoc/vfs/httpfs
-golang.org/x/tools/godoc/vfs/mapfs
-golang.org/x/tools/godoc/vfs/zipfs
 golang.org/x/tools/imports
 golang.org/x/tools/internal/aliases
-golang.org/x/tools/internal/analysisinternal
-golang.org/x/tools/internal/analysisinternal/typeindex
+golang.org/x/tools/internal/analysis/analyzerutil
+golang.org/x/tools/internal/analysis/driverutil
+golang.org/x/tools/internal/analysis/generated
+golang.org/x/tools/internal/analysis/typeindex
 golang.org/x/tools/internal/astutil
+golang.org/x/tools/internal/astutil/free
 golang.org/x/tools/internal/bisect
+golang.org/x/tools/internal/cfginternal
 golang.org/x/tools/internal/diff
 golang.org/x/tools/internal/diff/difftest
 golang.org/x/tools/internal/diff/lcs
@@ -19152,10 +19151,8 @@ golang.org/x/tools/internal/facts
 golang.org/x/tools/internal/fmtstr
 golang.org/x/tools/internal/gcimporter
 golang.org/x/tools/internal/gocommand
-golang.org/x/tools/internal/gofix
-golang.org/x/tools/internal/gofix/cmd/gofix
-golang.org/x/tools/internal/gofix/findgofix
 golang.org/x/tools/internal/gopathwalk
+golang.org/x/tools/internal/goplsexport
 golang.org/x/tools/internal/goroot
 golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/jsonrpc2
@@ -19166,19 +19163,24 @@ golang.org/x/tools/internal/jsonrpc2_v2
 golang.org/x/tools/internal/mcp
 golang.org/x/tools/internal/mcp/examples/hello
 golang.org/x/tools/internal/mcp/examples/sse
+golang.org/x/tools/internal/mcp/internal/oauthex
 golang.org/x/tools/internal/mcp/internal/readme/client
 golang.org/x/tools/internal/mcp/internal/readme/server
 golang.org/x/tools/internal/mcp/internal/util
 golang.org/x/tools/internal/mcp/jsonschema
 golang.org/x/tools/internal/modindex
 golang.org/x/tools/internal/modindex/gomodindex
+golang.org/x/tools/internal/moreiters
+golang.org/x/tools/internal/packagepath
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/packagestest
 golang.org/x/tools/internal/pkgbits
 golang.org/x/tools/internal/pprof
 golang.org/x/tools/internal/proxydir
+golang.org/x/tools/internal/refactor
 golang.org/x/tools/internal/refactor/inline
 golang.org/x/tools/internal/robustio
+golang.org/x/tools/internal/ssainternal
 golang.org/x/tools/internal/stdlib
 golang.org/x/tools/internal/testenv
 golang.org/x/tools/internal/testfiles
@@ -19203,8 +19205,20 @@ golang.org/x/tools/go/expect
 # golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 ## explicit; go 1.23.0
 golang.org/x/tools/go/packages/packagestest
-# golang.org/x/tools/gopls v0.20.0
-## explicit; go 1.24.2
+# golang.org/x/tools/godoc v0.1.0-deprecated
+## explicit; go 1.24.0
+golang.org/x/tools/godoc
+golang.org/x/tools/godoc/analysis
+golang.org/x/tools/godoc/redirect
+golang.org/x/tools/godoc/static
+golang.org/x/tools/godoc/util
+golang.org/x/tools/godoc/vfs
+golang.org/x/tools/godoc/vfs/gatefs
+golang.org/x/tools/godoc/vfs/httpfs
+golang.org/x/tools/godoc/vfs/mapfs
+golang.org/x/tools/godoc/vfs/zipfs
+# golang.org/x/tools/gopls v0.21.0
+## explicit; go 1.25
 golang.org/x/tools/gopls
 golang.org/x/tools/gopls/integration/govim
 golang.org/x/tools/gopls/internal/analysis/deprecated
@@ -19215,7 +19229,6 @@ golang.org/x/tools/gopls/internal/analysis/fillswitch
 golang.org/x/tools/gopls/internal/analysis/infertypeargs
 golang.org/x/tools/gopls/internal/analysis/maprange
 golang.org/x/tools/gopls/internal/analysis/maprange/cmd/maprange
-golang.org/x/tools/gopls/internal/analysis/modernize
 golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize
 golang.org/x/tools/gopls/internal/analysis/nonewvars
 golang.org/x/tools/gopls/internal/analysis/noresultvalues
@@ -19287,10 +19300,10 @@ golang.org/x/tools/gopls/internal/test/integration/web
 golang.org/x/tools/gopls/internal/test/integration/workspace
 golang.org/x/tools/gopls/internal/test/marker
 golang.org/x/tools/gopls/internal/util/asm
-golang.org/x/tools/gopls/internal/util/astutil
 golang.org/x/tools/gopls/internal/util/browser
 golang.org/x/tools/gopls/internal/util/bug
 golang.org/x/tools/gopls/internal/util/constraints
+golang.org/x/tools/gopls/internal/util/cursorutil
 golang.org/x/tools/gopls/internal/util/fakenet
 golang.org/x/tools/gopls/internal/util/fingerprint
 golang.org/x/tools/gopls/internal/util/frob
@@ -19298,7 +19311,6 @@ golang.org/x/tools/gopls/internal/util/goversion
 golang.org/x/tools/gopls/internal/util/immutable
 golang.org/x/tools/gopls/internal/util/lru
 golang.org/x/tools/gopls/internal/util/memoize
-golang.org/x/tools/gopls/internal/util/moreiters
 golang.org/x/tools/gopls/internal/util/moremaps
 golang.org/x/tools/gopls/internal/util/moreslices
 golang.org/x/tools/gopls/internal/util/morestrings
@@ -20365,7 +20377,7 @@ helm.sh/helm/v3/pkg/storage/driver
 helm.sh/helm/v3/pkg/strvals
 helm.sh/helm/v3/pkg/time
 helm.sh/helm/v3/pkg/uploader
-# honnef.co/go/tools v0.7.0-0.dev.0.20250523013057-bbc2f4dd71ea
+# honnef.co/go/tools v0.7.0-0.dev.0.20251022135355-8273271481d0
 ## explicit; go 1.23.0
 honnef.co/go/tools
 honnef.co/go/tools/analysis/callcheck

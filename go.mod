@@ -1,6 +1,6 @@
 module github.com/yandex/perforator
 
-go 1.24.6
+go 1.25
 
 require (
 	4d63.com/gochecknoglobals v0.2.2-0.20230617165002-a9cb75083ef8
@@ -865,7 +865,7 @@ require (
 	github.com/ydb-platform/ydbops v0.0.19
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	github.com/ysmood/gson v0.7.3
-	github.com/yuin/goldmark v1.7.8
+	github.com/yuin/goldmark v1.7.13
 	github.com/yuin/gopher-lua v1.1.1
 	github.com/zaf/g711 v0.0.0-20220109202201-cf0017bf0359
 	github.com/zclconf/go-cty v1.16.4
@@ -986,21 +986,22 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
-	golang.org/x/crypto v0.42.0
+	golang.org/x/crypto v0.44.0
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
 	golang.org/x/image v0.25.0
-	golang.org/x/mod v0.28.0
-	golang.org/x/net v0.44.0
+	golang.org/x/mod v0.30.0
+	golang.org/x/net v0.47.0
 	golang.org/x/oauth2 v0.30.0
-	golang.org/x/sync v0.17.0
-	golang.org/x/sys v0.36.0
-	golang.org/x/term v0.35.0
-	golang.org/x/text v0.29.0
+	golang.org/x/sync v0.18.0
+	golang.org/x/sys v0.38.0
+	golang.org/x/term v0.37.0
+	golang.org/x/text v0.31.0
 	golang.org/x/time v0.11.0
-	golang.org/x/tools v0.36.0
+	golang.org/x/tools v0.39.1-0.20251205192105-907593008619
 	golang.org/x/tools/go/expect v0.1.1-deprecated
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
-	golang.org/x/tools/gopls v0.20.0
+	golang.org/x/tools/godoc v0.1.0-deprecated
+	golang.org/x/tools/gopls v0.21.0
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 	golang.yandex/hasql v1.1.1
 	golang.yandex/hasql/v2 v2.0.0
@@ -1038,7 +1039,7 @@ require (
 	gorm.io/gorm v1.25.12
 	gorm.io/plugin/dbresolver v1.5.3
 	helm.sh/helm/v3 v3.11.3
-	honnef.co/go/tools v0.7.0-0.dev.0.20250523013057-bbc2f4dd71ea
+	honnef.co/go/tools v0.7.0-0.dev.0.20251022135355-8273271481d0
 	k8s.io/api v0.32.2
 	k8s.io/apiextensions-apiserver v0.32.0-alpha.1
 	k8s.io/apimachinery v0.32.2
@@ -2323,10 +2324,10 @@ require (
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	gocloud.dev v0.19.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20240707233637-46b078467d37 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20250620022241-b7579e27df2b // indirect
+	golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
-	golang.org/x/telemetry v0.0.0-20250807160809-1a19826ec488 // indirect
+	golang.org/x/telemetry v0.0.0-20251111182119-bc8e575c7b54 // indirect
 	golang.org/x/vuln v1.1.4 // indirect
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f // indirect
 	gonum.org/v1/plot v0.14.0 // indirect
