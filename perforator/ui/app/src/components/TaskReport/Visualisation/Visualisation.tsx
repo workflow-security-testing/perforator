@@ -97,6 +97,25 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
 
     const firstRenderRef = React.useRef(true);
 
+    React.useEffect(() => {
+        if (!PerformanceObserver.supportedEntryTypes.includes('event')) {
+            return () => {};
+        }
+        const observer = new PerformanceObserver((entries) => {
+            const entry = entries.getEntriesByName('click')?.[0];
+            if (!entry) {return;}
+            // @ts-ignore
+            if (entry?.target?.nodeName === 'CANVAS') {
+                uiFactory?.().rum?.()?.sendDelta?.('flamegraph-rerender-full', entry.duration);
+                uiFactory?.().rum?.()?.logInt?.('flamegraph-rerender-full-ev', entry.duration);
+            }
+        });
+        // no durationThreshold in types yet
+        //@ts-expect-error
+        observer.observe({ type: 'event', durationThreshold: 16 });
+        return () => {observer?.disconnect?.();};
+    }, []);
+
     const rowsRef = React.useRef(profileData?.rows);
     // HACK using memo for ref modification
     // otherwise would need useLayoutEffect + force the rerender
