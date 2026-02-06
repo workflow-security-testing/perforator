@@ -66,10 +66,30 @@ func ForCLI(cfg CLIConfig) (Logger, error) {
 	return Wrap(logger), nil
 }
 
+type SamplingConfig struct {
+	Enabled bool `yaml:"enabled"`
+
+	// Initial and Thereafter configure log sampling. Semantically, they work as follows:
+	// Every second, all log messages logged during that second are grouped into sets of
+	// similar messages.
+	// Then, for each group:
+	// - First Initial are logged
+	// - Then, if Thereafter is greater than 0, each (1/Thereafter)-th message will be logged
+	// - All remaining messages in the group are dropped.
+
+	// Initial configures log sampling. See above for meaning.
+	Initial int `yaml:"initial"`
+
+	// Thereafter configures log sampling. See above for meaning.
+	Thereafter    int   `yaml:"thereafter"`
+	EnableMetrics *bool `yaml:"enable_metrics"`
+}
+
 type DaemonConfig struct {
-	Level         log.Level `yaml:"level"`
-	Format        LogFormat `yaml:"format"`
-	EnableMetrics bool      `yaml:"enable_metrics"`
+	Level         log.Level      `yaml:"level"`
+	Format        LogFormat      `yaml:"format"`
+	EnableMetrics bool           `yaml:"enable_metrics"`
+	Sampling      SamplingConfig `yaml:"sampling"`
 }
 
 func ForDaemon(cfg DaemonConfig, metrics metrics.Registry) (Logger, func(), error) {
@@ -94,15 +114,38 @@ func ForDaemon(cfg DaemonConfig, metrics metrics.Registry) (Logger, func(), erro
 	default:
 		return nil, nil, fmt.Errorf("unsupported format: %v", cfg.Format)
 	}
-	core := asynczap.NewCore(encoder, zapcore.Lock(os.Stdout), zap.ZapifyLevel(cfg.Level), asynczap.Options{
+	asyncCore := asynczap.NewCore(encoder, zapcore.Lock(os.Stdout), zap.ZapifyLevel(cfg.Level), asynczap.Options{
 		FlushInterval: time.Second,
 	})
+	core := asyncCore.With(fields)
+	if cfg.Sampling.Enabled {
+		// same as zap
+		samplingTick := time.Second
+
+		var opts []zapcore.SamplerOption
+		if cfg.Sampling.EnableMetrics == nil || *cfg.Sampling.EnableMetrics {
+			counter := metrics.Counter("log.sampling.drops")
+			opts = append(opts,
+				zapcore.SamplerHook(func(entry zapcore.Entry, dec zapcore.SamplingDecision) {
+					if dec&zapcore.LogDropped != 0 {
+						counter.Inc()
+					}
+				}))
+		}
+		core = zapcore.NewSamplerWithOptions(
+			core,
+			samplingTick,
+			cfg.Sampling.Initial,
+			cfg.Sampling.Thereafter,
+			opts...,
+		)
+	}
 
 	var logger log.Logger
-	logger = zap.NewWithCore(core.With(fields))
+	logger = zap.NewWithCore(core)
 	if cfg.EnableMetrics {
 		logger = logmetrics.NewMeteredLogger(logger, metrics)
 		// TODO: metrics for async core itself
 	}
-	return Wrap(logger), core.Stop, nil
+	return Wrap(logger), asyncCore.Stop, nil
 }
