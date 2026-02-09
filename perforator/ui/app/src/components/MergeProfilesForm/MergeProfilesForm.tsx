@@ -11,7 +11,6 @@ import { uiFactory } from 'src/factory';
 import type { ProfileTaskQuery } from 'src/models/Task';
 import { cn } from 'src/utils/cn';
 import { redirectToTaskPage } from 'src/utils/profileTask';
-import { parseServiceFromSelector, validateSelectorContainsOnlyService } from 'src/utils/selector';
 import { setPageTitle } from 'src/utils/title';
 import { createErrorToast } from 'src/utils/toaster';
 
@@ -82,20 +81,12 @@ export const MergeProfilesForm: React.FC<MergeProfilesFormProps> = props => {
         if (!tableSelector) {
             return;
         }
-        if (queryInput.queryField === 'selector') {
-            // fill selector after switching from another input mode
-            setQuery({
-                ...query,
-                selector: tableSelector,
-            });
-        } else if (queryInput.queryField === 'service' && tableSelector && validateSelectorContainsOnlyService(tableSelector || '')) {
-            const service = parseServiceFromSelector(tableSelector);
-            setQuery({
-                ...query,
-                service,
-            });
-        } else {
-            // do not display an outdated profiles table from the previous input mode
+
+        const newField = uiFactory().changeQueryToNewInput(queryInput, tableSelector);
+        if (newField) {
+            setQuery({ ...query, ...newField });
+        }
+        else {
             setTableSelector(undefined);
         }
     }, [queryInput]);
