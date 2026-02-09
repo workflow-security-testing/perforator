@@ -5,16 +5,20 @@ import type {
 } from 'axios';
 import axios from 'axios';
 
+import type { Paginated } from 'src/generated/perforator/proto/lib/pagination/pagination.ts';
 import type {
     ClusterTopRequest,
     ClusterTopResponse,
     ListClusterTopGenerationResponse,
+    ListProfilesRequest,
     ListProfilesResponse,
     ListServicesResponse,
+    ListSuggestionsRequest,
     ListSuggestionsResponse,
 } from 'src/generated/perforator/proto/perforator/perforator';
 import type {
     GetTaskResponse,
+    ListTasksRequest,
     ListTasksResponse,
     StartTaskResponse,
 } from 'src/generated/perforator/proto/perforator/task_service';
@@ -38,7 +42,7 @@ class PerforatorApiClient {
         return this.get('/api/v0/services', params, options);
     }
 
-    getSuggestions(params: RequestData): Promise<AxiosResponse<ListSuggestionsResponse>> {
+    getSuggestions(params: ListSuggestionsRequest): Promise<AxiosResponse<ListSuggestionsResponse>> {
         return this.get('/api/v0/suggestions', params);
     }
 
@@ -54,7 +58,7 @@ class PerforatorApiClient {
         return this.get('/api/v0/top/service', params);
     }
 
-    getProfiles(params: RequestData): Promise<AxiosResponse<ListProfilesResponse>> {
+    getProfiles(params: ListProfilesRequest): Promise<AxiosResponse<ListProfilesResponse>> {
         return this.get('/api/v0/profiles', params);
     }
 
@@ -62,7 +66,7 @@ class PerforatorApiClient {
         return this.get(`/api/v0/tasks/${taskId}`);
     }
 
-    getTasks(params: RequestData): Promise<AxiosResponse<ListTasksResponse>> {
+    getTasks(params: ListTasksRequest): Promise<AxiosResponse<ListTasksResponse>> {
         return this.get('/api/v0/tasks', params);
     }
 
@@ -88,3 +92,10 @@ class PerforatorApiClient {
 }
 
 export const apiClient = new PerforatorApiClient();
+
+export function getPagination(paginationState: {page: number; pageSize: number}): Paginated {
+    return {
+        Offset: String((paginationState.page - 1) * paginationState.pageSize),
+        Limit: String(paginationState.pageSize),
+    };
+}

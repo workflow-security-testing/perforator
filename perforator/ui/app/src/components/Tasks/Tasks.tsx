@@ -27,11 +27,13 @@ import { ActionsPanel,
 
 import { uiFactory } from 'src/factory';
 import type { RenderFormat } from 'src/generated/perforator/proto/perforator/perforator';
-import {
-    type Task,
-    TaskState,
+import type {
+    ListTasksRequest,
+    Task,
 } from 'src/generated/perforator/proto/perforator/task_service';
-import { apiClient } from 'src/utils/api';
+import {
+    TaskState } from 'src/generated/perforator/proto/perforator/task_service';
+import { apiClient, getPagination } from 'src/utils/api';
 import { formatDate, getIsoDate } from 'src/utils/date';
 import { useDebounce } from 'src/utils/debounce';
 import { getUserLogin } from 'src/utils/login';
@@ -363,12 +365,13 @@ export const Tasks: React.FC = () => {
     const debounce = useDebounce();
     React.useEffect(() => {
         let isMounted = true;
-        const params = {
-            'Query.Author': userFilter,
-            'Query.From': getIsoDate(state.from),
-            'Query.To': getIsoDate(state.to),
-            'Pagination.Offset': (paginationState.page - 1) * paginationState.pageSize,
-            'Pagination.Limit': paginationState.pageSize,
+        const params: ListTasksRequest = {
+            Query: {
+                Author: userFilter,
+                From: getIsoDate(state.from),
+                To: getIsoDate(state.to),
+            },
+            Pagination: getPagination(paginationState),
         };
 
         debounce(() =>

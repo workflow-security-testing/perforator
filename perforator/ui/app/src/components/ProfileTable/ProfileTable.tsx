@@ -15,8 +15,9 @@ import {
 } from '@gravity-ui/uikit';
 
 import { uiFactory } from 'src/factory';
-import type { ProfileMeta } from 'src/generated/perforator/proto/perforator/perforator';
-import { apiClient } from 'src/utils/api';
+import type { ListProfilesRequest, ProfileMeta } from 'src/generated/perforator/proto/perforator/perforator';
+import { SortDirection } from 'src/models/Sort';
+import { apiClient, getPagination } from 'src/utils/api';
 import { formatDate, getIsoDate, parseDate } from 'src/utils/date';
 
 import { ErrorPanel } from '../ErrorPanel/ErrorPanel';
@@ -172,20 +173,31 @@ export function ProfileTable({ query, compact }: ProfileTableProps) {
                 selector = '{}';
             }
 
-            const params: any = {
-                'Query.Selector': selector,
-                'Query.TimeInterval.From': getIsoDate(query.from ?? ''),
-                'Query.TimeInterval.To': getIsoDate(query.to ?? ''),
-                'Paginated.Offset': (paginationState.page - 1) * paginationState.pageSize,
-                'Paginated.Limit': paginationState.pageSize,
-                'OrderBy.Direction': 'Descending',
-                'OrderBy.Columns': 'timestamp',
+            const params: ListProfilesRequest = {
+                Query: {
+                    Selector: selector,
+                    TimeInterval: {
+                        From: getIsoDate(query.from ?? ''),
+                        To: getIsoDate(query.to ?? ''),
+                    },
+                    // this is useless, is only here to make typescript happy
+                    MaxSamples: 0,
+                },
+                Paginated: getPagination(paginationState),
+                OrderBy: {
+                    Direction: SortDirection.Descending,
+                    // @ts-ignore
+                    Columns: 'timestamp',
+                },
             };
 
             if (sortState.length) {
                 const column = columns.find((x) => x.id === sortState[0].column)?.meta?.id;
-                params['OrderBy.Direction'] = sortState[0].order === 'asc' ? 'Ascending' : 'Descending';
-                params['OrderBy.Columns'] = column;
+                if (params.OrderBy && column) {
+                    params.OrderBy.Direction = sortState[0].order === 'asc' ? SortDirection.Ascending : SortDirection.Descending;
+                    // @ts-ignore
+                    params.OrderBy.Columns = column;
+                }
             }
 
             try {

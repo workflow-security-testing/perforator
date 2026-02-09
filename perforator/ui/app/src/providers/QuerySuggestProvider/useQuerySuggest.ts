@@ -40,8 +40,10 @@ const fetchSuggestions = (state: SuggestState) => (
                 'Field': currentToken?.field ?? '',
                 'Regex': currentToken?.value ?? '',
                 'Selector': selector,
-                'Paginated.Offset': 0,
-                'Paginated.Limit': 100,
+                Paginated: {
+                    Offset: String(0),
+                    Limit: String(100),
+                },
             });
             return (
                 response?.data?.SuggestSupported
