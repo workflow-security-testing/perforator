@@ -1,6 +1,5 @@
 import json
 import os
-import tempfile
 import textwrap
 from dataclasses import dataclass
 
@@ -73,32 +72,23 @@ class TsLibraryBuilder(BaseBuilder):
     @timeit
     def _get_pack_files(self) -> list[str]:
         """Run pnpm pack --json and return list of files to include in archive"""
-        # TODO: FBP-2827: Add dry run mode to avoid performance issues on large projects (hundreds of meters)
-        # The packing operation may cause slowdowns on large projects due to file system operations.
-        # Consider implementing a dry run mode that skips packing when not needed.
-        # Create temporary directory for pack output
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Run pnpm via node: node <pm_script> pack --json --pack-destination <temp_dir>
-            # Note: pm_script is path to pnpm.cjs, must be executed via node
-            args = [
-                self.options.nodejs_bin,
-                self.options.pm_script,
-                'pack',
-                '--json',
-                '--pack-destination',
-                temp_dir,
-            ]
-            return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
+        args = [
+            self.options.nodejs_bin,
+            self.options.pm_script,
+            'pack',
+            '--json',
+            '--dry-run',
+        ]
+        return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
 
-            if return_code != 0:
-                raise BuildError(self.options.command, return_code, stdout, stderr)
+        if return_code != 0:
+            raise BuildError(self.options.command, return_code, stdout, stderr)
 
-            # Parse JSON output
-            pack_data = json.loads(stdout)
+        # Parse JSON output
+        pack_data = json.loads(stdout)
 
-            # Extract file paths from json['files'][]['path']
-            return [file_entry['path'] for file_entry in pack_data['files']]
-        # temp_dir and .tgz file are automatically cleaned up
+        # Extract file paths from json['files'][]['path']
+        return [file_entry['path'] for file_entry in pack_data['files']]
 
     @timeit
     def bundle(self):

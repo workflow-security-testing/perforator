@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-02-05T17:00:12Z",
+    "created": "2026-02-09T05:26:59.956Z",
     "pr": {
-      "id": 11586773,
+      "id": 11625411,
       "author": "zaverden",
-      "summary": "feat(conf): validate pj#files vs TS_BUILD_OUTPUTS"
+      "summary": "feat(builder): use --dry-run for pnpm pack"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11014986863"
+      "uri": "sbr:11039564421"
     },
     "darwin-arm64": {
-      "uri": "sbr:11014984336"
+      "uri": "sbr:11039563653"
     },
     "linux": {
-      "uri": "sbr:11014991979"
+      "uri": "sbr:11039565503"
     },
     "linux-aarch64": {
-      "uri": "sbr:11014989575"
+      "uri": "sbr:11039564918"
     }
   }
 }
