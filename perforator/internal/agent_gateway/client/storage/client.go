@@ -10,6 +10,8 @@ import (
 
 	"github.com/klauspost/compress/zstd"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/yandex/perforator/library/go/core/log"
 	profilestorage "github.com/yandex/perforator/perforator/pkg/storage/profile"
@@ -146,55 +148,66 @@ func NewClient(conf *Config, l xlog.Logger, conn *grpc.ClientConn) (*Client, err
 	}, nil
 }
 
-// return pushed profile size and error
+type Profile struct {
+	Raw                        []byte
+	Labels                     map[string]string
+	BuildIDs                   []string
+	Envs                       []string
+	EventTypes                 []string
+	SignalTypes                []string
+	CustomProfilingOperationID string
+	StartTimestamp             time.Time
+	Duration                   time.Duration
+}
+
+// return pushed profile size and error.
 func (c *Client) PushProfile(
 	ctx context.Context,
-	profileBytes []byte,
-	labels map[string]string,
-	buildIDs []string,
-	envs []string,
-	eventTypes []string,
-	signalTypes []string,
-	customProfilingOperationID string,
+	profile *Profile,
 ) (uint64, error) {
 	var err error
 	if c.compressionFunc != nil {
-		profileBytes, err = c.compressionFunc(profileBytes)
+		profile.Raw, err = c.compressionFunc(profile.Raw)
 		if err != nil {
 			return 0, fmt.Errorf("failed to compress profile: %w", err)
 		}
-		newLabels := make(map[string]string, len(labels)+1)
-		maps.Copy(newLabels, labels)
+		newLabels := make(map[string]string, len(profile.Labels)+1)
+		maps.Copy(newLabels, profile.Labels)
 		newLabels[profilestorage.CompressionLabel] = string(c.compressionCodec)
-		labels = newLabels
+		profile.Labels = newLabels
 	}
 
-	c.logger.Debug(ctx, "Pushing profile", log.Int("size", len(profileBytes)))
+	c.logger.Debug(ctx, "Pushing profile", log.Int("size", len(profile.Raw)))
 
 	ctx, cancel := context.WithTimeout(ctx, c.conf.RPCTimeouts.PushProfileTimeout)
 	defer cancel()
 
-	res, err := c.client.PushProfile(
-		ctx,
-		&perforatorstorage.PushProfileRequest{
-			ProfileRepresentation: &perforatorstorage.PushProfileRequest_ProfileBytes{
-				ProfileBytes: profileBytes,
-			},
-			Labels:      labels,
-			BuildIDs:    buildIDs,
-			Envs:        envs,
-			EventTypes:  eventTypes,
-			SignalTypes: signalTypes,
-			CPOID:       customProfilingOperationID,
+	req := &perforatorstorage.PushProfileRequest{
+		ProfileRepresentation: &perforatorstorage.PushProfileRequest_ProfileBytes{
+			ProfileBytes: profile.Raw,
 		},
-	)
+		Labels:      profile.Labels,
+		BuildIDs:    profile.BuildIDs,
+		Envs:        profile.Envs,
+		EventTypes:  profile.EventTypes,
+		SignalTypes: profile.SignalTypes,
+		CPOID:       profile.CustomProfilingOperationID,
+	}
+	if !profile.StartTimestamp.IsZero() {
+		req.StartTimestamp = timestamppb.New(profile.StartTimestamp)
+	}
+	if profile.Duration > 0 {
+		req.Duration = durationpb.New(profile.Duration)
+	}
+
+	res, err := c.client.PushProfile(ctx, req)
 	if err != nil {
 		c.logger.Error(ctx, "Failed to push profile", log.Error(err))
 		return 0, err
 	}
 
 	c.logger.Debug(ctx, "Successfully pushed profile", log.String("id", res.ID))
-	return uint64(len(profileBytes)), err
+	return uint64(len(profile.Raw)), err
 }
 
 func (c *Client) AnnounceBinaries(ctx context.Context, availableBuildIDs []string) ([]string, error) {

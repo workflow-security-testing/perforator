@@ -25,6 +25,11 @@ const (
 
 var _ meta.Storage = (*Storage)(nil)
 
+type profileEntry struct {
+	row      *ProfileRow
+	callback func(*meta.ProfileMetadata)
+}
+
 type Storage struct {
 	l    xlog.Logger
 	conf *Config
@@ -33,7 +38,7 @@ type Storage struct {
 	batchsize     int
 	batchinterval time.Duration
 
-	profilechan chan *ProfileRow
+	profilechan chan *profileEntry
 	senderonce  sync.Once
 
 	rowsSent    metrics.Counter
@@ -223,16 +228,21 @@ func (s *Storage) ListSuggestions(
 // StoreProfile implements meta.Storage.
 func (s *Storage) StoreProfile(
 	ctx context.Context,
-	meta *meta.ProfileMetadata,
+	m *meta.ProfileMetadata,
+	opts ...meta.StoreOption,
 ) error {
 	s.senderonce.Do(func() {
 		s.setupBatcher(context.Background())
 	})
 
-	profile := profileModelFromMeta(meta)
+	o := meta.BuildStoreOptions(opts)
+	entry := &profileEntry{
+		row:      profileModelFromMeta(m),
+		callback: o.PersistCallback,
+	}
 
 	select {
-	case s.profilechan <- profile:
+	case s.profilechan <- entry:
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -301,20 +311,20 @@ func (s *Storage) CollectExpiredProfiles(
 }
 
 func (s *Storage) setupBatcher(ctx context.Context) {
-	s.profilechan = make(chan *ProfileRow, 1000)
+	s.profilechan = make(chan *profileEntry, 1000)
 	go func() { _ = s.runBatcher(ctx) }()
 }
 
 func (s *Storage) runBatcher(ctx context.Context) error {
-	batch := make([]*ProfileRow, 0, s.batchsize)
+	batch := make([]*profileEntry, 0, s.batchsize)
 	ticker := time.NewTicker(s.batchinterval)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case profile := <-s.profilechan:
-			batch = append(batch, profile)
+		case entry := <-s.profilechan:
+			batch = append(batch, entry)
 			if len(batch) >= s.batchsize {
 				batch = s.sendBatch(ctx, batch)
 			}
@@ -324,21 +334,32 @@ func (s *Storage) runBatcher(ctx context.Context) error {
 	}
 }
 
-func (s *Storage) sendBatch(ctx context.Context, rows []*ProfileRow) (next []*ProfileRow) {
+func (s *Storage) sendBatch(ctx context.Context, entries []*profileEntry) (next []*profileEntry) {
+	rows := make([]*ProfileRow, len(entries))
+	for i, e := range entries {
+		rows[i] = e.row
+	}
+
 	err := s.sendBatchImpl(ctx, rows)
 	if err != nil {
 		s.l.Error(ctx, "Failed to send batch",
 			log.Error(err),
-			log.Int("lost_profiles", len(rows)),
+			log.Int("lost_profiles", len(entries)),
 		)
 		s.batchesLost.Inc()
-		s.rowsLost.Add(int64(len(rows)))
+		s.rowsLost.Add(int64(len(entries)))
 	} else {
 		s.batchesSent.Inc()
-		s.rowsSent.Add(int64(len(rows)))
+		s.rowsSent.Add(int64(len(entries)))
+
+		for _, e := range entries {
+			if e.callback != nil {
+				e.callback(profileMetaFromModel(e.row))
+			}
+		}
 	}
 
-	return rows[:0]
+	return entries[:0]
 }
 
 func (s *Storage) sendBatchImpl(ctx context.Context, rows []*ProfileRow) error {

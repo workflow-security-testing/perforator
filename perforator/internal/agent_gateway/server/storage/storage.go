@@ -66,6 +66,8 @@ type serviceMetrics struct {
 	failedAnnounceBinaries    metrics.Counter
 	announceBinariesCacheHit  metrics.Counter
 	announceBinariesCacheMiss metrics.Counter
+
+	timeToDatabaseHist metrics.Timer
 }
 
 type Service struct {
@@ -173,6 +175,10 @@ func NewService(
 			failedAnnounceBinaries:      reg.WithTags(map[string]string{"kind": "failed"}).Counter("announce_binaries.count"),
 			announceBinariesCacheHit:    reg.WithTags(map[string]string{"kind": "hit"}).Counter("announce_binaries.count"),
 			announceBinariesCacheMiss:   reg.WithTags(map[string]string{"kind": "miss"}).Counter("announce_binaries.count"),
+			timeToDatabaseHist: reg.DurationHistogram(
+				"profile_time_to_database.seconds",
+				metrics.MakeExponentialDurationBuckets(time.Minute, 1.1, 30),
+			),
 		},
 		profileSamplerByEvent:    make(map[string]*moduloSampler),
 		binaryUploadLimiter:      semaphore.NewWeighted(1),
@@ -251,10 +257,6 @@ func (s *Service) createProfileMetaFromLabels(ctx context.Context, labels map[st
 		}
 	}
 
-	if result.Timestamp.IsZero() {
-		result.Timestamp = time.Now()
-	}
-
 	return &result, nil
 }
 
@@ -270,7 +272,16 @@ func (s *Service) getMetadataFromProfile(ctx context.Context, profile *pprofprof
 		labels[string(parts[0])] = string(parts[1])
 	}
 
-	return s.createProfileMetaFromLabels(ctx, labels)
+	meta, err := s.createProfileMetaFromLabels(ctx, labels)
+	if err != nil {
+		return nil, err
+	}
+
+	if profile.TimeNanos != 0 {
+		meta.Timestamp = time.Unix(0, profile.TimeNanos)
+	}
+
+	return meta, nil
 }
 
 func (s *Service) extractProfileBytesMeta(
@@ -299,6 +310,10 @@ func (s *Service) extractProfileBytesMeta(
 
 	default:
 		return nil, nil, errors.New("request does not contain profile")
+	}
+
+	if req.StartTimestamp != nil && !req.StartTimestamp.AsTime().IsZero() {
+		meta.Timestamp = req.StartTimestamp.AsTime()
 	}
 
 	meta.BuildIDs = slices.Clone(req.GetBuildIDs())
@@ -444,6 +459,11 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 		storeProfileCtx,
 		metas,
 		body,
+		profilemeta.WithPersistCallback(func(m *profilemeta.ProfileMetadata) {
+			if !m.Timestamp.IsZero() {
+				s.metrics.timeToDatabaseHist.RecordDuration(time.Since(m.Timestamp))
+			}
+		}),
 	)
 	if err != nil {
 		l.Error(ctx,
@@ -457,6 +477,7 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 
 	s.metrics.profilesBytesCount.Add(int64(len(body)))
 	s.metrics.profilesBytesSizes.RecordValue(float64(len(body)))
+
 	l.Info(ctx,
 		"Pushed profile",
 		log.String("service", meta.Service),

@@ -48,7 +48,7 @@ func (s *ProfileStorage) putBlob(ctx context.Context, id string, bytes []byte) e
 }
 
 // implements profilestorage.Storage
-func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.ProfileMetadata, body []byte) (meta.ProfileID, error) {
+func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.ProfileMetadata, body []byte, opts ...meta.StoreOption) (meta.ProfileID, error) {
 	if len(metas) == 0 {
 		return "", errors.New("no profile metas is specified")
 	}
@@ -75,7 +75,7 @@ func (s *ProfileStorage) StoreProfile(ctx context.Context, metas []*meta.Profile
 
 	var joinedErr error
 	for _, meta := range metas {
-		err = s.MetaStorage.StoreProfile(ctx, meta)
+		err = s.MetaStorage.StoreProfile(ctx, meta, opts...)
 		if err != nil {
 			joinedErr = errors.Join(joinedErr, err)
 		}

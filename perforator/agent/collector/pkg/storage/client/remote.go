@@ -144,6 +144,14 @@ func getProfileSignalTypes(profile *profile.Profile) []string {
 	return result
 }
 
+func getTimeInteval(profile *profile.Profile) (time.Time, time.Duration) {
+	if profile.TimeNanos == 0 {
+		return time.Time{}, time.Duration(0)
+	}
+
+	return time.Unix(0, profile.TimeNanos), time.Duration(profile.DurationNanos) * time.Nanosecond
+}
+
 func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile) error {
 	addProfileComments(profile.Profile, profile.Labels)
 
@@ -168,15 +176,21 @@ func (s *RemoteStorage) StoreProfile(ctx context.Context, profile LabeledProfile
 
 	signalTypes := getProfileSignalTypes(profile.Profile)
 
+	startTimestamp, duration := getTimeInteval(profile.Profile)
+
 	sz, err := s.client.PushProfile(
 		ctx,
-		profileBytes.Bytes(),
-		profile.Labels,
-		buildIDs,
-		envs,
-		eventTypes,
-		signalTypes,
-		cpoID,
+		&storage.Profile{
+			Raw:                        profileBytes.Bytes(),
+			Labels:                     profile.Labels,
+			BuildIDs:                   buildIDs,
+			Envs:                       envs,
+			EventTypes:                 eventTypes,
+			SignalTypes:                signalTypes,
+			CustomProfilingOperationID: cpoID,
+			StartTimestamp:             startTimestamp,
+			Duration:                   duration,
+		},
 	)
 	if err != nil {
 		return err

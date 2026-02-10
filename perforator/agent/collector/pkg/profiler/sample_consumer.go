@@ -207,6 +207,10 @@ type oneShotSampleConsumer struct {
 	features       SampleConsumerFeatures
 	envWhitelist   map[string]struct{}
 
+	// sampleTime is the absolute wall-clock time of the sample, computed once
+	// from boot time + CollectionTime and reused across the consumer.
+	sampleTime time.Time
+
 	stacklen  int
 	env       []formattedEnvVariable
 	tls       []formattedTLSVariable
@@ -214,6 +218,14 @@ type oneShotSampleConsumer struct {
 
 	pythonProcessor *sampleStackProcessor
 	phpProcessor    *sampleStackProcessor
+}
+
+func computeSampleTime(collectionTime uint64) time.Time {
+	bootTime, err := btime.GetBootTime()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get system boot time: %v", err))
+	}
+	return bootTime.Add(time.Duration(collectionTime))
 }
 
 func newOneShotSampleConsumer(
@@ -227,6 +239,7 @@ func newOneShotSampleConsumer(
 		profileBuilder:  profileBuilder,
 		features:        features,
 		sample:          sample,
+		sampleTime:      computeSampleTime(sample.CollectionTime),
 		envWhitelist:    p.envWhitelist,
 		pythonProcessor: newPythonSampleStackProcessor(p.pythonSymbolizer),
 		phpProcessor:    newPHPSampleStackProcessor(p.phpSymbolizer),
@@ -527,12 +540,7 @@ func (c *oneShotSampleConsumer) collectStacksInto(ctx context.Context, builder *
 }
 
 func (c *oneShotSampleConsumer) collectSampleTime(builder *profile.SampleBuilder) {
-	bootTime, err := btime.GetBootTime()
-	if err == nil {
-		builder.AddIntLabel(AbsoluteTimestampLabel, bootTime.UnixNano()+int64(c.sample.CollectionTime), "ns")
-	} else {
-		panic(fmt.Sprintf("failed to get system boot time: %v", err))
-	}
+	builder.AddIntLabel(AbsoluteTimestampLabel, c.sampleTime.UnixNano(), "ns")
 }
 
 func (c *oneShotSampleConsumer) collectWallTime(builder *profile.SampleBuilder) {
@@ -575,7 +583,7 @@ func (c *oneShotSampleConsumer) collectLBRStackInto(ctx context.Context, builder
 
 // for testing purposes
 func (c *oneShotSampleConsumer) initBuilderMinimal(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
-	return c.profileBuilder.EnsureBuilder(name, sampleTypes).Add(c.sample.Pid)
+	return c.profileBuilder.EnsureBuilder(name, sampleTypes).AddTimestampedSample(c.sample.Pid, c.sampleTime)
 }
 
 func (c *oneShotSampleConsumer) initBuilderCommon(name string, sampleTypes []profile.SampleType) *profile.SampleBuilder {
@@ -802,7 +810,13 @@ func (c *oneShotSampleConsumer) maybeFlushProfile() {
 	}
 }
 
+func (c *oneShotSampleConsumer) recordSampleConsumeLatency() {
+	latency := time.Since(c.sampleTime)
+	c.p.metrics.sampleProcessingLatencySum.Add(int64(latency.Milliseconds()))
+}
+
 func (c *oneShotSampleConsumer) consume(ctx context.Context) {
+	defer c.recordSampleConsumeLatency()
 	c.p.procs.DiscoverProcess(ctx, linux.CurrentNamespacePID(c.sample.Pid))
 	c.countMetrics(ctx)
 	c.recordSample(ctx)

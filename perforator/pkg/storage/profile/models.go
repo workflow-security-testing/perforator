@@ -22,6 +22,7 @@ type Storage interface {
 		ctx context.Context,
 		metas []*meta.ProfileMetadata,
 		body ProfileData,
+		opts ...meta.StoreOption,
 	) (meta.ProfileID, error)
 
 	ListServices(

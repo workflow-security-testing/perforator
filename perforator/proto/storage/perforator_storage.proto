@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
 import "perforator/proto/pprofprofile/profile.proto";
 
 package NPerforator.NProto;
@@ -37,6 +40,12 @@ message PushProfileRequest {
 
     // ID of the custom profiling operation that caused collection of this profile
     string CPOID = 15;
+
+    // Timestamp of the earliest sample in the profile.
+    google.protobuf.Timestamp StartTimestamp = 16;
+
+    // Duration of the profile (from earliest to latest sample).
+    google.protobuf.Duration Duration = 17;
 }
 
 message PushProfileResponse {

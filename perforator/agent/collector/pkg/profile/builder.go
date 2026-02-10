@@ -50,6 +50,11 @@ type Builder struct {
 	caches      *DefaultMap[uint32, ProcessCache]
 	ownsCaches  bool
 	sampleTypes map[string]bool
+
+	// Timestamp accumulation for timestamped samples.
+	// Zero values mean no timestamped samples have been added yet.
+	minTimestamp time.Time
+	maxTimestamp time.Time
 }
 
 func NewProcessCaches() *DefaultMap[uint32, ProcessCache] {
@@ -110,8 +115,19 @@ func (b *Builder) GetStartTime() time.Time {
 	return time.Unix(0, b.profile.TimeNanos)
 }
 
+func (b *Builder) resetMinMaxTimestamps() {
+	b.minTimestamp = time.Time{}
+	b.maxTimestamp = time.Time{}
+}
+
 func (b *Builder) Finish() *Profile {
+	defer b.resetMinMaxTimestamps()
 	finishedProfile := b.profile
+
+	if b.hasTimestampedSamples() {
+		finishedProfile.TimeNanos = b.minTimestamp.UnixNano()
+		finishedProfile.DurationNanos = b.maxTimestamp.UnixNano() - b.minTimestamp.UnixNano()
+	}
 
 	sampleTypeCopy := make([]*profile.ValueType, 0, len(b.profile.SampleType))
 	for _, st := range finishedProfile.SampleType {
@@ -135,6 +151,8 @@ func (b *Builder) Finish() *Profile {
 	return finishedCompactedProfile
 }
 
+// Add should not be called if AddTimestampedSample was called.
+// User should choose to add samples via Add or AddTimestampedSample.
 func (b *Builder) Add(pid uint32) *SampleBuilder {
 	bb := &SampleBuilder{
 		pid:   pid,
@@ -148,6 +166,29 @@ func (b *Builder) Add(pid uint32) *SampleBuilder {
 	}
 
 	return bb
+}
+
+// AddTimestampedSample creates a new sample builder and accumulates the given
+// timestamp for automatic StartTime/EndTime derivation in Finish().
+// When at least one timestamped sample is added, Finish() will set the profile's
+// StartTime and EndTime from the accumulated min/max timestamps.
+// User should choose to add samples via Add or AddTimestampedSample.
+func (b *Builder) AddTimestampedSample(pid uint32, ts time.Time) *SampleBuilder {
+	b.feedSampleTimestamp(ts)
+	return b.Add(pid)
+}
+
+func (b *Builder) hasTimestampedSamples() bool {
+	return !b.minTimestamp.IsZero()
+}
+
+func (b *Builder) feedSampleTimestamp(ts time.Time) {
+	if b.minTimestamp.IsZero() || ts.Before(b.minTimestamp) {
+		b.minTimestamp = ts
+	}
+	if ts.After(b.maxTimestamp) {
+		b.maxTimestamp = ts
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

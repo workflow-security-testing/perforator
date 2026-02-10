@@ -16,6 +16,8 @@ type labeledAgentProfiles struct {
 	Labels   map[string]string
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
 type multiProfileBuilder struct {
 	mu               sync.RWMutex
 	labels           map[string]string
@@ -37,20 +39,14 @@ func newMultiProfileBuilder(labels map[string]string) *multiProfileBuilder {
 
 func (b *multiProfileBuilder) startNewProfiles() {
 	b.profileStartTime = time.Now()
-	for _, builder := range b.builders {
-		builder.SetStartTime(b.profileStartTime)
-	}
 }
 
 func (b *multiProfileBuilder) RestartProfiles() labeledAgentProfiles {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	now := time.Now()
-
 	profiles := make([]*profile.Profile, 0, len(b.builders))
 	for _, builder := range b.builders {
-		builder.SetEndTime(now)
 		profiles = append(profiles, builder.Finish())
 	}
 	b.caches.Clear()
@@ -68,12 +64,12 @@ func (b *multiProfileBuilder) RestartProfiles() labeledAgentProfiles {
 func (b *multiProfileBuilder) EnsureBuilder(name string, sampleTypes []profile.SampleType) *profile.Builder {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	builder := b.builders[name]
-	if builder != nil {
-		return builder
+	existing := b.builders[name]
+	if existing != nil {
+		return existing
 	}
 
-	builder = profile.NewBuilderWithCaches(b.caches)
+	builder := profile.NewBuilderWithCaches(b.caches)
 	builder.SetStartTime(b.profileStartTime)
 	for _, sampleType := range sampleTypes {
 		builder.AddSampleType(sampleType.Kind, sampleType.Unit)

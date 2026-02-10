@@ -59,9 +59,9 @@ func (s *MultiStorage) SelectProfiles(ctx context.Context, query *meta.ProfileQu
 }
 
 // StoreProfile implements meta.Storage.
-func (s *MultiStorage) StoreProfile(ctx context.Context, meta *meta.ProfileMetadata) error {
+func (s *MultiStorage) StoreProfile(ctx context.Context, m *meta.ProfileMetadata, opts ...meta.StoreOption) error {
 	return errors.Join(
-		s.primary.StoreProfile(ctx, meta),
-		s.secondary.StoreProfile(ctx, meta),
+		s.primary.StoreProfile(ctx, m, opts...),
+		s.secondary.StoreProfile(ctx, m, opts...),
 	)
 }

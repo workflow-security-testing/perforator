@@ -62,8 +62,35 @@ type (
 	}
 )
 
+// StoreOption is a functional option for StoreProfile.
+type StoreOption func(*StoreOptions)
+
+// StoreOptions holds optional configuration for StoreProfile.
+type StoreOptions struct {
+	PersistCallback func(*ProfileMetadata)
+}
+
+// WithPersistCallback sets a callback that will be called after the profile
+// is actually persisted to the database. For async implementations (e.g.
+// batching ClickHouse writer), this fires after the batch is flushed,
+// not when StoreProfile returns.
+func WithPersistCallback(cb func(*ProfileMetadata)) StoreOption {
+	return func(o *StoreOptions) {
+		o.PersistCallback = cb
+	}
+}
+
+// BuildStoreOptions collects options into StoreOptions.
+func BuildStoreOptions(opts []StoreOption) StoreOptions {
+	var o StoreOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o
+}
+
 type Storage interface {
-	StoreProfile(ctx context.Context, meta *ProfileMetadata) error
+	StoreProfile(ctx context.Context, meta *ProfileMetadata, opts ...StoreOption) error
 
 	ListServices(ctx context.Context, query *ServiceQuery) ([]*ServiceMetadata, error)
 
