@@ -68,7 +68,7 @@ struct TFlameValue {
     }
 };
 
-using TFlameTrie = TProfileTrie<TFlameNodeId, TFlameValue>;
+using TFlameTrie = TTrie<TFlameNodeId, TFlameValue>;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -146,7 +146,7 @@ TFlameTrie BuildFlameTrie(
     const NProto::NProfile::RenderOptions& options,
     ui32 sampleTypeIndex
 ) {
-    TFlameTrie trie{std::monostate{}};
+    TFlameTrie trie;
 
     TVector<TFlameValue> keyValues(profile.SampleKeys().Size());
     for (auto sample : profile.Samples()) {
@@ -164,14 +164,14 @@ TFlameTrie BuildFlameTrie(
             continue;
         }
 
-        ui32 nodeIdx = 0;  // Root
-        trie.AddValue(nodeIdx, value);
+        auto node = trie.Root();
+        node.GetValue() += value;
         ui32 depth = 0;    // Track depth for truncation (includes labels, like Go)
 
         // Helper to descend and accumulate value
         auto descend = [&](TFlameNodeId id) {
-            nodeIdx = trie.GetOrCreateChild(nodeIdx, id);
-            trie.AddValue(nodeIdx, value);
+            node = node.GetOrCreateChild(id);
+            node.GetValue() += value;
             ++depth;
         };
 
@@ -634,7 +634,7 @@ void RenderTrieToJson(
     TNodeRenderer renderer(profile, stringTable, common, keyIds, options);
 
     // Calculate minWeight threshold based on root event count
-    const i64 rootEventCount = trie.GetValue(0).EventCount;
+    const i64 rootEventCount = trie.Root().GetValue().EventCount;
     const i64 minEventThreshold = options.min_weight() > 0.0
         ? static_cast<i64>(rootEventCount * options.min_weight())
         : 0;
@@ -697,9 +697,10 @@ void RenderTrieToJson(
                 continue;  // Pruned nodes have no children
             }
 
-            const auto& nodeValue = trie.GetValue(entry.NodeIdx);
+            auto node = trie.NodeAt(entry.NodeIdx);
+            const auto& nodeValue = node.GetValue();
             // Render current node directly (no caching needed - each node visited once)
-            WriteNodeJson(writer, renderer.Render(trie.GetIdentity(entry.NodeIdx)), entry.ParentLevelIdx,
+            WriteNodeJson(writer, renderer.Render(node.GetKey()), entry.ParentLevelIdx,
                          nodeValue.SampleCount, nodeValue.EventCount);
 
             children.clear();
@@ -707,19 +708,19 @@ void RenderTrieToJson(
             i64 prunedEventCount = 0;
             ui32 prunedOriginId = common.Native;  // Default, will be set to first pruned child's origin
 
-            for (ui32 child = trie.GetFirstChild(entry.NodeIdx); child != 0; child = trie.GetNextSibling(child)) {
-                const auto& childValue = trie.GetValue(child);
+            for (auto child = node.GetFirstChild(); !child.IsZero(); child = child.GetNextSibling()) {
+                const auto& childValue = child.GetValue();
                 if (minEventThreshold > 0 && childValue.EventCount < minEventThreshold) {
                     // Track origin from first pruned child (like Go does)
                     if (prunedEventCount == 0) {
-                        prunedOriginId = renderer.Render(trie.GetIdentity(child)).OriginId;
+                        prunedOriginId = renderer.Render(child.GetKey()).OriginId;
                     }
                     prunedSampleCount += childValue.SampleCount;
                     prunedEventCount += childValue.EventCount;
                     continue;
                 }
                 // Render child once and store for sorting/output
-                children.push_back({child, renderer.Render(trie.GetIdentity(child))});
+                children.push_back({child.GetId(), renderer.Render(child.GetKey())});
             }
 
             std::sort(children.begin(), children.end(), [&](const TChildInfo& a, const TChildInfo& b) {
