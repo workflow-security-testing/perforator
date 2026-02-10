@@ -6,7 +6,7 @@
     "title": "Biome",
     "description": "Biome is a fast formatter for JavaScript, TypeScript, JSX, TSX, JSON, CSS and GraphQL that scores 97% compatibility with Prettier, saving CI and developer time.\n\n[Подробнее про линтинг в tier-0](https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint)",
     "type": "NPM_PACKAGE",
-    "default": "2.3.11",
+    "default": "2.3.13",
     "links": {
       "Home": "https://biomejs.dev/",
       "Sources": "https://github.com/biomejs/biome",
@@ -16,6 +16,10 @@
     "specifier": ">=2.0.0",
     "useDirectly": true,
     "versions": {
+      "2.3.13": {
+        "add_date": "2026-02-10T05:31:01",
+        "resources": []
+      },
       "2.3.11": {
         "add_date": "2026-01-27T05:30:49",
         "resources": []
