@@ -96,7 +96,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             ? calculateTopForTable(
                   rowsRef.current,
                   profileData.stringTable.length,
-                  { rootCoords: [0, 0], omitted: [] }
+                  { rootCoords: [0, 0], omitted: [], keepCoords: null }
               )
             : null;
     }, [profileData, isFirstTopRender]);

@@ -175,7 +175,13 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
     }, []);
 
     const topData = React.useMemo(() => {
-        return profileData && isFirstTopRender && rowsRef.current ? calculateTopForTable(rowsRef.current, profileData.stringTable.length, { rootCoords: [0, 0], omitted: [] }) : null;
+        return profileData && isFirstTopRender && rowsRef.current
+            ? calculateTopForTable(
+                rowsRef.current,
+                profileData.stringTable.length,
+                { rootCoords: [0, 0], omitted: [], keepCoords: null },
+            )
+            : null;
     }, [profileData, isFirstTopRender]);
 
     const totalFrames = profileData?.rows.reduce((a, row) => a + row.length, 0);

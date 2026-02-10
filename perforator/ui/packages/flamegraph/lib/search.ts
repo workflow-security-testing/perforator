@@ -11,8 +11,7 @@ export function escapeRegex(str: string) {
 
 export function makeTestFn(query: RegExp | string | undefined) {
     if (typeof query === 'string') {
-        const regex = (new RegExp(escapeRegex(query)));
-        return (str: string) => regex.test(str);
+        return (str: string) => str.includes(query);
     }
     if (typeof query === 'object' && query instanceof RegExp) {
         return (str: string) => query.test(str);
