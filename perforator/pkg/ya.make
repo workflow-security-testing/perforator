@@ -13,6 +13,7 @@ RECURSE(
     grpcutil
     humantime
     kafka
+    lease
     linux
     maxprocs
     mlock

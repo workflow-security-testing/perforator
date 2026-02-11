@@ -1,0 +1,11 @@
+GO_PROGRAM()
+
+LICENSE(MIT)
+
+VERSION(v4.18.3)
+
+SRCS(
+    main.go
+)
+
+END()
