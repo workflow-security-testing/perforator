@@ -190,6 +190,21 @@ func (t taskUserError) Unwrap() error {
 	return t.e
 }
 
+func isUserError(err error) bool {
+	var userError taskUserError
+	if errors.As(err, &userError) {
+		return true
+	}
+	if s, ok := status.FromError(err); ok {
+		switch s.Code() {
+		case codes.NotFound, codes.InvalidArgument, codes.PermissionDenied, codes.Unauthenticated:
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, stop func()) {
 	release := sync.OnceFunc(func() { s.tasksemaphore.Release(1) })
 	defer release()
@@ -216,8 +231,7 @@ func (s *PerforatorServer) runTask(ctx context.Context, task *asynctask.Task, st
 
 	res, err := s.runTaskImpl(ctx, task.GetSpec(), release)
 	if err != nil {
-		var userError taskUserError
-		if !errors.As(err, &userError) {
+		if !isUserError(err) {
 			s.metrics.tasksFailedCount.With(metricTags).Inc()
 			s.metrics.tasksProcessingFailedDuration.With(metricTags).RecordDuration(time.Since(creationTime))
 			s.metrics.tasksExecutionFailedDuration.With(metricTags).RecordDuration(time.Since(startTime))
