@@ -211,7 +211,7 @@ require (
 	github.com/aleroyer/rsyslog_exporter v1.1.0
 	github.com/alexflint/go-filemutex v1.3.0
 	github.com/alicebob/miniredis/v2 v2.33.0
-	github.com/alitto/pond v1.9.1
+	github.com/alitto/pond v1.9.2
 	github.com/anatol/luks.go v0.0.0-20211210165108-5d9a15b4f614
 	github.com/andybalholm/brotli v1.1.1
 	github.com/andybalholm/cascadia v1.3.3
@@ -784,7 +784,7 @@ require (
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	github.com/tc-hib/winres v0.2.0
 	github.com/tdewolff/minify/v2 v2.12.9
-	github.com/temporalio/cli v1.2.0
+	github.com/temporalio/cli v1.3.0
 	github.com/temporalio/omes v1.0.0
 	github.com/temporalio/omes/workers/go v0.0.0-20240701113332-211647aa9dae
 	github.com/temporalio/ui-server/v2 v2.36.4
