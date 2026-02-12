@@ -114,7 +114,7 @@ func NewClient(ctx context.Context, c *Config, l xlog.Logger) (*Client, error) {
 			Time: 30 * time.Second,
 		}),
 		grpc.WithMaxMsgSize(MaxMessageSize),
-		grpc.WithChainUnaryInterceptor(otelgrpc.UnaryClientInterceptor()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 		grpc.WithChainStreamInterceptor(otelgrpc.StreamClientInterceptor()),
 		grpc.WithUserAgent(makeUserAgentString()),
 	}

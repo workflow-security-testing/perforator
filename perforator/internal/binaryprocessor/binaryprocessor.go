@@ -102,8 +102,8 @@ func NewBinaryProcessorServer(
 	grpcServer := grpc.NewServer(
 		grpc.MaxSendMsgSize(1024*1024*1024 /*1G*/),
 		grpc.MaxRecvMsgSize(1024*1024*1024 /*1G*/),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
-			otelgrpc.UnaryServerInterceptor(),
 			metricsInterceptor.UnaryServer(),
 			logInterceptor.UnaryServer(),
 		),

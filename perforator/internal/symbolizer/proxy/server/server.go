@@ -289,8 +289,8 @@ func NewPerforatorServer(
 				MinTime: 20 * time.Second,
 			},
 		),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
-			otelgrpc.UnaryServerInterceptor(),
 			metricsInterceptor.UnaryServer(),
 			logInterceptor.UnaryServer(),
 			oauthInterceptor.UnaryServer(),
