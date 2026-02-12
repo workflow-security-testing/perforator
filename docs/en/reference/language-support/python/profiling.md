@@ -4,7 +4,7 @@ Perforator supports stack unwinding for most of the CPython releases used in pra
 
 | СPython Version | Support Status | Requirements for the executable | Note |
 |----------------|----------------|-------------|-------|
-| 3.12 - 3.13           | ✅             | Vanilla build | 
+| 3.12+           | ✅             | Vanilla build | 
 | 3.11           | ✅             | Vanilla build and glibc libpthread.so 2.4+ linked | Python and native stack merging not adapted yet
 | 3.x (<= 3.10) | ✅             | Vanilla build and glibc libpthread.so 2.4+ linked |
 | 2.x (>= 2.4)         | ✅             | Vanilla build and glibc libpthread.so 2.4+ linked |
