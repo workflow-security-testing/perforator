@@ -7,7 +7,7 @@ jobs:
       id-token: write
       contents: read
     runs-on: [self-hosted, auto-provisioned]
-    name: Postcommit checks
+    name: Precommit checks
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,6 +41,5 @@ jobs:
           poll_function_url: ${{ secrets.POLL_BUILD_FUNCTION_URL }}
           iam_token: ${{ steps.login.outputs.token }}
           env_file_path: ${{ github.workspace }}/job-env
-          secret_files: ${{ runner.temp }}/cache-password:/tmp/ci-password
           local_out_path: ${{ github.workspace }}/out
           remote_out_path: /home/builder/.ya/logs

@@ -20,8 +20,9 @@ inputs:
     required: true
     description: 'Absolute path to a file with job environment'
   secret_files:
-    required: true
-    descriptin: 'List of secret files (src1:dst,src2:dst2,...) to transfer to the build VM'
+    required: false
+    default: ''
+    description: 'List of secret files (src1:dst,src2:dst2,...) to transfer to the build VM'
   local_out_path:
     required: true
     description: 'Absolute path to desired artifact location'

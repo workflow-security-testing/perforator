@@ -377,6 +377,9 @@ func mainImpl(ctx context.Context) error {
 	}
 	secretFiles := strings.Split(config.secretFiles, ",")
 	for _, secretFile := range secretFiles {
+		if secretFile == "" {
+			continue
+		}
 		parts := strings.Split(secretFile, ":")
 		if len(parts) != 2 {
 			return fmt.Errorf("invalid secret file transfer command %q", secretFile)
