@@ -341,6 +341,9 @@ func (s *Service) fixupMissingMetadataFields(meta *profilemeta.ProfileMetadata) 
 	if meta.PodID == "" {
 		meta.PodID = meta.Attributes["pod"]
 	}
+	if meta.Timestamp.IsZero() {
+		meta.Timestamp = time.Now()
+	}
 }
 
 type pushProfileAdmitResult int
