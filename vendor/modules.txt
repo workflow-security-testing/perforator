@@ -19358,12 +19358,13 @@ golang.yandex/hasql/sqlx
 # golang.yandex/hasql/v2 v2.0.0
 ## explicit; go 1.22
 golang.yandex/hasql/v2
-# golang.yandex/linters v1.2.0
+# golang.yandex/linters v1.3.0
 ## explicit; go 1.23.0
 golang.yandex/linters
 golang.yandex/linters/internal/lintutils
-golang.yandex/linters/internal/nogen
-golang.yandex/linters/internal/nolint
+golang.yandex/linters/internal/passes/nogen
+golang.yandex/linters/internal/passes/nolint
+golang.yandex/linters/middlewares
 golang.yandex/linters/passes/copyproto
 golang.yandex/linters/passes/ctxcheck
 golang.yandex/linters/passes/deepequalproto
