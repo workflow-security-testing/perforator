@@ -168,14 +168,13 @@ func (b *Builder) Add(pid uint32) *SampleBuilder {
 	return bb
 }
 
-// AddTimestampedSample creates a new sample builder and accumulates the given
-// timestamp for automatic StartTime/EndTime derivation in Finish().
-// When at least one timestamped sample is added, Finish() will set the profile's
-// StartTime and EndTime from the accumulated min/max timestamps.
+// AddTimestampedSample creates a new sample builder that will accumulate the given
+// timestamp for automatic StartTime/EndTime derivation in Builder.Finish().
 // User should choose to add samples via Add or AddTimestampedSample.
 func (b *Builder) AddTimestampedSample(pid uint32, ts time.Time) *SampleBuilder {
-	b.feedSampleTimestamp(ts)
-	return b.Add(pid)
+	sb := b.Add(pid)
+	sb.timestamp = &ts
+	return sb
 }
 
 func (b *Builder) hasTimestampedSamples() bool {
@@ -194,10 +193,11 @@ func (b *Builder) feedSampleTimestamp(ts time.Time) {
 ////////////////////////////////////////////////////////////////////////////////
 
 type SampleBuilder struct {
-	pid    uint32
-	cache  *ProcessCache
-	sample *profile.Sample
-	parent *Builder
+	pid       uint32
+	cache     *ProcessCache
+	sample    *profile.Sample
+	parent    *Builder
+	timestamp *time.Time
 }
 
 func (b *SampleBuilder) Finish() *Builder {
@@ -207,6 +207,9 @@ func (b *SampleBuilder) Finish() *Builder {
 	// Such samples don't have any value, so we don't collect them.
 	if len(b.sample.Location) > 0 {
 		b.parent.profile.Sample = append(b.parent.profile.Sample, b.sample)
+	}
+	if b.timestamp != nil {
+		b.parent.feedSampleTimestamp(*b.timestamp)
 	}
 	return b.parent
 }
