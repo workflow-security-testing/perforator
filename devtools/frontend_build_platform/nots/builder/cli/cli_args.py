@@ -44,6 +44,14 @@ def register_base_args(parser: ArgumentParser) -> None:
         help="Use legacy pnpm virtual store",
     )
 
+    parser.add_argument(
+        "--inject-peers",
+        action=YesNoAction,
+        required=False,
+        default=False,
+        help="Inject peers",
+    )
+
     # Flags
     parser.add_argument(
         '--local-cli', action=YesNoAction, default=False, help="Is run locally (from `nots`) or on the distbuild"

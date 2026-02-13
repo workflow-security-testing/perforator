@@ -34,6 +34,9 @@ class BaseOptions:
     use_legacy_pnpm_virtual_store: bool
     """Use legacy pnpm virtual store"""
 
+    inject_peers: bool
+    """Inject peers"""
+
     command: str
     """builder `command` argument, used only in log messages"""
 

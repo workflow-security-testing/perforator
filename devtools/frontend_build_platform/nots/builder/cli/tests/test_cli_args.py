@@ -45,6 +45,7 @@ def test_create_node_modules_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=False,
         nm_bundle=False,
@@ -86,6 +87,7 @@ def test_create_node_modules_bundle_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=False,
         nm_bundle=True,
@@ -130,6 +132,7 @@ def test_build_library_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         env=['NODE_ENV=production'],
         # Flags
         local_cli=False,
@@ -174,6 +177,7 @@ def test_build_package_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         env=[],
         # Flags
         local_cli=False,
@@ -220,6 +224,7 @@ def test_build_package_nm_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         env=[],
         # Flags
         local_cli=False,
@@ -269,6 +274,7 @@ def test_build_tsc_args():
         yatool_prebuilder_path=None,
         env=[],
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -319,6 +325,7 @@ def test_build_tsc_nm_args():
         yatool_prebuilder_path=None,
         env=[],
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=True,
         nm_bundle=True,
@@ -371,6 +378,7 @@ def test_build_next_args():
         yatool_prebuilder_path=None,
         env=[],
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -426,6 +434,7 @@ def test_build_vite_args():
         yatool_prebuilder_path=None,
         env=[],
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -481,6 +490,7 @@ def test_build_webpack_args():
         yatool_prebuilder_path=None,
         env=[],
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -540,6 +550,7 @@ def test_build_webpack_with_env_args():
         yatool_prebuilder_path=None,
         env=["VAR1=value", "VAR2=value"],
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -601,6 +612,7 @@ def test_build_webpack_with_after_build():
         yatool_prebuilder_path=None,
         env=[],
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -658,6 +670,7 @@ def test_build_rspack_args():
         yatool_prebuilder_path=None,
         env=[],
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         # Flags
         local_cli=True,
         nm_bundle=False,
@@ -707,6 +720,7 @@ def test_build_verbose_args():
         pm_type='pnpm',
         yatool_prebuilder_path=None,
         use_legacy_pnpm_virtual_store=False,
+        inject_peers=False,
         env=[],
         # Flags
         local_cli=False,
