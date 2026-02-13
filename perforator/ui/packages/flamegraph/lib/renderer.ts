@@ -63,6 +63,7 @@ export type RenderFlamegraphOptions = {
     reverse: boolean;
     keepOnlyFound: boolean;
     disableHighlightRender: boolean;
+    scrollParent: HTMLElement;
 }
 
 function makeByH(coords: Coordinate[]): Record<H, Set<I>> {
@@ -110,11 +111,13 @@ export class FlamegraphOffseter {
     private reverse: boolean;
     levelHeight: number;
     private shouldReverseDiff = false;
+    private maxVerticalRow: number | undefined;
 
     constructor(rows: ProfileData['rows'], options: { reverse: boolean; levelHeight: number }) {
         this.rows = rows;
         this.reverse = options.reverse;
         this.levelHeight = options.levelHeight;
+        this.maxVerticalRow = this.rows.length;
     }
     fillFramesWindow([hmax, imax]: Coordinate): FramesWindow {
         const res: Record<number, Interval> = [];
@@ -154,7 +157,7 @@ export class FlamegraphOffseter {
     }
 
     calcTopOffset(h: number) {
-        return this.reverse ? h * this.levelHeight : (this.rows.length * this.levelHeight) - (h + 1) * this.levelHeight;
+        return this.reverse ? h * this.levelHeight : (this.maxVerticalRow * this.levelHeight) - (h + 1) * this.levelHeight;
     }
 
     createShouldDrawFrame(h: number) {
@@ -325,10 +328,13 @@ export class FlamegraphOffseter {
         this.widthRatio = (this.getEvents(root) - (root.omittedEventCount ?? 0)) / canvasWidth!;
         this.minVisibleEv = minVisibleWidth * this.widthRatio;
 
+        let maxDrawableLayerDepth = 0;
+
         for (let h = 0; h < this.rows.length; h++) {
             const shouldDrawFrame = this.createShouldDrawFrame(h);
             const updateOffsets = this.createOffsetKeeper(h);
             const updateFrameWindows = this.createUpdateWindow(h);
+            let shouldDrawLayer = false;
             for (let i = 0; i < this.rows[h].length; i++) {
                 if (!shouldDrawFrame(i)) {
                     continue;
@@ -340,13 +346,21 @@ export class FlamegraphOffseter {
                 }
                 const isVisible = this.visibleNode(this.rows[h][i]);
                 updateOffsets(i, isVisible);
+                if (isVisible) {
+                    shouldDrawLayer = true;
+                }
+            }
 
+            if (shouldDrawLayer) {
+                maxDrawableLayerDepth = h;
             }
 
             if (!this.framesWindow?.[h]) {
                 break;
             }
         }
+        this.maxVerticalRow = maxDrawableLayerDepth;
+        return maxDrawableLayerDepth;
     }
 
     findFrame(frames: FormatNode[], x: number, left = 0, right = frames.length - 1) {
@@ -406,7 +420,7 @@ export class FlamegraphOffseter {
 
 
     getTopOffset(offset: number) {
-        return this.reverse ? offset : ((this.rows.length * this.levelHeight) - offset);
+        return this.reverse ? offset : ((this.maxVerticalRow * this.levelHeight) - offset);
     }
 
     getCoordsByPosition: (x: number, y: number) => null | { h: number; i: number } = (x, y) => {
@@ -467,7 +481,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     flamegraphContainer,
     profileData,
     fg,
-    { getState, setState, theme, isDiff, onFinishRendering, shortenFrameTexts, excludeSearchPattern, searchPattern, reverse, keepOnlyFound, disableHighlightRender },
+    { getState, setState, theme, isDiff, onFinishRendering, shortenFrameTexts, excludeSearchPattern, searchPattern, reverse, keepOnlyFound, disableHighlightRender, scrollParent },
 ) => {
     const shouldSwapDiff = getState('flameBase') === 'diff';
 
@@ -510,14 +524,30 @@ export const renderFlamegraph: RenderFlamegraphType = (
     let canvasWidth: number | undefined;
     let canvasHeight: number | undefined;
 
-    function initCanvas() {
-        canvas.style.height = profileData.rows.length * LEVEL_HEIGHT + 'px';
-        canvasWidth = canvas.offsetWidth;
+    function initCanvasVertical(layersCount: number, shouldPreserveVerticalScroll?: boolean, scrollableElement: HTMLElement = document.documentElement) {
+        // need to keep the same vertical scroll when vertically resizing reversed flamegraph
+        const prevScroll = scrollableElement.scrollTop;
+        const prevHeight = canvas.offsetHeight;
+        const prevScrollHeight = getScrollHeight(scrollableElement);
+        const prevBottomOffset = prevScrollHeight - prevScroll;
+
+        canvas.style.height = (layersCount ? layersCount + 1 : profileData.rows.length) * LEVEL_HEIGHT + 'px';
         canvasHeight = canvas.offsetHeight;
-        canvas.style.width = canvasWidth + 'px';
-        canvas.width = canvasWidth * (devicePixelRatio || 1);
         canvas.height = canvasHeight * (devicePixelRatio || 1);
         if (devicePixelRatio) { c.scale(devicePixelRatio, devicePixelRatio); }
+        if (shouldPreserveVerticalScroll && prevHeight !== 0) {
+            const scrollHeight = getScrollHeight(scrollableElement);
+            const scroll = scrollableElement.scrollTop;
+            const newBottomOffset = scrollHeight - scroll;
+            const diff = prevBottomOffset - newBottomOffset;
+
+            scrollableElement.scrollBy(0, -diff);
+        }
+    }
+    function initCanvas() {
+        canvasWidth = canvas.offsetWidth;
+        canvas.style.width = canvasWidth + 'px';
+        canvas.width = canvasWidth * (devicePixelRatio || 1);
     }
 
     initCanvas();
@@ -870,22 +900,28 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
     const foundCoords = maybeSearch(searchPattern, excludeSearchPattern);
 
-    fg.prerenderOffsets(canvasWidth!, [h, pos], omittedStacks, foundCoords, shouldSwapDiff);
-    render({ pattern: searchPattern, excludePattern: excludeSearchPattern });
+    {
+        const layerCount = fg.prerenderOffsets(canvasWidth!, [h, pos], omittedStacks, foundCoords, shouldSwapDiff);
+        initCanvasVertical(layerCount, !reverse && !disableHighlightRender, scrollParent);
+    }
+    render({ pattern: searchPattern });
     if (!disableHighlightRender) {
         renderHighlightRect(h, pos);
     }
 
 
+    // maybe ignore vertiacal resizes?
     const onResize = () => requestAnimationFrame(() => {
 
+        if (canvasWidth === canvas.offsetWidth) {return;}
         const initialH = parseInt(getState('frameDepth', '0'));
         const initialI = parseInt(getState('framePos', '0'));
         //@ts-ignore
         canvas.style.width = null;
         initCanvas();
-        fg.prerenderOffsets(canvasWidth!, [initialH, initialI], omittedStacks, foundCoords, shouldSwapDiff);
-        render({ pattern: searchPattern, excludePattern: excludeSearchPattern });
+        const layerCount = fg.prerenderOffsets(canvasWidth!, [initialH, initialI], omittedStacks, foundCoords, shouldSwapDiff);
+        initCanvasVertical(layerCount, !reverse, scrollParent);
+        render({ pattern: searchPattern });
     });
     window.addEventListener('resize', onResize);
 
@@ -903,3 +939,10 @@ export const renderFlamegraph: RenderFlamegraphType = (
         canvas.style.cursor = 'pointer';
     }
 };
+function getScrollHeight(scrollableElement: HTMLElement) {
+    return Math.max(
+        scrollableElement.scrollHeight,
+        scrollableElement.offsetHeight,
+        scrollableElement.clientHeight,
+    );
+}

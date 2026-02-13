@@ -16,7 +16,7 @@ buildFactory().then(() => {
     uiFactory().configureApp();
     ReactDOM.createRoot(document.getElementById('root')!, {
         onRecoverableError: (error, errorInfo) => {
-            uiFactory().logError(error, { errorInfo });
+            uiFactory?.()?.logError?.(error, { errorInfo });
         },
     }).render(
         <React.StrictMode>

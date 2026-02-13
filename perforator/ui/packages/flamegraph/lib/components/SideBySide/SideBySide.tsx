@@ -57,6 +57,7 @@ export function SideBySide(props: SideBySideProps) {
         />
         <Divider orientation={'vertical'} />
         <Flamegraph
+            useSelfAsScrollParent
             className={b('flamegraph')}
             {...props}
         />

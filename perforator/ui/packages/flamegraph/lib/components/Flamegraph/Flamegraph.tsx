@@ -57,6 +57,7 @@ export interface FlamegraphProps extends Pick<RenderFlamegraphOptions, 'onFinish
     onSearch?: (search: string) => void;
     onSearchReset?: () => void;
     onKeepOnlyFound?: (value: boolean) => void;
+    useSelfAsScrollParent?: boolean;
 }
 
 const MAX_FIREFOX_DEPTH = 768;
@@ -86,6 +87,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     onSearch,
     onKeepOnlyFound,
     onSearchReset,
+    useSelfAsScrollParent,
 }) => {
     const flamegraphContainer = React.useRef<HTMLDivElement | null>(null);
     const flamegraphCanvas = React.useRef<HTMLCanvasElement | null>(null);
@@ -169,6 +171,8 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
 
     React.useEffect(() => {
         if (flamegraphContainer.current && profileData && flamegraphOffsets.current) {
+            setHoverData(null);
+
             const renderOptions: RenderFlamegraphOptions = {
                 setState: setQuery,
                 getState: getQuery,
@@ -183,6 +187,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 // by default, we show highlight, e.g. after clicks
                 // and don't show it only on first render
                 disableHighlightRender: shouldOmitHighlight.current,
+                scrollParent: useSelfAsScrollParent ? flamegraphContainer.current : document.documentElement,
             };
 
             try {
@@ -266,7 +271,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 onFrameAltClick?.(e, stringifiedNode);
             }
         }
-    }, [profileData, onFrameClick, popupData]);
+    }, [popupData, onFrameClick, profileData, onFrameAltClick]);
 
     const handleMouseMove = React.useCallback((e: MouseEvent) => {
         const offsetX = e.offsetX;
