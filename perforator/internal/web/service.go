@@ -99,6 +99,9 @@ func NewWebService(
 	fileServer := http.FileServer(httpFs.Dir("dist"))
 
 	r.Handle("/assets/*", fileServer)
+	r.Handle("/favicon.svg", fileServer)
+	r.Handle("/favicon.ico", fileServer)
+	r.Handle("/apple-touch-icon.png", fileServer)
 	r.Get("/static/results/{id}", s3Handler)
 	r.Mount("/api", apiHandler)
 
