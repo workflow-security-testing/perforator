@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { cutTimeFromSelector, parseTimestampFromSelector } from './selector';
+import { cutTimeFromSelector, parseTimestampFromSelector, validateSelectorContainsOnlyService } from './selector';
 
 
 const selector = '{service="perforator.perforator-proxy-prod",timestamp>="2024-08-26T09:56:12.624Z", timestamp<="2024-08-27T09:56:12.625Z"}';
@@ -35,5 +35,30 @@ describe('cutTimeFromSelector', () => {
         const s = '{service="perforator.perforator-proxy-prod"}';
 
         expect(cutTimeFromSelector(s)).toEqual(s);
+    });
+});
+
+describe('validateSelectorContainsOnlyService', () => {
+    it('should be correct for selector without trailing comma', () => {
+        const s = '{service="perforator.perforator-proxy-prod"}';
+
+        expect(validateSelectorContainsOnlyService(s)).toBe(true);
+    });
+    it('should be correct for selector with trailing comma', () => {
+        const s = '{service="perforator.perforator-proxy-prod" , }';
+
+        expect(validateSelectorContainsOnlyService(s)).toBe(true);
+    });
+
+    it('should fail on selector without service', () => {
+        const s = '{timestamp>="2024-08-26T09:56:12.624Z", timestamp<="2024-08-27T09:56:12.625Z"}';
+
+        expect(validateSelectorContainsOnlyService(s)).toBe(false);
+    });
+
+    it('should fail on selector with other fields', () => {
+        const s = '{service="perforator.perforator-proxy-prod",timestamp>="2024-08-26T09:56:12.624Z", timestamp<="2024-08-27T09:56:12.625Z",otherField="otherField"}';
+
+        expect(validateSelectorContainsOnlyService(s)).toBe(false);
     });
 });

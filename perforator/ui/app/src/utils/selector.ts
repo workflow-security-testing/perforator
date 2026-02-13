@@ -94,13 +94,19 @@ export const nextSelectorConditionKey = (current: keyof SelectorCondition) => (
     ]
 );
 
+export const removeOptionalTailingComma = (selector: string) => {
+    return selector.replace(/,\s*}\s*$/, '}');
+};
+
 const serviceRg = /service\s*=\s*"(.*?)"/;
 export function parseServiceFromSelector(selector: string) {
-    const matches = selector.match(serviceRg);
+    const clearedSelector = removeOptionalTailingComma(selector);
+    const matches = clearedSelector.match(serviceRg);
     return matches ? matches[1] : undefined;
 }
 
 export function validateSelectorContainsOnlyService(selector: string): boolean {
-    const maybeEmptySelector = selector.replace(serviceRg, '').replace(/\s+/, '');
+    const clearedSelector = removeOptionalTailingComma(selector);
+    const maybeEmptySelector = clearedSelector.replace(serviceRg, '').replace(/\s+/, '');
     return maybeEmptySelector === EMPTY_SELECTOR;
 }
