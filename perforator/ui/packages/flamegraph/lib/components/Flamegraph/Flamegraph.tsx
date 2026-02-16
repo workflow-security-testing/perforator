@@ -103,7 +103,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     const isDiffSwitchingSupported = profileData.meta.version > 1;
     const [shouldTrim, setShouldTrim] = React.useState(false);
     const shouldOmitHighlight = React.useRef(true);
-
+    const shouldScroll = React.useRef(false);
     const setQuery = React.useCallback<SetStateFromQuery<QueryKeys>>((q) => {
         outerSetQuery(q);
         shouldOmitHighlight.current = true;
@@ -187,6 +187,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 // by default, we show highlight, e.g. after clicks
                 // and don't show it only on first render
                 disableHighlightRender: shouldOmitHighlight.current,
+                shouldScroll: shouldScroll.current,
                 scrollParent: useSelfAsScrollParent ? flamegraphContainer.current : document.documentElement,
             };
 
@@ -197,6 +198,9 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     shouldOmitHighlight.current = false;
                 }
 
+                if (!shouldScroll.current) {
+                    shouldScroll.current = true;
+                }
                 return () => {
                     destructor();
                     shouldOmitHighlight.current = true;

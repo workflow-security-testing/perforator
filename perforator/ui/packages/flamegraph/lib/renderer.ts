@@ -63,6 +63,7 @@ export type RenderFlamegraphOptions = {
     reverse: boolean;
     keepOnlyFound: boolean;
     disableHighlightRender: boolean;
+    shouldScroll: boolean;
     scrollParent: HTMLElement;
 }
 
@@ -481,7 +482,20 @@ export const renderFlamegraph: RenderFlamegraphType = (
     flamegraphContainer,
     profileData,
     fg,
-    { getState, setState, theme, isDiff, onFinishRendering, shortenFrameTexts, excludeSearchPattern, searchPattern, reverse, keepOnlyFound, disableHighlightRender, scrollParent },
+    {
+        getState, setState,
+        theme,
+        isDiff,
+        onFinishRendering,
+        shortenFrameTexts,
+        excludeSearchPattern,
+        searchPattern,
+        reverse,
+        keepOnlyFound,
+        disableHighlightRender,
+        scrollParent,
+        shouldScroll,
+    },
 ) => {
     const shouldSwapDiff = getState('flameBase') === 'diff';
 
@@ -902,7 +916,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
     {
         const layerCount = fg.prerenderOffsets(canvasWidth!, [h, pos], omittedStacks, foundCoords, shouldSwapDiff);
-        initCanvasVertical(layerCount, !reverse && !disableHighlightRender, scrollParent);
+        initCanvasVertical(layerCount, !reverse && shouldScroll, scrollParent);
     }
     render({ pattern: searchPattern });
     if (!disableHighlightRender) {
