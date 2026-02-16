@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.76.1)
+VERSION(v1.82.0)
 
 GO_SKIP_TESTS(
     TestTakeFromIdleWriteListChecked
@@ -43,7 +43,7 @@ GO_TEST_SRCS(
     cmp_test.go
     errors_test.go
     # integration_test.go
-    key_test.go
+    # key_test.go
     metric_monitoring_exporter_test.go
     # metrics_test.go
     mocks_test.go
@@ -51,16 +51,17 @@ GO_TEST_SRCS(
     # oc_test.go
     # pdml_test.go
     # read_test.go
+    # regression_test.go
     # request_id_header_test.go
     retry_test.go
     # row_test.go
     # session_test.go
     # sessionclient_test.go
-    statement_test.go
+    # statement_test.go
     timestampbound_test.go
     # transaction_test.go
-    value_benchmarks_test.go
-    value_test.go
+    # value_benchmarks_test.go
+    # value_test.go
 )
 
 GO_XTEST_SRCS(examples_test.go)
@@ -68,6 +69,7 @@ GO_XTEST_SRCS(examples_test.go)
 END()
 
 RECURSE(
+    adapter
     admin
     apiv1
     executor

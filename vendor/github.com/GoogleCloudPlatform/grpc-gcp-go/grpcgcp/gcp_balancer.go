@@ -572,5 +572,7 @@ func (gb *gcpBalancer) refresh(ref *subConnRef) {
 	sc.Connect()
 }
 
+func (gb *gcpBalancer) ExitIdle() {}
+
 func (gb *gcpBalancer) Close() {
 }

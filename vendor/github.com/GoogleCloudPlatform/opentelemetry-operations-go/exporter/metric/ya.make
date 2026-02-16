@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.51.0)
+VERSION(v0.53.0)
 
 SRCS(
     cloudmonitoring.go
@@ -13,7 +13,10 @@ SRCS(
     version.go
 )
 
-GO_TEST_SRCS(metric_test.go)
+GO_TEST_SRCS(
+    cloudmonitoring_test.go
+    metric_test.go
+)
 
 GO_XTEST_SRCS(example_test.go)
 

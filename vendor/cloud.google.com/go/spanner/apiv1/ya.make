@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.76.1)
+VERSION(v1.82.0)
 
 SRCS(
     auxiliary.go

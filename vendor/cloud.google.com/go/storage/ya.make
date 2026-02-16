@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.51.0)
+VERSION(v1.56.0)
 
 SRCS(
     acl.go
@@ -15,6 +15,7 @@ SRCS(
     grpc_dp.go
     grpc_metrics.go
     grpc_reader.go
+    grpc_reader_multi_range.go
     grpc_writer.go
     hmac.go
     http_client.go

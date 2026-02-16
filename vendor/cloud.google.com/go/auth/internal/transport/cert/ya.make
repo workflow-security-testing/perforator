@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v0.15.0)
+VERSION(v0.16.3)
 
 GO_SKIP_TESTS(TestEnterpriseCertificateProxySource_GetClientCertificateSuccess)
 
