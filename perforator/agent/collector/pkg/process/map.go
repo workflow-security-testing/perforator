@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"golang.org/x/exp/maps"
 	"golang.org/x/sync/errgroup"
 
@@ -64,6 +65,9 @@ type processRegistryMetrics struct {
 	mappingsFailedScheduleUpload    metrics.Counter
 	mappingsFailedNameToHandleAt    metrics.Counter
 	mappingsFailedELFVaddrRetrieval metrics.Counter
+
+	processesWithEmptyEnvironment metrics.Counter
+	processEnvironmentWaitDelay   metrics.Counter
 }
 
 type mappingImpl struct {
@@ -215,6 +219,8 @@ func NewProcessRegistry(
 			mappingsFailedScheduleUpload:    m.WithTags(map[string]string{"kind": "failed_schedule_upload"}).Counter("mappings.count"),
 			mappingsFailedNameToHandleAt:    m.WithTags(map[string]string{"kind": "failed_name_to_handle_at"}).Counter("mappings.count"),
 			mappingsFailedELFVaddrRetrieval: m.WithTags(map[string]string{"kind": "failed_elf_vaddr_retrieval"}).Counter("mappings.count"),
+			processesWithEmptyEnvironment:   m.Counter("processes.with_empty_environment.count"),
+			processEnvironmentWaitDelay:     m.Counter("environment.wait_delay.total.milliseconds"),
 		},
 		processScanner: processScanner,
 		listeners:      listeners,
@@ -896,13 +902,52 @@ func iterateMappingLPMSegments(m Mapping, callback func(address uint64, prefix u
 ////////////////////////////////////////////////////////////////////////////////
 
 func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
-	envs, err := procfs.Process(a.proc.currentNamespaceID).ListEnvs()
-	if err != nil {
-		return err
-	}
+	proc := procfs.Process(a.proc.currentNamespaceID)
+	backoff := backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(1*time.Millisecond),
+		backoff.WithMultiplier(2),
+		backoff.WithMaxElapsedTime(1*time.Second),
+	)
+	backoff.Reset()
+	defer func() {
+		a.reg.metrics.processEnvironmentWaitDelay.Add(backoff.GetElapsedTime().Milliseconds())
+	}()
+	// TODO(PERFORATOR-1102): loop here is hacky attempt to work around some
+	// race conditions when we fail to observe correct process environment shortly after process creation.
+	for i := 0; ; i++ {
+		envs, err := proc.ListEnvs()
+		if err != nil {
+			return err
+		}
 
-	a.log.Debug(ctx, "Put process envs", log.Int("env_count", len(envs)))
-	a.proc.setEnvs(envs)
+		if len(envs) > 0 {
+			a.log.Debug(
+				ctx,
+				"Put process envs",
+				log.Int("env_count", len(envs)),
+				log.Int("attempts", i),
+			)
+			a.proc.setEnvs(envs)
+			break
+		}
+
+		// we read empty environment.
+		// While this is technically possible, it is more likely a race
+		// with a newly created process.
+		sleepFor := backoff.NextBackOff()
+		if sleepFor == backoff.Stop {
+			// Level is not DEBUG because it is the only sign of a possible race
+			// and processes with actually empty environment are likely to be rare.
+			a.log.Info(ctx, "Process seems to have empty environment")
+			a.reg.metrics.processesWithEmptyEnvironment.Inc()
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("canceled while obtaining process environment: %w", context.Cause(ctx))
+		case <-time.After(sleepFor):
+		}
+	}
 	return nil
 }
 
