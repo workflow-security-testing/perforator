@@ -92,13 +92,13 @@ type RenderFlamegraphType = (
 ) => () => void;
 
 /**
- * `Record<H, I[]>`
- * keeps rendering borders for each level
- * uses only pair [left, right]
+ * Continuous array keeping rendering borders for each level
+ * Uses even indexes for left border and odd indexes for right border
+ * For level h: left border at index h*2, right border at index h*2+1
  * everything up the subtree is filled before rendering
  * everything below the subtree is filled during render
  */
-export type FramesWindow = Record<number, Interval>;
+export type FramesWindow = number[];
 
 export class FlamegraphOffseter {
     currentNodeCoords: Coordinate = [0, 0];
@@ -121,12 +121,13 @@ export class FlamegraphOffseter {
         this.maxVerticalRow = this.rows.length;
     }
     fillFramesWindow([hmax, imax]: Coordinate): FramesWindow {
-        const res: Record<number, Interval> = [];
+        const res: FramesWindow = [];
         let nextParentIndex = imax;
 
         for (let h = Math.min(hmax, this.rows.length - 1); h >= 0; h--) {
             const row = this.rows[h];
-            res[h] = [nextParentIndex, nextParentIndex];
+            res[h * 2] = nextParentIndex;     // left border at even index
+            res[h * 2 + 1] = nextParentIndex; // right border at odd index
             // will be assigned -1 on the last iteration (root)
             // we do not care about it because it will not be assigned anywhere else
             nextParentIndex = row[nextParentIndex].parentIndex;
@@ -134,6 +135,19 @@ export class FlamegraphOffseter {
 
         return res;
     }
+
+    getFramesWindowLeft(h: number): number | undefined {
+        return this?.framesWindow?.[h * 2];
+    }
+
+    getFramesWindowRight(h: number): number | undefined {
+        return this.framesWindow?.[h * 2 + 1];
+    }
+
+    hasFramesWindowFor(h: number) {
+        return this.framesWindow[h * 2] !== undefined;
+    }
+
     createOffsetKeeper(h: number) {
         let prevParentIndex: number | null = null;
         let currentOffset = 0;
@@ -162,20 +176,22 @@ export class FlamegraphOffseter {
     }
 
     createShouldDrawFrame(h: number) {
-        const currentLevelFramesWindow = this.framesWindow[h];
-        const parentFramesWindow = this.framesWindow[h - 1];
+        const currentLevelLeftBorder = this.getFramesWindowLeft(h);
+        const currentLevelRightBorder = this.getFramesWindowRight(h);
+        const parentLeftBorder = this.getFramesWindowLeft(h - 1);
+        const parentRightBorder = this.getFramesWindowRight(h - 1);
 
         return (i: number) => {
             const node = this.rows[h][i];
 
-            if (currentLevelFramesWindow && !(currentLevelFramesWindow[0] <= (i) && currentLevelFramesWindow[1] >= i)) {
+            if (currentLevelLeftBorder !== undefined && currentLevelRightBorder !== undefined && !(currentLevelLeftBorder <= (i) && currentLevelRightBorder >= i)) {
                 return false;
             }
 
             // parentFramesWindow always undefined for root so null checks can be ignored
             if (
-                parentFramesWindow && node.parentIndex !== -1 &&
-                !(parentFramesWindow[0] <= (node.parentIndex!) && parentFramesWindow[1] >= node.parentIndex!)
+                parentLeftBorder !== undefined && parentRightBorder !== undefined && node.parentIndex !== -1 &&
+                !(parentLeftBorder <= (node.parentIndex!) && parentRightBorder >= node.parentIndex!)
             ) {
                 return false;
             }
@@ -358,7 +374,7 @@ export class FlamegraphOffseter {
                 maxDrawableLayerDepth = h;
             }
 
-            if (!this.framesWindow?.[h]) {
+            if (!this.hasFramesWindowFor(h)) {
                 break;
             }
         }
@@ -406,10 +422,12 @@ export class FlamegraphOffseter {
 
         const row = this.rows[h];
 
-        if (!this.framesWindow?.[h]) {
+        if (!this.hasFramesWindowFor(h)) {
             return null;
         }
-        const [leftIndex, rightIndex] = this.framesWindow[h];
+
+        const leftIndex = this.getFramesWindowLeft(h);
+        const rightIndex = this.getFramesWindowRight(h);
 
         const i = this.findFrame(row, x, leftIndex, rightIndex);
 
@@ -460,21 +478,16 @@ export class FlamegraphOffseter {
         return (this.getEvents(node)) - (node?.omittedEventCount ?? 0) >= this.minVisibleEv!;
     }
 
-    keepRendering(h: number) {
-        if (Array.isArray(this.framesWindow?.[h])) {
-            return true;
-        }
-        return false;
-    }
 
     isBeforeCurrentNode(h: number) {
         return h < this.currentNodeCoords[0];
     }
     private createUpdateWindow = (h: number) => (i: number) => {
-        if (Array.isArray(this.framesWindow?.[h])) {
-            this.framesWindow[h][1] = i;
+        if (this.framesWindow[h * 2] !== undefined) {
+            this.framesWindow[h * 2 + 1] = i;
         } else {
-            this.framesWindow[h] = [i, i];
+            this.framesWindow[h * 2] = i;
+            this.framesWindow[h * 2 + 1] = i;
         }
     };
 
@@ -768,7 +781,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
                 renderNode(i);
             }
 
-            if (!fg.keepRendering(h)) {
+            if (!fg.hasFramesWindowFor(h)) {
                 break;
             }
         }
