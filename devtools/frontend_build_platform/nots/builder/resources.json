@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-02-13T19:28:53Z",
+    "created": "2026-02-17T11:28:07.404Z",
     "pr": {
-      "id": 11691246,
-      "author": "baymer",
-      "summary": "FBP-2876: Добавить макрос INJECT_PEERS()"
+      "id": 11740403,
+      "author": "zaverden",
+      "summary": "feat(builder): build_library reports outputs list"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11100732634"
+      "uri": "sbr:11128630505"
     },
     "darwin-arm64": {
-      "uri": "sbr:11100731483"
+      "uri": "sbr:11128626217"
     },
     "linux": {
-      "uri": "sbr:11100735876"
+      "uri": "sbr:11128637554"
     },
     "linux-aarch64": {
-      "uri": "sbr:11100733916"
+      "uri": "sbr:11128634002"
     }
   }
 }

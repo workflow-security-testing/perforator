@@ -1,4 +1,5 @@
 import os.path
+import json
 import sys
 import uuid
 from datetime import datetime, UTC
@@ -21,7 +22,7 @@ def on_crash(exctype, value, traceback):
 sys.excepthook = on_crash
 
 
-def __add_uuid_for_output(bindir: str, output_file: str):
+def __add_uuid_for_output(bindir: str, output_file: str, outputs: list[str] | None):
     uuid_file_name = f'{bindir}/{pm_constants.OUTPUT_TAR_UUID_FILENAME}'
 
     with open(uuid_file_name, 'w') as f:
@@ -31,17 +32,22 @@ def __add_uuid_for_output(bindir: str, output_file: str):
 
         f.write(f"{output_filename}: {uuid_str} - {timestamp}")
 
+        if outputs is not None:
+            f.write("\noutputs: ")
+            json.dump(outputs, f)
+
 
 def _postprocess_output(args: AllOptions) -> None:
     with_after_build = getattr(args, 'with_after_build', False)
     output_file = getattr(args, 'output_file', args.node_modules_bundle)
+    outputs = getattr(args, 'outputs', None)
 
     if args.command == 'build-package' and not with_after_build:
         output_file = args.node_modules_bundle
 
     if output_file and os.path.isfile(output_file):
         if output_file != args.node_modules_bundle:
-            __add_uuid_for_output(args.bindir, output_file)
+            __add_uuid_for_output(args.bindir, output_file, outputs)
 
 
 # @timeit тут нельзя, т.к. измерение включается внутри
