@@ -288,18 +288,20 @@ export class FlamegraphOffseter {
     }
 
     private clearOmittedEventCount() {
-        for (let h = 0; h < this.rows.length; h++) {
-            const row = this.rows[h];
-            for (let i = 0; i < row.length; i++) {
-                const node = row[i];
-                if (node.omittedEventCount) {
-                    node.omittedEventCount = undefined;
-                }
-                if (node.omittedSampleCount) {
-                    node.omittedSampleCount = undefined;
-                }
-                if (node.omittedNode) {
-                    node.omittedNode = false;
+        if ('omittedEventCount' in this.rows[0][0] && this.rows[0][0].omittedEventCount > 0) {
+            for (let h = 0; h < this.rows.length; h++) {
+                const row = this.rows[h];
+                for (let i = 0; i < row.length; i++) {
+                    const node = row[i];
+                    if (node.omittedEventCount) {
+                        node.omittedEventCount = undefined;
+                    }
+                    if (node.omittedSampleCount) {
+                        node.omittedSampleCount = undefined;
+                    }
+                    if (node.omittedNode) {
+                        node.omittedNode = false;
+                    }
                 }
             }
         }
