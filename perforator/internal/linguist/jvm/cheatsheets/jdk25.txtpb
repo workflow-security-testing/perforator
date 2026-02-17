@@ -1,0 +1,6 @@
+code_blob_kind: 56
+code_blob_kind_nmethod: 1
+code_heap_next_segment: 256
+frame_return_addr_offset: 1
+frame_interpreter_frame_method_offset: -3
+

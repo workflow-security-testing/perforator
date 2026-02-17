@@ -89,6 +89,20 @@ TMaybe<TSymbolMap> RetrieveSymbolsFromSymtab(const llvm::object::ObjectFile& fil
     return NPerforator::NELF::NPrivate::RetrieveSymbolsFromSymtab(file, {symbols...});
 }
 
+TSymbolMap RetrieveSymbolsFromSymtabChecked(
+    const llvm::object::ELFObjectFile<llvm::object::ELF64LE>& elf,
+    std::same_as<std::string_view> auto ...symbols
+) {
+    TMaybe<TSymbolMap> res = NELF::RetrieveSymbolsFromSymtab(elf, symbols...);
+    Y_THROW_UNLESS(res.Defined(), "Unknown ELF kind");
+    Y_THROW_UNLESS(
+        res->size() == sizeof...(symbols) || res->size() == 0,
+        "Found only subset of expected symbols"
+    );
+    return std::move(*res);
+}
+
+
 template <typename... Args>
 TMaybe<TSymbolMap> RetrieveSymbols(const llvm::object::ObjectFile& file, Args... symbols) {
     return NPerforator::NELF::NPrivate::RetrieveSymbols(file, {symbols...});

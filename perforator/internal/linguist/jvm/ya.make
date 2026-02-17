@@ -1,5 +1,6 @@
 RECURSE(
     analysis
-    unwind
+    cheatsheets
     jvmattach
+    unwind
 )
