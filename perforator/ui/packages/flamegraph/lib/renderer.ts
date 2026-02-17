@@ -176,28 +176,25 @@ export class FlamegraphOffseter {
     }
 
     createShouldDrawFrame(h: number) {
-        const currentLevelLeftBorder = this.getFramesWindowLeft(h);
-        const currentLevelRightBorder = this.getFramesWindowRight(h);
         const parentLeftBorder = this.getFramesWindowLeft(h - 1);
         const parentRightBorder = this.getFramesWindowRight(h - 1);
+        if (h === 0) {
+            return () => true;
+        }
 
         return (i: number) => {
-            const node = this.rows[h][i];
-
-            if (currentLevelLeftBorder !== undefined && currentLevelRightBorder !== undefined && !(currentLevelLeftBorder <= (i) && currentLevelRightBorder >= i)) {
-                return false;
+            if (parentLeftBorder === undefined || parentRightBorder === undefined) {
+                return true;
             }
 
-            // parentFramesWindow always undefined for root so null checks can be ignored
-            if (
-                parentLeftBorder !== undefined && parentRightBorder !== undefined && node.parentIndex !== -1 &&
-                !(parentLeftBorder <= (node.parentIndex!) && parentRightBorder >= node.parentIndex!)
-            ) {
-                return false;
-            }
-            return true;
+            const parentIndex = this.rows[h][i].parentIndex;
+
+
+            return parentLeftBorder <= parentIndex &&
+                    parentRightBorder >= parentIndex;
         };
     }
+
 
     backpropagateOmittedEventCount(omittedOffsetCoordinates: Coordinate[]) {
         for (const [h, i] of omittedOffsetCoordinates) {
@@ -350,11 +347,13 @@ export class FlamegraphOffseter {
         let maxDrawableLayerDepth = 0;
 
         for (let h = 0; h < this.rows.length; h++) {
+            const leftBorder = this.getFramesWindowLeft(h) ?? 0;
+            const rightBorder = this.getFramesWindowRight(h) ?? this.rows[h].length - 1;
             const shouldDrawFrame = this.createShouldDrawFrame(h);
             const updateOffsets = this.createOffsetKeeper(h);
             const updateFrameWindows = this.createUpdateWindow(h);
             let shouldDrawLayer = false;
-            for (let i = 0; i < this.rows[h].length; i++) {
+            for (let i = leftBorder; i <= rightBorder; i++) {
                 if (!shouldDrawFrame(i)) {
                     continue;
                 }
@@ -757,14 +756,8 @@ export const renderFlamegraph: RenderFlamegraphType = (
                 }
             };
 
-            const shouldDrawFrame = fg.createShouldDrawFrame(h);
-
             const renderNode = function(i: number) {
                 const node = row[i];
-                const should = shouldDrawFrame(i);
-                if (!should) {
-                    return;
-                }
 
                 const isVisible = fg.visibleNode(node);
 
@@ -777,7 +770,9 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
             };
 
-            for (let i = 0; i < row.length; i++) {
+            const leftBorder = fg.getFramesWindowLeft(h);
+            const rightBorder = fg.getFramesWindowRight(h);
+            for (let i = leftBorder; i <= rightBorder; i++) {
                 renderNode(i);
             }
 
