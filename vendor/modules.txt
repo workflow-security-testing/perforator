@@ -3893,6 +3893,12 @@ github.com/PuerkitoBio/goquery
 ## explicit
 # github.com/RaveNoX/go-jsonmerge v1.0.0
 ## explicit; go 1.12
+# github.com/RoaringBitmap/roaring/v2 v2.14.4
+## explicit; go 1.24.0
+github.com/RoaringBitmap/roaring/v2
+github.com/RoaringBitmap/roaring/v2/BitSliceIndexing
+github.com/RoaringBitmap/roaring/v2/internal
+github.com/RoaringBitmap/roaring/v2/roaring64
 # github.com/SherClockHolmes/webpush-go v1.2.0
 ## explicit; go 1.13
 # github.com/Shopify/goreferrer v0.0.0-20220729165902-8cddb4f5de06
@@ -4885,7 +4891,7 @@ github.com/bitly/go-hostpool
 # github.com/bitly/go-simplejson v0.5.0
 ## explicit
 github.com/bitly/go-simplejson
-# github.com/bits-and-blooms/bitset v1.22.0
+# github.com/bits-and-blooms/bitset v1.24.2
 ## explicit; go 1.16
 github.com/bits-and-blooms/bitset
 github.com/bits-and-blooms/bitset/cmd/pextgen
@@ -12367,6 +12373,9 @@ github.com/mpvl/unique
 github.com/mrknow-all/go-oae
 # github.com/mrunalp/fileutils v0.5.0
 ## explicit; go 1.13
+# github.com/mschoch/smat v0.2.0
+## explicit; go 1.13
+github.com/mschoch/smat
 # github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6
 ## explicit; go 1.17
 github.com/muesli/ansi

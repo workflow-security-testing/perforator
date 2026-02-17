@@ -194,6 +194,7 @@ require (
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.31
 	github.com/ProtonMail/gopenpgp/v3 v3.1.2
 	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/RoaringBitmap/roaring/v2 v2.14.4
 	github.com/Shopify/sarama v1.38.1
 	github.com/ThalesIgnite/crypto11 v1.2.5
 	github.com/TuyaInc/tuya_pulsar_sdk_go v0.0.0-20201113075236-46c1e459e32e
@@ -257,7 +258,7 @@ require (
 	github.com/beevik/etree v1.1.0
 	github.com/bep/debounce v1.2.1
 	github.com/bgp/stayrtr v0.6.1
-	github.com/bits-and-blooms/bitset v1.22.0
+	github.com/bits-and-blooms/bitset v1.24.2
 	github.com/bits-and-blooms/bloom/v3 v3.5.0
 	github.com/bkielbasa/cyclop v1.2.1
 	github.com/blang/semver/v4 v4.0.0
@@ -1939,6 +1940,7 @@ require (
 	github.com/mozilla/tls-observatory v0.0.0-20210609171429-7bc42856d2e5 // indirect
 	github.com/mpvl/unique v0.0.0-20150818121801-cbe035fff7de // indirect
 	github.com/mrunalp/fileutils v0.5.0 // indirect
+	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
