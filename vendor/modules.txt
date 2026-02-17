@@ -5579,6 +5579,14 @@ github.com/circonus-labs/circonusllhist
 ## explicit
 # github.com/client9/misspell v0.3.4
 ## explicit
+# github.com/clipperhouse/stringish v0.1.1
+## explicit; go 1.18
+github.com/clipperhouse/stringish
+# github.com/clipperhouse/uax29/v2 v2.3.0
+## explicit; go 1.18
+github.com/clipperhouse/uax29/v2/graphemes
+github.com/clipperhouse/uax29/v2/internal/iterators
+github.com/clipperhouse/uax29/v2/testdata
 # github.com/cloudevents/sdk-go/binding/format/protobuf/v2 v2.15.0
 ## explicit; go 1.18
 github.com/cloudevents/sdk-go/binding/format/protobuf/v2
@@ -10781,13 +10789,17 @@ github.com/iris-contrib/httpexpect/v2
 # github.com/iris-contrib/schema v0.0.6
 ## explicit; go 1.14
 github.com/iris-contrib/schema
-# github.com/itchyny/gojq v0.12.9
-## explicit; go 1.17
+# github.com/itchyny/go-yaml v0.0.0-20251001235044-fca9a0999f15
+## explicit; go 1.18
+github.com/itchyny/go-yaml
+github.com/itchyny/go-yaml/internal/testutil/assert
+# github.com/itchyny/gojq v0.12.18
+## explicit; go 1.24.0
 github.com/itchyny/gojq
 github.com/itchyny/gojq/cli
 github.com/itchyny/gojq/cmd/gojq
-# github.com/itchyny/timefmt-go v0.1.4
-## explicit; go 1.17
+# github.com/itchyny/timefmt-go v0.1.7
+## explicit; go 1.24
 github.com/itchyny/timefmt-go
 # github.com/jackc/chunkreader v1.0.0
 ## explicit; go 1.12
@@ -11956,8 +11968,8 @@ github.com/mattn/go-localereader
 # github.com/mattn/go-pointer v0.0.1
 ## explicit
 github.com/mattn/go-pointer
-# github.com/mattn/go-runewidth v0.0.16
-## explicit; go 1.9
+# github.com/mattn/go-runewidth v0.0.19
+## explicit; go 1.20
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.12
 ## explicit; go 1.13
