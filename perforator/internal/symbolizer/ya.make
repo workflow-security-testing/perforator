@@ -4,8 +4,6 @@ RECURSE(
     binaryprovider
     cli
     cmd
-    pprofmetrics
     proxy
-    quality_monitoring
     symbolize
 )

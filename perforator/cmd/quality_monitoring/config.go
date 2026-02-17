@@ -1,4 +1,4 @@
-package config
+package main
 
 import (
 	"fmt"
@@ -35,6 +35,9 @@ func (c *Config) fillDefault() {
 	if c.CheckQualityInterval == 0 {
 		c.CheckQualityInterval = 30 * time.Minute
 	}
+	if c.IterationSplay == 0 {
+		c.IterationSplay = 30 * time.Minute
+	}
 	if c.ServicesCheckingConcurrency == 0 {
 		c.ServicesCheckingConcurrency = 1
 	}
@@ -66,6 +69,7 @@ func LoadConfig(configPath string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("can't open config file: %s", configPath)
 	}
+	defer file.Close()
 
 	var conf Config
 

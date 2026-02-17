@@ -6,8 +6,6 @@ import (
 	standardLog "log"
 
 	"github.com/yandex/perforator/library/go/core/log"
-	"github.com/yandex/perforator/perforator/internal/symbolizer/quality_monitoring/internal/config"
-	"github.com/yandex/perforator/perforator/internal/symbolizer/quality_monitoring/internal/service"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
@@ -28,24 +26,18 @@ func main() {
 	defer stopLogger()
 	ctx := context.Background()
 
-	cfg, err := config.LoadConfig(*configPath)
+	cfg, err := LoadConfig(*configPath)
 	if err != nil {
 		standardLog.Fatalf("can't load config: %s", err)
 	}
 
-	serv, err := service.NewMonitoringService(ctx, cfg, logger, reg)
+	serv, err := NewMonitoringService(ctx, cfg, logger, reg)
 	if err != nil {
 		standardLog.Fatalf("can't create monitoring server: %s", err)
 	}
 
-	err = serv.Run(
-		ctx,
-		logger,
-		&service.RunConfig{
-			MetricsPort: *metricsPort,
-		})
-	if err != nil {
-		logger.Error(ctx, "Service is stopping", log.Error(err))
+	if err := serv.Run(ctx, logger, *metricsPort); err != nil {
+		logger.Error(ctx, "Service stopped", log.Error(err))
 	}
 }
 
