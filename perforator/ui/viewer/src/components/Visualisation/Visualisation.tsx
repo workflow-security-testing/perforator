@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import type { Coordinate, FlamegraphProps, QueryKeys, UserSettings } from '@perforator/flamegraph';
+import type { Coordinate, FlamegraphProps, ProfileData, QueryKeys, UserSettings } from '@perforator/flamegraph';
 import { calculateTopForTable, Flamegraph, prerenderColors, SideBySide, TopTable, createLeftHeavy, inverseLeftHeavy } from '@perforator/flamegraph';
 
 import { Loader, useThemeType } from '@gravity-ui/uikit';
@@ -42,7 +42,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
 
         // HACK using memo for ref modification
     // otherwise would need useLayoutEffect + force the rerender
-    React.useMemo(() => {
+    const newProfileData = React.useMemo(() => {
         if (profileData) {prerenderColors(profileData, { theme });}
         const currentRootH = parseInt(getQuery('frameDepth') ?? '0');
         const currentRootI = parseInt(getQuery('framePos') ?? '0');
@@ -86,7 +86,8 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             firstRenderRef.current = false;
         }
 
-        return;
+        const newProfileData = profileData ? { rows: rowsRef.current, meta: profileData?.meta, stringTable: profileData?.stringTable } as ProfileData : null;
+        return newProfileData;
     }, [profileData?.rows, isLeftHeavy, props.loading]);
 
     const isDiff = useMemo(() => Boolean(profileData?.rows?.[0][0].baseEventCount), [profileData])
@@ -120,7 +121,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
 
     const flamegraphProps: FlamegraphProps = {
         goToDefinitionHref: () => '',
-        profileData: profileData ? { rows: rowsRef.current!, meta: profileData?.meta, stringTable: profileData?.stringTable } : null,
+        profileData: newProfileData,
         getState: getQuery,
         isDiff,
         setState: setQuery,

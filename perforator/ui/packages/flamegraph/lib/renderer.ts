@@ -130,6 +130,9 @@ export class FlamegraphOffseter {
     private shouldReverseDiff = false;
     private maxVerticalRow: number | undefined;
 
+    private prevOmittedOffsetCoordinates: Coordinate[] | undefined;
+    private prevKeepFoundCoordinates: Coordinate[] | null | undefined;
+    private prevShouldReverseDiff: boolean | undefined;
 
     getEvents: (node?: FormatNode) => number;
     getSamples: (node: FormatNode) => number;
@@ -298,6 +301,25 @@ export class FlamegraphOffseter {
         }
     }
 
+    private areCoordinateArraysEqual(a: Coordinate[] | null | undefined, b: Coordinate[] | null | undefined): boolean {
+        if (a === b) {
+            return true;
+        }
+        if (!a || !b) {
+            return false;
+        }
+        if (a.length !== b.length) {
+            return false;
+        }
+
+        for (let i = 0; i < a.length; i++) {
+            if (a[i][0] !== b[i][0] || a[i][1] !== b[i][1]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     // eslint-disable-next-line complexity
     prerenderOffsets(
         canvasWidth: number,
@@ -307,11 +329,21 @@ export class FlamegraphOffseter {
         shouldReverseDiff = false,
         visitors: Array<{run: (node: FormatNode) => void}> = [],
     ) {
-        this.clearOmittedEventCount();
+        // Check if we need to recalculate omitted/kept nodes
+        const omittedChanged = !this.areCoordinateArraysEqual(this.prevOmittedOffsetCoordinates, omittedOffsetCoordinates);
+        const keepFoundChanged = !this.areCoordinateArraysEqual(this.prevKeepFoundCoordinates, keepFoundCoordinates);
+        const shouldReverseDiffChanged = this.prevShouldReverseDiff !== shouldReverseDiff;
+
+        // Only clear and recalculate if relevant parameters have changed
+        if (omittedChanged || keepFoundChanged || shouldReverseDiffChanged) {
+            this.clearOmittedEventCount();
+        }
+
         this.shouldReverseDiff = shouldReverseDiff;
         this.canvasWidth = canvasWidth;
         this.currentNodeCoords = initialCoordinates;
         const [initialH, initialI] = initialCoordinates;
+
         if (shouldReverseDiff) {
             this.getEvents = getBaseEventsFn;
             this.getSamples = getBaseSamplesFn;
@@ -319,13 +351,21 @@ export class FlamegraphOffseter {
             this.getEvents = getEventsFn;
             this.getSamples = getSamplesFn;
         }
+
         this.framesWindow = this.fillFramesWindow(initialCoordinates);
-        if (keepFoundCoordinates) {
+
+        // Only run expensive operations if parameters changed
+        if (keepFoundChanged && keepFoundCoordinates) {
             this.backpropagateKeepOnlyFound(keepFoundCoordinates);
         }
-        if (omittedOffsetCoordinates && omittedOffsetCoordinates.length) {
+        if (omittedChanged && omittedOffsetCoordinates && omittedOffsetCoordinates.length) {
             this.backpropagateOmittedEventCount(omittedOffsetCoordinates);
         }
+
+        // Update cached parameters
+        this.prevOmittedOffsetCoordinates = omittedOffsetCoordinates;
+        this.prevKeepFoundCoordinates = keepFoundCoordinates;
+        this.prevShouldReverseDiff = shouldReverseDiff;
         const root = this.rows[initialH][initialI];
         this.widthRatio = (this.getEvents(root) - (root.omittedEventCount ?? 0)) / canvasWidth!;
         this.minVisibleEv = minVisibleWidth * this.widthRatio;

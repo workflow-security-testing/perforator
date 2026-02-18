@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import type { Coordinate, FlamegraphProps, QueryKeys, TopTableProps } from '@perforator/flamegraph';
+import type { Coordinate, FlamegraphProps, ProfileData, QueryKeys, TopTableProps } from '@perforator/flamegraph';
 import { calculateTopForTable as calculateTopForTableOriginal, createLeftHeavy as createLeftHeavyOriginal, Flamegraph, inverseLeftHeavy as inverseLeftHeavyOriginal, SideBySide, TopTable } from '@perforator/flamegraph';
 
 import { Loader } from '@gravity-ui/uikit';
@@ -119,7 +119,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
     const rowsRef = React.useRef(profileData?.rows);
     // HACK using memo for ref modification
     // otherwise would need useLayoutEffect + force the rerender
-    React.useMemo(() => {
+    const newProfileData = React.useMemo(() => {
         const currentRootH = parseInt(getQuery('frameDepth') ?? '0');
         const currentRootI = parseInt(getQuery('framePos') ?? '0');
         const omittedIndices = parseStacks(getQuery('omittedIndexes') ?? '');
@@ -162,7 +162,8 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
             firstRenderRef.current = false;
         }
 
-        return;
+        const res = profileData ? { rows: rowsRef.current, meta: profileData?.meta, stringTable: profileData?.stringTable } as ProfileData : null;
+        return res;
     }, [profileData?.rows, isLeftHeavy, props.loading]);
 
     React.useEffect(() => {
@@ -198,7 +199,7 @@ export const Visualisation: React.FC<VisualisationProps> = ({ profileData, ...pr
         content = <Loader />;
     } else {
         const flamegraphProps: FlamegraphProps = {
-            profileData: profileData ? { rows: rowsRef.current!, meta: profileData?.meta, stringTable: profileData?.stringTable } : null,
+            profileData: newProfileData,
             getState: getQuery,
             setState: setQuery,
             onFinishRendering: (opts) => {
