@@ -100,6 +100,22 @@ type RenderFlamegraphType = (
  */
 export type FramesWindow = number[];
 
+const getSamplesFn = (node?: FormatNode) => {
+    return node?.sampleCount ?? 0;
+};
+
+const getBaseSamplesFn = (node?: FormatNode) => {
+    return node?.baseSampleCount ?? 0;
+};
+
+const getEventsFn = (node?: FormatNode) => {
+    return node?.eventCount ?? 0;
+};
+
+const getBaseEventsFn = (node?: FormatNode) => {
+    return node?.baseEventCount ?? 0;
+};
+
 export class FlamegraphOffseter {
     currentNodeCoords: Coordinate = [0, 0];
     rows: FormatNode[][];
@@ -114,11 +130,17 @@ export class FlamegraphOffseter {
     private shouldReverseDiff = false;
     private maxVerticalRow: number | undefined;
 
+
+    getEvents: (node?: FormatNode) => number;
+    getSamples: (node: FormatNode) => number;
+
     constructor(rows: ProfileData['rows'], options: { reverse: boolean; levelHeight: number }) {
         this.rows = rows;
         this.reverse = options.reverse;
         this.levelHeight = options.levelHeight;
         this.maxVerticalRow = this.rows.length;
+        this.getEvents = getEventsFn;
+        this.getSamples = getSamplesFn;
     }
     fillFramesWindow([hmax, imax]: Coordinate): FramesWindow {
         const res: FramesWindow = [];
@@ -148,53 +170,9 @@ export class FlamegraphOffseter {
         return this.framesWindow[h * 2] !== undefined;
     }
 
-    createOffsetKeeper(h: number) {
-        let prevParentIndex: number | null = null;
-        let currentOffset = 0;
-        const row = this.rows[h];
-
-        return (i: number, bigFrame: boolean) => {
-            const node = row[i];
-
-            // can ignore when we know parents
-            // node.parentIndex === null means root
-            if (node.parentIndex !== prevParentIndex && node.parentIndex !== -1) {
-                const parent = this.rows[h - 1][node.parentIndex];
-                prevParentIndex = node.parentIndex;
-                currentOffset = parent.x!;
-            }
-            node.x = currentOffset;
-            if (bigFrame) {
-                const width = this.countWidth(node);
-                currentOffset += width;
-            }
-        };
-    }
-
     calcTopOffset(h: number) {
         return this.reverse ? h * this.levelHeight : (this.maxVerticalRow * this.levelHeight) - (h + 1) * this.levelHeight;
     }
-
-    createShouldDrawFrame(h: number) {
-        const parentLeftBorder = this.getFramesWindowLeft(h - 1);
-        const parentRightBorder = this.getFramesWindowRight(h - 1);
-        if (h === 0) {
-            return () => true;
-        }
-
-        return (i: number) => {
-            if (parentLeftBorder === undefined || parentRightBorder === undefined) {
-                return true;
-            }
-
-            const parentIndex = this.rows[h][i].parentIndex;
-
-
-            return parentLeftBorder <= parentIndex &&
-                    parentRightBorder >= parentIndex;
-        };
-    }
-
 
     backpropagateOmittedEventCount(omittedOffsetCoordinates: Coordinate[]) {
         for (const [h, i] of omittedOffsetCoordinates) {
@@ -320,6 +298,7 @@ export class FlamegraphOffseter {
         }
     }
 
+    // eslint-disable-next-line complexity
     prerenderOffsets(
         canvasWidth: number,
         initialCoordinates: Coordinate,
@@ -333,6 +312,13 @@ export class FlamegraphOffseter {
         this.canvasWidth = canvasWidth;
         this.currentNodeCoords = initialCoordinates;
         const [initialH, initialI] = initialCoordinates;
+        if (shouldReverseDiff) {
+            this.getEvents = getBaseEventsFn;
+            this.getSamples = getBaseSamplesFn;
+        } else {
+            this.getEvents = getEventsFn;
+            this.getSamples = getSamplesFn;
+        }
         this.framesWindow = this.fillFramesWindow(initialCoordinates);
         if (keepFoundCoordinates) {
             this.backpropagateKeepOnlyFound(keepFoundCoordinates);
@@ -349,12 +335,26 @@ export class FlamegraphOffseter {
         for (let h = 0; h < this.rows.length; h++) {
             const leftBorder = this.getFramesWindowLeft(h) ?? 0;
             const rightBorder = this.getFramesWindowRight(h) ?? this.rows[h].length - 1;
-            const shouldDrawFrame = this.createShouldDrawFrame(h);
-            const updateOffsets = this.createOffsetKeeper(h);
+
+            const parentLeftBorder = this.getFramesWindowLeft(h - 1);
+            const parentRightBorder = this.getFramesWindowRight(h - 1);
+            let prevParentIndex: number | null = -2;
+            let currentOffset = 0;
+            const row = this.rows[h];
             const updateFrameWindows = this.createUpdateWindow(h);
             let shouldDrawLayer = false;
             for (let i = leftBorder; i <= rightBorder; i++) {
-                if (!shouldDrawFrame(i)) {
+                let shouldDrawFrame: boolean | undefined;
+                if (h === 0) {
+                    shouldDrawFrame = true;
+                } else if (parentLeftBorder === undefined || parentRightBorder === undefined) {
+                    shouldDrawFrame = true;
+                } else {
+                    const parentIndex = this.rows[h][i].parentIndex;
+                    shouldDrawFrame = parentLeftBorder <= parentIndex &&
+                    parentRightBorder >= parentIndex;
+                }
+                if (!shouldDrawFrame) {
                     continue;
                 }
                 updateFrameWindows(i);
@@ -363,8 +363,20 @@ export class FlamegraphOffseter {
                     visitor.run(this.rows[h][i]);
                 }
                 const isVisible = this.visibleNode(this.rows[h][i]);
-                updateOffsets(i, isVisible);
+
+                const node = row[i];
+
+                // can ignore when we know parents
+                // node.parentIndex === null means root
+                if (node.parentIndex !== prevParentIndex && h !== 0) {
+                    const parent = this.rows[h - 1][node.parentIndex].x;
+                    prevParentIndex = node.parentIndex;
+                    currentOffset = parent;
+                }
+                node.x = currentOffset;
                 if (isVisible) {
+                    const width = this.countWidth(node);
+                    currentOffset += width;
                     shouldDrawLayer = true;
                 }
             }
@@ -464,15 +476,6 @@ export class FlamegraphOffseter {
         return Math.min((evWidth) / this.widthRatio!, this.canvasWidth!);
     }
 
-    getEvents(node?: FormatNode) {
-        const fieldName = this.shouldReverseDiff ? 'baseEventCount' : 'eventCount' as const;
-        return node?.[fieldName] ?? 0;
-    }
-
-    getSamples(node: FormatNode) {
-        const fieldName = this.shouldReverseDiff ? 'baseSampleCount' : 'sampleCount' as const;
-        return node?.[fieldName] ?? 0;
-    }
     visibleNode(node?: FormatNode) {
         return (this.getEvents(node)) - (node?.omittedEventCount ?? 0) >= this.minVisibleEv!;
     }
