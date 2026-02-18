@@ -2,9 +2,10 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.82.0)
+VERSION(v1.83.0)
 
 SRCS(
+    change_stream.pb.go
     commit_response.pb.go
     keys.pb.go
     mutation.pb.go
