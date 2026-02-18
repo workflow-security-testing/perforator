@@ -47,9 +47,20 @@ ALWAYS_INLINE bool dwarf_cfi_eval_ra(
     struct ra_unwind_rule* rule
 ) {
     if (rule->offset == DWARF_UNWIND_CFA_RULE_UNDEFINED) {
-        DWARF_TRACE("no need to update LR");
-        next->lr = prev->lr;
+        if (prev->lr == 0 || prev->lr == DWARF_CFI_UNKNOWN_REGISTER) {
+            DWARF_TRACE("RA undefined and LR invalid");
+            return false;
+        }
+
+        DWARF_TRACE("RA is undefined, using LR as IP");
         next->ip = prev->lr;
+
+        if (next->fp != DWARF_CFI_UNKNOWN_REGISTER) {
+            if (!read_return_address((void*)(next->fp + 8), &next->lr)) {
+                next->lr = DWARF_CFI_UNKNOWN_REGISTER;
+            }
+        }
+
         return true;
     }
 
