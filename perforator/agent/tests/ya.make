@@ -1,6 +1,7 @@
 # yo ignore:file
 RECURSE(
     dummies
+    perfbuf_bench
     python
 )
 

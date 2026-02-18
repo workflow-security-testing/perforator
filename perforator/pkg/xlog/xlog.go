@@ -53,7 +53,7 @@ func NewNop() Logger {
 	return &logger{&nop.Logger{}}
 }
 
-func ForTest(t *testing.T) Logger {
+func ForTest(t testing.TB) Logger {
 	return Wrap(&yzap.Logger{L: zaptest.NewLogger(t, zaptest.WrapOptions(zap.AddCaller(), zap.AddCallerSkip(1)))})
 }
 
