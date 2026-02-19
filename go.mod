@@ -4,6 +4,7 @@ go 1.25
 
 require (
 	4d63.com/gochecknoglobals v0.2.2-0.20230617165002-a9cb75083ef8
+	carvel.dev/ytt v0.52.2
 	cloud.google.com/go v0.121.6
 	cloud.google.com/go/accessapproval v1.8.7
 	cloud.google.com/go/accesscontextmanager v1.9.6
@@ -1244,7 +1245,7 @@ require (
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 // indirect
 	github.com/aryann/difflib v0.0.0-20210328193216-ff5ff6dc229b // indirect
 	github.com/asticode/go-astikit v0.30.0 // indirect
-	github.com/aws/aws-lambda-go v1.34.1 // indirect
+	github.com/aws/aws-lambda-go v1.41.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.32 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.8.32 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.17 // indirect
@@ -1398,6 +1399,8 @@ require (
 	github.com/corpix/uarand v0.2.0 // indirect
 	github.com/cosiner/argv v0.1.0 // indirect
 	github.com/couchbaselabs/go-slab v0.0.0-20241217020741-c259ef9754f3 // indirect
+	github.com/cppforlife/cobrautil v0.0.0-20200514214827-bb86e6965d72 // indirect
+	github.com/cppforlife/go-cli-ui v0.0.0-20200505234325-512793797f05 // indirect
 	github.com/cpu/goacmedns v0.1.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
 	github.com/cpuguy83/go-md2man v1.0.10 // indirect
@@ -1721,7 +1724,7 @@ require (
 	github.com/hetznercloud/hcloud-go/v2 v2.19.1 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/hjson/hjson-go/v4 v4.3.0 // indirect
-	github.com/hpcloud/tail v1.0.0 // indirect
+	github.com/hpcloud/tail v1.0.1-0.20180514194441-a1dbeea552b7 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/hudl/fargo v1.4.0 // indirect
 	github.com/hugelgupf/socketpair v0.0.0-20190730060125-05d35a94e714 // indirect
@@ -1792,6 +1795,8 @@ require (
 	github.com/jung-kurt/gofpdf v1.16.2 // indirect
 	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/k0kubun/pp/v3 v3.5.0 // indirect
+	github.com/k14s/difflib v0.0.0-20201117154628-0c031775bf57 // indirect
+	github.com/k14s/starlark-go v0.0.0-20200720175618-3a5c849cc368 // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/karlseguin/expect v1.0.8 // indirect
 	github.com/karrick/godirwalk v1.17.0 // indirect
