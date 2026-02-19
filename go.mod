@@ -978,7 +978,7 @@ require (
 	go.temporal.io/sdk v1.34.0
 	go.temporal.io/sdk/contrib/opentelemetry v0.3.1-0.20231014000700-06c90fb36987
 	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129171107-288a04f72145
-	go.temporal.io/sdk/contrib/tools/workflowcheck v0.1.1-0.20230913183745-ecfaa6563f16
+	go.temporal.io/sdk/contrib/tools/workflowcheck v0.4.0
 	go.temporal.io/server v1.28.0-131.0
 	go.uber.org/atomic v1.11.0
 	go.uber.org/automaxprocs v1.6.0

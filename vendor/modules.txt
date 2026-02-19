@@ -18380,8 +18380,8 @@ go.temporal.io/sdk/contrib/opentelemetry
 # go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129171107-288a04f72145
 ## explicit; go 1.20
 go.temporal.io/sdk/contrib/tally
-# go.temporal.io/sdk/contrib/tools/workflowcheck v0.1.1-0.20230913183745-ecfaa6563f16
-## explicit; go 1.20
+# go.temporal.io/sdk/contrib/tools/workflowcheck v0.4.0
+## explicit; go 1.23.0
 go.temporal.io/sdk/contrib/tools/workflowcheck
 go.temporal.io/sdk/contrib/tools/workflowcheck/determinism
 go.temporal.io/sdk/contrib/tools/workflowcheck/workflow
