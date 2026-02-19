@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { ArrowRightArrowLeft, BarsAscendingAlignLeftArrowUp, BarsDescendingAlignLeftArrowDown, Funnel, FunnelXmark, Magnifier, Xmark } from '@gravity-ui/icons';
 import { Button, Icon, Switch } from '@gravity-ui/uikit';
@@ -12,6 +12,8 @@ import type { GetStateFromQuery, SetStateFromQuery } from '../../query-utils';
 import { readNodeStrings } from '../../read-string';
 import type { Coordinate, QueryKeys, RenderFlamegraphOptions } from '../../renderer';
 import { FlamegraphOffseter, renderFlamegraph as newFlame } from '../../renderer';
+import { search as searchFn } from '../../search';
+import { shorten } from '../../shorten/shorten';
 import { getCanvasTitleFull, renderTitleFull } from '../../title';
 import { cn } from '../../utils/cn';
 import { Hotkey } from '../Hotkey/Hotkey';
@@ -162,6 +164,23 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     };
     const exactMatch = getQuery('exactMatch');
 
+    const foundCoords = useMemo(() => {
+        if (!profileData || !search || !keepOnlyFound) {
+            return null;
+        }
+        const readString = (id?: number) => {
+            if (id === undefined) {
+                return '';
+            }
+            return profileData.stringTable[id];
+        };
+        const shouldShortenTextForOverview = userSettings.shortenFrameTexts === 'true' || userSettings.shortenFrameTexts === 'hover';
+
+        const searchPattern = exactMatch === 'true' ? decodeURIComponent(search) : RegExp(decodeURIComponent(search));
+        const excludeSearchPattern = excludeSearch ? (exactMatch === 'true' ? decodeURIComponent(excludeSearch) : RegExp(decodeURIComponent(excludeSearch))) : null;
+
+        return searchFn(readString, shorten, shouldShortenTextForOverview, profileData.rows, searchPattern, excludeSearchPattern);
+    }, [profileData, search, excludeSearch, exactMatch, keepOnlyFound, userSettings.shortenFrameTexts]);
 
     React.useEffect(() => {
         if (flamegraphContainer.current) {
@@ -180,10 +199,9 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 shortenFrameTexts: userSettings.shortenFrameTexts,
                 isDiff,
                 searchPattern: search ? exactMatch === 'true' ? decodeURIComponent(search) : RegExp(decodeURIComponent(search)) : null,
-                excludeSearchPattern: excludeSearch ? exactMatch === 'true' ? decodeURIComponent(excludeSearch) : RegExp(decodeURIComponent(excludeSearch)) : null,
                 reverse,
-                keepOnlyFound,
                 onFinishRendering,
+                foundCoords,
                 // by default, we show highlight, e.g. after clicks
                 // and don't show it only on first render
                 disableHighlightRender: shouldOmitHighlight.current,
@@ -216,7 +234,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
             }
         }
         return () => { };
-    }, [exactMatch, getQuery, isDiff, keepOnlyFound, profileData, reverse, search, setQuery, theme, userSettings, levelHeight, onFinishRendering, isLeftHeavy, shouldTrim]);
+    }, [exactMatch, getQuery, isDiff, profileData, reverse, search, setQuery, theme, userSettings, levelHeight, onFinishRendering, isLeftHeavy, shouldTrim, foundCoords]);
 
     const handleContextMenu = React.useCallback((event: React.MouseEvent) => {
         if (!flamegraphContainer.current || !profileData || !flamegraphOffsets.current) {

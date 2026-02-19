@@ -20,7 +20,7 @@ import { getNodeTitleFull } from './node-title';
 import { pct } from './pct';
 import type { GetStateFromQuery, SetStateFromQuery } from './query-utils';
 import { parseStacks, stringifyStacks } from './query-utils';
-import { escapeRegex, search as outerSearch } from './search';
+import { escapeRegex } from './search';
 import { shorten } from './shorten/shorten';
 import { getStatusTitleFull, renderTitleFull } from './title';
 
@@ -59,12 +59,11 @@ export type RenderFlamegraphOptions = {
     shortenFrameTexts: 'true' | 'false' | 'hover';
     onFinishRendering?: (opts?: {textNodesCount: number; delta: number; exceededLimit: boolean}) => void;
     searchPattern: RegExp | string | null;
-    excludeSearchPattern: RegExp | string | null;
     reverse: boolean;
-    keepOnlyFound: boolean;
     disableHighlightRender: boolean;
     shouldScroll: boolean;
     scrollParent: HTMLElement;
+    foundCoords: Coordinate[] | null;
 }
 
 function makeByH(coords: Coordinate[]): Record<H, Set<I>> {
@@ -545,13 +544,12 @@ export const renderFlamegraph: RenderFlamegraphType = (
         isDiff,
         onFinishRendering,
         shortenFrameTexts,
-        excludeSearchPattern,
         searchPattern,
         reverse,
-        keepOnlyFound,
         disableHighlightRender,
         scrollParent,
         shouldScroll,
+        foundCoords,
     },
 ) => {
     const shouldSwapDiff = getState('flameBase') === 'diff';
@@ -633,17 +631,6 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
     const shouldShortenTextForOverview = shortenFrameTexts === 'true' || shortenFrameTexts === 'hover';
     const shouldShortenTextForHover = shortenFrameTexts === 'true';
-    const search = outerSearch.bind(null, readString, shorten, shouldShortenTextForOverview, profileData.rows);
-
-    const maybeSearch = (query: RegExp | string | null, excludeQuery?: RegExp | string | null): Coordinate[] | null => {
-        let foundCoords: Coordinate[] | null;
-        if (keepOnlyFound && query) {
-            foundCoords = search(query, excludeQuery);
-        } else {
-            foundCoords = null;
-        }
-        return foundCoords;
-    };
 
     const getNodeTitle = getNodeTitleFull.bind(null, readString, shorten, shouldShortenTextForOverview);
     const getNodeTitleHl = getNodeTitleFull.bind(null, readString, shorten, shouldShortenTextForHover);
@@ -964,8 +951,6 @@ export const renderFlamegraph: RenderFlamegraphType = (
     const h = parseInt(getState('frameDepth', '0'));
     const pos = parseInt(getState('framePos', '0'));
     const omittedStacks = parseStacks(getState('omittedIndexes', '') || '');
-
-    const foundCoords = maybeSearch(searchPattern, excludeSearchPattern);
 
     {
         const layerCount = fg.prerenderOffsets(canvasWidth!, [h, pos], omittedStacks, foundCoords, shouldSwapDiff);
