@@ -1,4 +1,5 @@
 import { createCleanupFn } from './cleanup';
+import { type DenselyPackedCoordinates } from './densely-packed';
 import type { FormatNode, ProfileData, StringifiableFields } from './models/Profile';
 import { type Coordinate, FlamegraphOffseter, type H, type I } from './renderer';
 import type { TopKeys } from './top-types';
@@ -9,7 +10,7 @@ export type TableFunctionTop = FunctionTop
 interface TopOpts {
     rootCoords: Coordinate;
     omitted: Coordinate[];
-    keepCoords: Coordinate[] | null;
+    keepCoords: DenselyPackedCoordinates | null;
 }
 
 export function calculateTopForTable(rows: ProfileData['rows'], stringTableLength: number, opts?: TopOpts) {

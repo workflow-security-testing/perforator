@@ -1,7 +1,8 @@
+import type { DenselyPackedCoordinates } from './densely-packed';
+import { pushDenseCoord } from './densely-packed';
 import type { ProfileData } from './models/Profile';
 import type { ReadString, StringModifier } from './node-title';
 import { getNodeTitleFull } from './node-title';
-import type { Coordinate } from './renderer';
 
 
 // TODO replace with RegExp.escape once ES2025 is adopted by typescript and babel
@@ -19,8 +20,8 @@ export function makeTestFn(query: RegExp | string | undefined) {
     return () => false;
 }
 
-export function search(readString: ReadString, shorten: StringModifier, shouldShorten: boolean, rows: ProfileData['rows'], query: RegExp | string, excludeQuery?: RegExp | string): Coordinate[] {
-    const res: Coordinate[] = [];
+export function search(readString: ReadString, shorten: StringModifier, shouldShorten: boolean, rows: ProfileData['rows'], query: RegExp | string, excludeQuery?: RegExp | string): DenselyPackedCoordinates {
+    const res: DenselyPackedCoordinates = [];
     const test = makeTestFn(query);
     const excludeTest = makeTestFn(excludeQuery);
 
@@ -33,7 +34,7 @@ export function search(readString: ReadString, shorten: StringModifier, shouldSh
             const matched = test(name);
             const excluded = excludeTest(name);
             if (matched && !excluded) {
-                res.push([h, i]);
+                pushDenseCoord(res, h, i);
             }
         }
     }

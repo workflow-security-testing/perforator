@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { Divider } from '@gravity-ui/uikit';
 
+import type { DenselyPackedCoordinates } from '../../densely-packed';
 import { parseStacks } from '../../query-utils';
 import { search as outerSearch } from '../../search';
 import { calculateTopForTable } from '../../top';
@@ -26,7 +27,7 @@ export function SideBySide(props: SideBySideProps) {
     const exactMatch = getState('exactMatch');
     const excludeSearch = getState('flamegraphExclude');
 
-    const searchFn = React.useCallback((query: RegExp | string, omitQuery?: RegExp | string) => {
+    const searchFn = React.useCallback((query: RegExp | string, omitQuery?: RegExp | string): DenselyPackedCoordinates => {
         if (!profileData.rows) {
             return [];
         }
@@ -37,7 +38,7 @@ export function SideBySide(props: SideBySideProps) {
         return outerSearch(readString, (str) => str, false, profileData.rows, query, omitQuery);
     }, [profileData.rows, profileData?.stringTable]);
     const topData = React.useMemo(() => {
-        let keepCoords = null;
+        let keepCoords: DenselyPackedCoordinates | null = null;
         if (keepOnlyFound && search) {
 
             keepCoords = searchFn(

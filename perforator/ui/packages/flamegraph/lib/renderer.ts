@@ -14,6 +14,8 @@
 // * added different titles for hover and status
 
 import { darken, DARKEN_FACTOR, diffcolor } from './colors';
+import type { DenselyPackedCoordinates } from './densely-packed';
+import { getDenseH, getDenseI, getDenseLength } from './densely-packed';
 import { hugenum } from './flame-utils';
 import type { FormatNode, ProfileData } from './models/Profile';
 import { getNodeTitleFull } from './node-title';
@@ -63,12 +65,15 @@ export type RenderFlamegraphOptions = {
     disableHighlightRender: boolean;
     shouldScroll: boolean;
     scrollParent: HTMLElement;
-    foundCoords: Coordinate[] | null;
+    foundCoords: DenselyPackedCoordinates | null;
 }
 
-function makeByH(coords: Coordinate[]): Record<H, Set<I>> {
+function makeByHDense(coords: DenselyPackedCoordinates): Record<H, Set<I>> {
     const res: Record<H, Set<I>> = {};
-    for (const [h, i] of coords) {
+    const length = getDenseLength(coords);
+    for (let n = 0; n < length; n++) {
+        const h = getDenseH(coords, n);
+        const i = getDenseI(coords, n);
         if (!(res[h] instanceof Set)) {
             res[h] = new Set();
         }
@@ -130,7 +135,7 @@ export class FlamegraphOffseter {
     private maxVerticalRow: number | undefined;
 
     private prevOmittedOffsetCoordinates: Coordinate[] | undefined;
-    private prevKeepFoundCoordinates: Coordinate[] | null | undefined;
+    private prevKeepFoundCoordinates: DenselyPackedCoordinates | null | undefined;
     private prevShouldReverseDiff: boolean | undefined;
 
     getEvents: (node?: FormatNode) => number;
@@ -217,7 +222,7 @@ export class FlamegraphOffseter {
 
     // omit everything
     // then start deleting everything we want to keep
-    backpropagateKeepOnlyFound(keepCoordinates: Coordinate[]) {
+    backpropagateKeepOnlyFound(keepCoordinates: DenselyPackedCoordinates) {
         for (let h = 0; h < this.rows.length; h++) {
             for (let i = 0; i < this.rows[h].length; i++) {
                 const node = this.rows[h][i];
@@ -227,14 +232,15 @@ export class FlamegraphOffseter {
         }
 
         let maxH = 0;
-        for (let i = 0; i < keepCoordinates.length; i++) {
-            const h = keepCoordinates[i][0];
+        const length = getDenseLength(keepCoordinates);
+        for (let n = 0; n < length; n++) {
+            const h = getDenseH(keepCoordinates, n);
             if (h > maxH) {
                 maxH = h;
             }
         }
 
-        const keptCoordinatesByHs = makeByH(keepCoordinates);
+        const keptCoordinatesByHs = makeByHDense(keepCoordinates);
 
         for (let h = maxH; h >= 0; h--) {
             const row = this.rows[h];
@@ -300,6 +306,25 @@ export class FlamegraphOffseter {
         }
     }
 
+    private areDenseCoordinateArraysEqual(a: DenselyPackedCoordinates | null | undefined, b: DenselyPackedCoordinates | null | undefined): boolean {
+        if (a === b) {
+            return true;
+        }
+        if (!a || !b) {
+            return false;
+        }
+        if (a.length !== b.length) {
+            return false;
+        }
+
+        for (let i = 0; i < a.length; i++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private areCoordinateArraysEqual(a: Coordinate[] | null | undefined, b: Coordinate[] | null | undefined): boolean {
         if (a === b) {
             return true;
@@ -324,13 +349,13 @@ export class FlamegraphOffseter {
         canvasWidth: number,
         initialCoordinates: Coordinate,
         omittedOffsetCoordinates: Coordinate[] = [],
-        keepFoundCoordinates: Coordinate[] | null = null,
+        keepFoundCoordinates: DenselyPackedCoordinates | null = null,
         shouldReverseDiff = false,
         visitors: Array<{run: (node: FormatNode) => void}> = [],
     ) {
         // Check if we need to recalculate omitted/kept nodes
         const omittedChanged = !this.areCoordinateArraysEqual(this.prevOmittedOffsetCoordinates, omittedOffsetCoordinates);
-        const keepFoundChanged = !this.areCoordinateArraysEqual(this.prevKeepFoundCoordinates, keepFoundCoordinates);
+        const keepFoundChanged = !this.areDenseCoordinateArraysEqual(this.prevKeepFoundCoordinates, keepFoundCoordinates);
         const shouldReverseDiffChanged = this.prevShouldReverseDiff !== shouldReverseDiff;
 
         // Only clear and recalculate if relevant parameters have changed

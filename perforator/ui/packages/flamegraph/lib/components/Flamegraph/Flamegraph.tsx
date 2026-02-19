@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ArrowRightArrowLeft, BarsAscendingAlignLeftArrowUp, BarsDescendingAlignLeftArrowDown, Funnel, FunnelXmark, Magnifier, Xmark } from '@gravity-ui/icons';
 import { Button, Icon, Switch } from '@gravity-ui/uikit';
 
+import type { DenselyPackedCoordinates } from '../../densely-packed';
 import type { GoToDefinitionHref } from '../../models/goto';
 import type { ProfileData, StringifiedNode } from '../../models/Profile';
 import type { UserSettings } from '../../models/UserSettings';
@@ -164,7 +165,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
     };
     const exactMatch = getQuery('exactMatch');
 
-    const foundCoords = useMemo(() => {
+    const foundCoords: DenselyPackedCoordinates | null = useMemo(() => {
         if (!profileData || !search || !keepOnlyFound) {
             return null;
         }
