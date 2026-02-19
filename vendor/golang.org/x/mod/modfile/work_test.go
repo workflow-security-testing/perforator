@@ -389,7 +389,6 @@ func TestWorkPrintParse(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, out := range outs {
-		out := out
 		name := filepath.Base(out)
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
@@ -441,8 +440,8 @@ func TestWorkPrintParse(t *testing.T) {
 				ndata = ndata2
 			}
 
-			if strings.HasSuffix(out, ".in") {
-				golden, err := os.ReadFile(strings.TrimSuffix(out, ".in") + ".golden")
+			if before, ok := strings.CutSuffix(out, ".in"); ok {
+				golden, err := os.ReadFile(before + ".golden")
 				if err != nil {
 					t.Fatal(err)
 				}

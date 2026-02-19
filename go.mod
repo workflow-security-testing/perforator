@@ -139,7 +139,7 @@ require (
 	cuelang.org/go v0.4.3
 	firebase.google.com/go v3.13.0+incompatible
 	git.apache.org/thrift.git v0.13.0
-	github.com/99designs/gqlgen v0.17.78
+	github.com/99designs/gqlgen v0.17.86
 	github.com/AlecAivazis/survey/v2 v2.3.6
 	github.com/AlexxIT/go2rtc v1.8.2
 	github.com/Antonboom/errname v0.1.10
@@ -194,7 +194,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.31
 	github.com/ProtonMail/gopenpgp/v3 v3.1.2
-	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/RoaringBitmap/roaring/v2 v2.14.4
 	github.com/Shopify/sarama v1.38.1
 	github.com/ThalesIgnite/crypto11 v1.2.5
@@ -441,7 +441,7 @@ require (
 	github.com/gobwas/ws v1.4.0
 	github.com/goccy/go-graphviz v0.2.9
 	github.com/goccy/go-json v0.10.3
-	github.com/goccy/go-yaml v1.15.23
+	github.com/goccy/go-yaml v1.19.2
 	github.com/gocql/gocql v1.7.0
 	github.com/godbus/dbus/v5 v5.1.1-0.20221223143132-c1a76c14e486
 	github.com/godror/godror v0.44.1
@@ -818,6 +818,7 @@ require (
 	github.com/ulikunitz/xz v0.5.12
 	github.com/urfave/cli v1.22.16
 	github.com/urfave/cli/v2 v2.27.7
+	github.com/urfave/cli/v3 v3.6.1
 	github.com/vakenbolt/go-test-report v0.9.3
 	github.com/valkey-io/valkey-go v1.0.66
 	github.com/valkey-io/valkey-go/mock v1.0.66
@@ -828,7 +829,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/vbauerster/mpb v3.4.0+incompatible
 	github.com/vbauerster/mpb/v8 v8.7.1
-	github.com/vektah/gqlparser/v2 v2.5.30
+	github.com/vektah/gqlparser/v2 v2.5.31
 	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
@@ -991,18 +992,18 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4
 	gocv.io/x/gocv v0.39.0
 	golang.org/x/arch v0.12.0
-	golang.org/x/crypto v0.44.0
+	golang.org/x/crypto v0.46.0
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
 	golang.org/x/image v0.25.0
-	golang.org/x/mod v0.30.0
-	golang.org/x/net v0.47.0
+	golang.org/x/mod v0.31.0
+	golang.org/x/net v0.48.0
 	golang.org/x/oauth2 v0.30.0
-	golang.org/x/sync v0.18.0
-	golang.org/x/sys v0.38.0
-	golang.org/x/term v0.37.0
-	golang.org/x/text v0.31.0
+	golang.org/x/sync v0.19.0
+	golang.org/x/sys v0.39.0
+	golang.org/x/term v0.38.0
+	golang.org/x/text v0.33.0
 	golang.org/x/time v0.12.0
-	golang.org/x/tools v0.39.1-0.20251205192105-907593008619
+	golang.org/x/tools v0.40.0
 	golang.org/x/tools/go/expect v0.1.1-deprecated
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 	golang.org/x/tools/godoc v0.1.0-deprecated
@@ -1024,7 +1025,7 @@ require (
 	google.golang.org/grpc/gcp/observability v1.0.1
 	google.golang.org/grpc/security/advancedtls v1.0.0
 	google.golang.org/grpc/stats/opencensus v1.0.0
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 	gopkg.in/bluesuncorp/validator.v9 v9.10.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/gographics/imagick.v2 v2.5.0
@@ -2344,7 +2345,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546 // indirect
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
-	golang.org/x/telemetry v0.0.0-20251111182119-bc8e575c7b54 // indirect
+	golang.org/x/telemetry v0.0.0-20251203150158-8fff8a5912fc // indirect
 	golang.org/x/vuln v1.1.4 // indirect
 	gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f // indirect
 	gonum.org/v1/plot v0.14.0 // indirect

@@ -1335,8 +1335,8 @@ git.apache.org/thrift.git/lib/go/thrift
 # git.sr.ht/~sbinet/gg v0.5.0
 ## explicit; go 1.19
 git.sr.ht/~sbinet/gg
-# github.com/99designs/gqlgen v0.17.78
-## explicit; go 1.23.0
+# github.com/99designs/gqlgen v0.17.86
+## explicit; go 1.24.0
 github.com/99designs/gqlgen
 github.com/99designs/gqlgen/api
 github.com/99designs/gqlgen/client
@@ -1359,6 +1359,8 @@ github.com/99designs/gqlgen/codegen/testserver/nullabledirectives
 github.com/99designs/gqlgen/codegen/testserver/nullabledirectives/generated
 github.com/99designs/gqlgen/codegen/testserver/nullabledirectives/generated/models
 github.com/99designs/gqlgen/codegen/testserver/nullabledirectives/generated/resolvers
+github.com/99designs/gqlgen/codegen/testserver/protogetters
+github.com/99designs/gqlgen/codegen/testserver/protogetters/models
 github.com/99designs/gqlgen/codegen/testserver/singlefile
 github.com/99designs/gqlgen/codegen/testserver/singlefile/introspection
 github.com/99designs/gqlgen/codegen/testserver/singlefile/invalid-packagename
@@ -1410,6 +1412,15 @@ github.com/99designs/gqlgen/plugin/federation/testdata/usefunctionsyntaxforexecu
 github.com/99designs/gqlgen/plugin/modelgen
 github.com/99designs/gqlgen/plugin/modelgen/internal/extrafields
 github.com/99designs/gqlgen/plugin/modelgen/out
+github.com/99designs/gqlgen/plugin/modelgen/out_conflicting_types
+github.com/99designs/gqlgen/plugin/modelgen/out_covariant_types
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_binding_models
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_diamond
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_embedding_models
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_partial
+github.com/99designs/gqlgen/plugin/modelgen/out_directive_skipped_parents
+github.com/99designs/gqlgen/plugin/modelgen/out_embedded_struct_models_with_binding
+github.com/99designs/gqlgen/plugin/modelgen/out_embedded_structs_models
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitempty_tag_false
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitempty_tag_false_omitempty_tag_false_omitzero_tag_nil
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitempty_tag_false_omitempty_tag_false_omitzero_tag_true
@@ -1421,7 +1432,10 @@ github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitempty_tag_
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitzero_tag_false
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitzero_tag_nil
 github.com/99designs/gqlgen/plugin/modelgen/out_enable_model_json_omitzero_tag_true
+github.com/99designs/gqlgen/plugin/modelgen/out_no_directive_models
 github.com/99designs/gqlgen/plugin/modelgen/out_nullable_input_omittable
+github.com/99designs/gqlgen/plugin/modelgen/out_omit_embedded_structs_models
+github.com/99designs/gqlgen/plugin/modelgen/out_omit_json_enum_marshalers
 github.com/99designs/gqlgen/plugin/modelgen/out_omit_resolver_fields
 github.com/99designs/gqlgen/plugin/modelgen/out_struct_pointers
 github.com/99designs/gqlgen/plugin/resolvergen
@@ -3916,8 +3930,8 @@ github.com/ProtonMail/gopenpgp/v3/internal
 github.com/ProtonMail/gopenpgp/v3/mime
 github.com/ProtonMail/gopenpgp/v3/mobile
 github.com/ProtonMail/gopenpgp/v3/profile
-# github.com/PuerkitoBio/goquery v1.10.3
-## explicit; go 1.23.0
+# github.com/PuerkitoBio/goquery v1.11.0
+## explicit; go 1.24.0
 github.com/PuerkitoBio/goquery
 # github.com/PuerkitoBio/purell v1.2.0
 ## explicit; go 1.19
@@ -8674,7 +8688,7 @@ github.com/goccy/go-json/internal/errors
 github.com/goccy/go-json/internal/runtime
 github.com/goccy/go-json/test/cover
 github.com/goccy/go-json/test/example
-# github.com/goccy/go-yaml v1.15.23
+# github.com/goccy/go-yaml v1.19.2
 ## explicit; go 1.21.0
 github.com/goccy/go-yaml
 github.com/goccy/go-yaml/ast
@@ -16036,6 +16050,12 @@ github.com/urfave/cli/v2/altsrc
 github.com/urfave/cli/v2/internal/build
 github.com/urfave/cli/v2/internal/example-cli
 github.com/urfave/cli/v2/internal/example-hello-world
+# github.com/urfave/cli/v3 v3.6.1
+## explicit; go 1.22
+github.com/urfave/cli/v3
+github.com/urfave/cli/v3/examples/example-cli
+github.com/urfave/cli/v3/examples/example-hello-world
+github.com/urfave/cli/v3/scripts
 # github.com/urfave/negroni v1.0.0
 ## explicit
 # github.com/vakenbolt/go-test-report v0.9.3
@@ -16124,7 +16144,7 @@ github.com/vbauerster/mpb/v8/internal
 ## explicit
 # github.com/vektah/gqlparser v1.1.2
 ## explicit
-# github.com/vektah/gqlparser/v2 v2.5.30
+# github.com/vektah/gqlparser/v2 v2.5.31
 ## explicit; go 1.22
 github.com/vektah/gqlparser/v2
 github.com/vektah/gqlparser/v2/ast
@@ -18872,7 +18892,7 @@ golang.org/x/arch/x86/x86csv
 golang.org/x/arch/x86/x86map
 golang.org/x/arch/x86/x86spec
 golang.org/x/arch/x86/xeddata
-# golang.org/x/crypto v0.44.0
+# golang.org/x/crypto v0.46.0
 ## explicit; go 1.24.0
 golang.org/x/crypto
 golang.org/x/crypto/acme
@@ -18988,7 +19008,7 @@ golang.org/x/image/webp
 ## explicit; go 1.11
 # golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a
 ## explicit; go 1.18
-# golang.org/x/mod v0.30.0
+# golang.org/x/mod v0.31.0
 ## explicit; go 1.24.0
 golang.org/x/mod
 golang.org/x/mod/gosumcheck
@@ -19002,7 +19022,7 @@ golang.org/x/mod/sumdb/note
 golang.org/x/mod/sumdb/storage
 golang.org/x/mod/sumdb/tlog
 golang.org/x/mod/zip
-# golang.org/x/net v0.47.0
+# golang.org/x/net v0.48.0
 ## explicit; go 1.24.0
 golang.org/x/net
 golang.org/x/net/bpf
@@ -19091,14 +19111,14 @@ golang.org/x/oauth2/uber
 golang.org/x/oauth2/vk
 golang.org/x/oauth2/yahoo
 golang.org/x/oauth2/yandex
-# golang.org/x/sync v0.18.0 => golang.org/x/sync v0.15.0
+# golang.org/x/sync v0.19.0 => golang.org/x/sync v0.15.0
 ## explicit; go 1.23.0
 golang.org/x/sync
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 golang.org/x/sync/syncmap
-# golang.org/x/sys v0.38.0
+# golang.org/x/sys v0.39.0
 ## explicit; go 1.24.0
 golang.org/x/sys
 golang.org/x/sys/cpu
@@ -19113,7 +19133,7 @@ golang.org/x/sys/windows/svc/debug
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/example
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/telemetry v0.0.0-20251111182119-bc8e575c7b54
+# golang.org/x/telemetry v0.0.0-20251203150158-8fff8a5912fc
 ## explicit; go 1.24.0
 golang.org/x/telemetry
 golang.org/x/telemetry/counter
@@ -19124,10 +19144,10 @@ golang.org/x/telemetry/internal/crashmonitor
 golang.org/x/telemetry/internal/mmap
 golang.org/x/telemetry/internal/telemetry
 golang.org/x/telemetry/internal/upload
-# golang.org/x/term v0.37.0
+# golang.org/x/term v0.38.0
 ## explicit; go 1.24.0
 golang.org/x/term
-# golang.org/x/text v0.31.0
+# golang.org/x/text v0.33.0
 ## explicit; go 1.24.0
 golang.org/x/text
 golang.org/x/text/cases
@@ -19196,7 +19216,7 @@ golang.org/x/text/width
 ## explicit; go 1.23.0
 golang.org/x/time
 golang.org/x/time/rate
-# golang.org/x/tools v0.39.1-0.20251205192105-907593008619
+# golang.org/x/tools v0.40.0
 ## explicit; go 1.24.0
 golang.org/x/tools
 golang.org/x/tools/benchmark/parse
@@ -20134,7 +20154,7 @@ google.golang.org/grpc/security/advancedtls/testdata
 # google.golang.org/grpc/stats/opencensus v1.0.0
 ## explicit; go 1.17
 google.golang.org/grpc/stats/opencensus
-# google.golang.org/protobuf v1.36.10
+# google.golang.org/protobuf v1.36.11
 ## explicit; go 1.23
 google.golang.org/protobuf
 google.golang.org/protobuf/cmd/protoc-gen-go
@@ -20254,6 +20274,8 @@ google.golang.org/protobuf/internal/testprotos/required
 google.golang.org/protobuf/internal/testprotos/required/required_hybrid
 google.golang.org/protobuf/internal/testprotos/required/required_opaque
 google.golang.org/protobuf/internal/testprotos/test
+google.golang.org/protobuf/internal/testprotos/test/test_nopackage
+google.golang.org/protobuf/internal/testprotos/test/test_option
 google.golang.org/protobuf/internal/testprotos/test3
 google.golang.org/protobuf/internal/testprotos/test3/test3_hybrid
 google.golang.org/protobuf/internal/testprotos/test3/test3_opaque
