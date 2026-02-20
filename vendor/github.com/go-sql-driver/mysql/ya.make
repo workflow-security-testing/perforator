@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MPL-2.0)
 
-VERSION(v1.9.2)
+VERSION(v1.9.3)
 
 GO_SKIP_TESTS(TestConnectorReturnsTimeout)
 

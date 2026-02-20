@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v2.2.8)
+VERSION(v2.3.0)
 
 SRCS(
     cpuid.go

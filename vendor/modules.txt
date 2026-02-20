@@ -1131,6 +1131,42 @@ cloud.google.com/go/workflows/internal
 ## explicit; go 1.20
 # code.gitea.io/sdk/gitea v0.19.0
 ## explicit; go 1.18
+# codeberg.org/go-fonts/dejavu v0.4.0
+## explicit; go 1.19
+codeberg.org/go-fonts/dejavu/dejavusans
+codeberg.org/go-fonts/dejavu/dejavusansoblique
+# codeberg.org/go-fonts/liberation v0.5.0
+## explicit; go 1.23.0
+codeberg.org/go-fonts/liberation/liberationmonobold
+codeberg.org/go-fonts/liberation/liberationmonobolditalic
+codeberg.org/go-fonts/liberation/liberationmonoitalic
+codeberg.org/go-fonts/liberation/liberationmonoregular
+codeberg.org/go-fonts/liberation/liberationsansbold
+codeberg.org/go-fonts/liberation/liberationsansbolditalic
+codeberg.org/go-fonts/liberation/liberationsansitalic
+codeberg.org/go-fonts/liberation/liberationsansregular
+codeberg.org/go-fonts/liberation/liberationserifbold
+codeberg.org/go-fonts/liberation/liberationserifbolditalic
+codeberg.org/go-fonts/liberation/liberationserifitalic
+codeberg.org/go-fonts/liberation/liberationserifregular
+# codeberg.org/go-latex/latex v0.2.0
+## explicit; go 1.24
+codeberg.org/go-latex/latex
+codeberg.org/go-latex/latex/ast
+codeberg.org/go-latex/latex/drawtex
+codeberg.org/go-latex/latex/font
+codeberg.org/go-latex/latex/font/ttf
+codeberg.org/go-latex/latex/internal/fakebackend
+codeberg.org/go-latex/latex/internal/tex2unicode
+codeberg.org/go-latex/latex/mtex
+codeberg.org/go-latex/latex/mtex/symbols
+codeberg.org/go-latex/latex/tex
+codeberg.org/go-latex/latex/token
+# codeberg.org/go-pdf/fpdf v0.11.1
+## explicit; go 1.21
+codeberg.org/go-pdf/fpdf
+codeberg.org/go-pdf/fpdf/internal/example
+codeberg.org/go-pdf/fpdf/internal/files
 # connectrpc.com/connect v1.16.2
 ## explicit; go 1.20
 connectrpc.com/connect
@@ -1271,7 +1307,7 @@ cuelang.org/go/pkg/uuid
 cuelang.org/go/tools/fix
 cuelang.org/go/tools/flow
 cuelang.org/go/tools/trim
-# dario.cat/mergo v1.0.1
+# dario.cat/mergo v1.0.2
 ## explicit; go 1.13
 dario.cat/mergo
 # deps.dev/api/v3 v3.0.0-20250307021655-d811e36f9cad
@@ -1332,8 +1368,8 @@ firebase.google.com/go/storage
 git.apache.org/thrift.git/lib/go/test/dontexportrwtest
 git.apache.org/thrift.git/lib/go/test/tests
 git.apache.org/thrift.git/lib/go/thrift
-# git.sr.ht/~sbinet/gg v0.5.0
-## explicit; go 1.19
+# git.sr.ht/~sbinet/gg v0.7.0
+## explicit; go 1.24
 git.sr.ht/~sbinet/gg
 # github.com/99designs/gqlgen v0.17.86
 ## explicit; go 1.24.0
@@ -1441,17 +1477,15 @@ github.com/99designs/gqlgen/plugin/modelgen/out_struct_pointers
 github.com/99designs/gqlgen/plugin/resolvergen
 github.com/99designs/gqlgen/plugin/servergen
 github.com/99designs/gqlgen/plugin/stubgen
-# github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24
+# github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
 ## explicit; go 1.20
 # github.com/AdamKorcz/go-118-fuzz-build v0.0.0-20231105174938-2b5cbb29f3e2
 ## explicit; go 1.18
-# github.com/AlecAivazis/survey/v2 v2.3.6
+# github.com/AlecAivazis/survey/v2 v2.3.7
 ## explicit; go 1.13
 github.com/AlecAivazis/survey/v2
 github.com/AlecAivazis/survey/v2/core
-github.com/AlecAivazis/survey/v2/examples
 github.com/AlecAivazis/survey/v2/terminal
-github.com/AlecAivazis/survey/v2/tests
 github.com/AlecAivazis/survey/v2/tests/util
 # github.com/AlekSi/pushover v0.1.0
 ## explicit
@@ -3657,8 +3691,8 @@ github.com/GehirnInc/crypt/internal
 github.com/GehirnInc/crypt/md5_crypt
 github.com/GehirnInc/crypt/sha256_crypt
 github.com/GehirnInc/crypt/sha512_crypt
-# github.com/GoogleCloudPlatform/cloudsql-proxy v0.0.0-20191009163259-e802c2cb94ae
-## explicit; go 1.12
+# github.com/GoogleCloudPlatform/cloudsql-proxy v1.37.8
+## explicit; go 1.24
 # github.com/GoogleCloudPlatform/grpc-gcp-go v1.3.0
 ## explicit
 # github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.5.3
@@ -4216,7 +4250,7 @@ github.com/alicebob/miniredis/v2/size
 github.com/alitto/pond
 # github.com/aliyun/alibaba-cloud-sdk-go v1.61.1699
 ## explicit; go 1.13
-# github.com/aliyun/aliyun-oss-go-sdk v2.2.5+incompatible
+# github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 ## explicit
 # github.com/allegro/bigcache v1.2.1
 ## explicit
@@ -4237,8 +4271,8 @@ github.com/anchore/go-struct-converter
 # github.com/andreyvit/diff v0.0.0-20170406064948-c7f18ee00883
 ## explicit
 github.com/andreyvit/diff
-# github.com/andybalholm/brotli v1.1.1
-## explicit; go 1.13
+# github.com/andybalholm/brotli v1.2.0
+## explicit; go 1.22
 github.com/andybalholm/brotli
 github.com/andybalholm/brotli/matchfinder
 # github.com/andybalholm/cascadia v1.3.3
@@ -5400,6 +5434,8 @@ github.com/cactus/go-statsd-client/v5/statsd
 ## explicit; go 1.13
 # github.com/caio/go-tdigest v3.1.0+incompatible
 ## explicit
+# github.com/campoy/embedmd v1.0.0
+## explicit
 # github.com/campoy/unique v0.0.0-20180121183637-88950e537e7e
 ## explicit
 # github.com/casbin/casbin/v2 v2.47.3
@@ -6238,8 +6274,8 @@ github.com/cpuguy83/dockercfg
 # github.com/cpuguy83/go-md2man/v2 v2.0.7
 ## explicit; go 1.12
 github.com/cpuguy83/go-md2man/v2/md2man
-# github.com/creack/pty v1.1.21
-## explicit; go 1.13
+# github.com/creack/pty v1.1.24
+## explicit; go 1.18
 github.com/creack/pty
 # github.com/cristalhq/acmd v0.11.1
 ## explicit; go 1.17
@@ -6704,7 +6740,7 @@ github.com/docker/distribution/registry/storage/cache/cachecheck
 github.com/docker/distribution/registry/storage/cache/memory
 github.com/docker/distribution/testutil
 github.com/docker/distribution/uuid
-# github.com/docker/docker v28.0.4+incompatible => github.com/docker/docker v25.0.6+incompatible
+# github.com/docker/docker v28.5.0+incompatible => github.com/docker/docker v25.0.6+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -8079,24 +8115,10 @@ github.com/go-faster/yaml
 ## explicit; go 1.13
 # github.com/go-fonts/dejavu v0.3.2
 ## explicit; go 1.19
-github.com/go-fonts/dejavu/dejavusans
-github.com/go-fonts/dejavu/dejavusansoblique
 # github.com/go-fonts/latin-modern v0.3.2
 ## explicit; go 1.19
 # github.com/go-fonts/liberation v0.3.2
 ## explicit; go 1.19
-github.com/go-fonts/liberation/liberationmonobold
-github.com/go-fonts/liberation/liberationmonobolditalic
-github.com/go-fonts/liberation/liberationmonoitalic
-github.com/go-fonts/liberation/liberationmonoregular
-github.com/go-fonts/liberation/liberationsansbold
-github.com/go-fonts/liberation/liberationsansbolditalic
-github.com/go-fonts/liberation/liberationsansitalic
-github.com/go-fonts/liberation/liberationsansregular
-github.com/go-fonts/liberation/liberationserifbold
-github.com/go-fonts/liberation/liberationserifbolditalic
-github.com/go-fonts/liberation/liberationserifitalic
-github.com/go-fonts/liberation/liberationserifregular
 # github.com/go-fonts/stix v0.2.2
 ## explicit; go 1.19
 # github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376
@@ -8217,17 +8239,6 @@ github.com/go-kit/log
 github.com/go-kit/log/level
 # github.com/go-latex/latex v0.0.0-20231108140139-5c1ce85aa4ea
 ## explicit; go 1.19
-github.com/go-latex/latex
-github.com/go-latex/latex/ast
-github.com/go-latex/latex/drawtex
-github.com/go-latex/latex/font
-github.com/go-latex/latex/font/ttf
-github.com/go-latex/latex/internal/fakebackend
-github.com/go-latex/latex/internal/tex2unicode
-github.com/go-latex/latex/mtex
-github.com/go-latex/latex/mtex/symbols
-github.com/go-latex/latex/tex
-github.com/go-latex/latex/token
 # github.com/go-ldap/ldap v3.0.2+incompatible
 ## explicit
 # github.com/go-ldap/ldap/v3 v3.4.5
@@ -8523,7 +8534,7 @@ github.com/go-shiori/dom
 github.com/go-shiori/go-readability
 github.com/go-shiori/go-readability/cmd/go-readability
 github.com/go-shiori/go-readability/scripts
-# github.com/go-sql-driver/mysql v1.9.2
+# github.com/go-sql-driver/mysql v1.9.3
 ## explicit; go 1.21.0
 github.com/go-sql-driver/mysql
 # github.com/go-stack/stack v1.8.1
@@ -8674,7 +8685,7 @@ github.com/goccy/go-graphviz/cdt
 github.com/goccy/go-graphviz/cgraph
 github.com/goccy/go-graphviz/gvc
 github.com/goccy/go-graphviz/internal/wasm
-# github.com/goccy/go-json v0.10.3
+# github.com/goccy/go-json v0.10.5
 ## explicit; go 1.19
 github.com/goccy/go-json
 github.com/goccy/go-json/internal/cmd/generator
@@ -8937,7 +8948,7 @@ github.com/golang-jwt/jwt/v4
 github.com/golang-jwt/jwt/v4/cmd/jwt
 github.com/golang-jwt/jwt/v4/request
 github.com/golang-jwt/jwt/v4/test
-# github.com/golang-jwt/jwt/v5 v5.3.1
+# github.com/golang-jwt/jwt/v5 v5.3.0
 ## explicit; go 1.21
 github.com/golang-jwt/jwt/v5
 github.com/golang-jwt/jwt/v5/cmd/jwt
@@ -11583,8 +11594,8 @@ github.com/kisielk/og-rek
 github.com/kisielk/sqlstruct
 # github.com/klauspost/asmfmt v1.3.2
 ## explicit; go 1.16
-# github.com/klauspost/compress v1.18.0
-## explicit; go 1.22
+# github.com/klauspost/compress v1.18.2
+## explicit; go 1.23
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -11610,8 +11621,8 @@ github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/cpuid v1.3.1
 ## explicit; go 1.12
-# github.com/klauspost/cpuid/v2 v2.2.8
-## explicit; go 1.15
+# github.com/klauspost/cpuid/v2 v2.3.0
+## explicit; go 1.22
 github.com/klauspost/cpuid/v2
 github.com/klauspost/cpuid/v2/cmd/cpuid
 # github.com/klauspost/pgzip v1.2.6
@@ -11906,7 +11917,7 @@ github.com/m3db/prometheus_common/model
 github.com/m3db/prometheus_procfs
 # github.com/magefile/mage v1.15.0
 ## explicit; go 1.12
-# github.com/magiconair/properties v1.8.7
+# github.com/magiconair/properties v1.8.10
 ## explicit; go 1.19
 github.com/magiconair/properties
 github.com/magiconair/properties/assert
@@ -13325,15 +13336,16 @@ github.com/osrg/gobgp/tools/config
 # github.com/ossf/osv-schema/bindings/go v0.0.0-20250210065807-ab8a4f6e6389
 ## explicit; go 1.22.7
 github.com/ossf/osv-schema/bindings/go/osvschema
-# github.com/otiai10/copy v1.14.0
+# github.com/otiai10/copy v1.14.1
 ## explicit; go 1.18
 github.com/otiai10/copy
 # github.com/otiai10/curr v1.0.0
 ## explicit; go 1.12
-# github.com/otiai10/mint v1.5.1
+# github.com/otiai10/mint v1.6.3
 ## explicit; go 1.18
 github.com/otiai10/mint
 github.com/otiai10/mint/curr
+github.com/otiai10/mint/mquery
 # github.com/outcaste-io/ristretto v0.2.3
 ## explicit; go 1.12
 # github.com/ovh/go-ovh v1.7.0
@@ -19000,7 +19012,7 @@ golang.org/x/exp/slog/internal
 golang.org/x/exp/slog/internal/buffer
 golang.org/x/exp/slog/internal/testutil
 golang.org/x/exp/slog/slogtest
-# golang.org/x/exp/shiny v0.0.0-20240707233637-46b078467d37
+# golang.org/x/exp/shiny v0.0.0-20241009180824-f66d83c29e7c
 ## explicit; go 1.18
 # golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546
 ## explicit; go 1.24.0
@@ -19103,8 +19115,8 @@ golang.org/x/net/webdav
 golang.org/x/net/webdav/internal/xml
 golang.org/x/net/websocket
 golang.org/x/net/xsrftoken
-# golang.org/x/oauth2 v0.30.0
-## explicit; go 1.23.0
+# golang.org/x/oauth2 v0.31.0
+## explicit; go 1.24.0
 golang.org/x/oauth2
 golang.org/x/oauth2/amazon
 golang.org/x/oauth2/authhandler
@@ -19248,8 +19260,8 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/unicode/rangetable
 golang.org/x/text/unicode/runenames
 golang.org/x/text/width
-# golang.org/x/time v0.12.0
-## explicit; go 1.23.0
+# golang.org/x/time v0.13.0
+## explicit; go 1.24.0
 golang.org/x/time
 golang.org/x/time/rate
 # golang.org/x/tools v0.40.0
@@ -19651,8 +19663,8 @@ golang.yandex/linters/passes/structtagcase
 # gomodules.xyz/jsonpatch/v2 v2.4.0
 ## explicit; go 1.20
 gomodules.xyz/jsonpatch/v2
-# gonum.org/v1/gonum v0.15.1
-## explicit; go 1.22
+# gonum.org/v1/gonum v0.16.0
+## explicit; go 1.23.0
 gonum.org/v1/gonum
 gonum.org/v1/gonum/blas
 gonum.org/v1/gonum/blas/blas32
@@ -19667,6 +19679,7 @@ gonum.org/v1/gonum/cmplxs/cscalar
 gonum.org/v1/gonum/diff/fd
 gonum.org/v1/gonum/dsp/fourier
 gonum.org/v1/gonum/dsp/fourier/internal/fftpack
+gonum.org/v1/gonum/dsp/transform
 gonum.org/v1/gonum/dsp/window
 gonum.org/v1/gonum/dsp/window/cmd/leakage
 gonum.org/v1/gonum/floats
@@ -19760,8 +19773,8 @@ gonum.org/v1/gonum/unit
 gonum.org/v1/gonum/unit/constant
 # gonum.org/v1/netlib v0.0.0-20230729102104-8b8060e7531f
 ## explicit; go 1.17
-# gonum.org/v1/plot v0.14.0
-## explicit; go 1.20
+# gonum.org/v1/plot v0.15.2
+## explicit; go 1.22.0
 gonum.org/v1/plot
 gonum.org/v1/plot/font
 gonum.org/v1/plot/font/liberation
@@ -19822,7 +19835,7 @@ google.golang.org/api/transport/http
 ## explicit; go 1.24
 google.golang.org/genai
 google.golang.org/genai/tokenizer
-# google.golang.org/genproto v0.0.0-20250707201910-8d1bb00bc6a7
+# google.golang.org/genproto v0.0.0-20250715232539-7130f93afb79
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/appengine/logging/v1
 google.golang.org/genproto/googleapis/apps/script/type
@@ -19910,8 +19923,8 @@ google.golang.org/genproto/googleapis/api/serviceconfig
 google.golang.org/genproto/googleapis/api/visibility
 # google.golang.org/genproto/googleapis/bytestream v0.0.0-20250804133106-a7a43d27e69b
 ## explicit; go 1.23.0
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c
-## explicit; go 1.23.0
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20250929231259-57b25ae835d4
+## explicit; go 1.24.0
 google.golang.org/genproto/googleapis/rpc
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/context
@@ -21707,7 +21720,7 @@ k8s.io/component-base/tracing/api/v1
 k8s.io/component-base/version
 # k8s.io/controller-manager v0.26.2-rc.0
 ## explicit; go 1.19
-# k8s.io/cri-api v0.27.1 => k8s.io/cri-api v0.23.5
+# k8s.io/cri-api v0.31.2 => k8s.io/cri-api v0.23.5
 ## explicit; go 1.16
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/apis/runtime/v1alpha2
@@ -21813,7 +21826,7 @@ k8s.io/kubectl/pkg/util/openapi/validation
 k8s.io/kubectl/pkg/util/templates
 k8s.io/kubectl/pkg/util/term
 k8s.io/kubectl/pkg/validation
-# k8s.io/kubelet v0.26.1 => k8s.io/kubelet v0.26.1
+# k8s.io/kubelet v0.31.2 => k8s.io/kubelet v0.26.1
 ## explicit; go 1.19
 k8s.io/kubelet/pkg/apis/deviceplugin/v1alpha
 k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1
