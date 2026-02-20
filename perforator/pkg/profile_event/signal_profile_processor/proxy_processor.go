@@ -87,11 +87,12 @@ func textRenderFormat() *proto.RenderFormat {
 }
 
 func selectorFromEvent(ev *profile_event.SignalProfileEvent) (timeLimitedSelector, error) {
-	ts := ev.Timestamp
+	fromTS := ev.Timestamp.Add(-24 * time.Hour)
+	toTS := ev.Timestamp.Add(24 * time.Hour)
 	b := profilequerylang.NewBuilder().
 		ProfileIDs(ev.ProfileID).
-		From(ts).
-		To(ts)
+		From(fromTS).
+		To(toTS)
 	sel := b.Build()
 	b.AddMatcher(sel, profilequerylang.EventTypeLabel, []string{ev.MainEvent})
 
@@ -101,8 +102,8 @@ func selectorFromEvent(ev *profile_event.SignalProfileEvent) (timeLimitedSelecto
 	}
 	return timeLimitedSelector{
 		Selector: str,
-		From:     ts,
-		To:       ts,
+		From:     fromTS,
+		To:       toTS,
 	}, nil
 }
 
