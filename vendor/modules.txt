@@ -10726,6 +10726,15 @@ github.com/hexops/gotextdiff/difftest
 github.com/hexops/gotextdiff/myers
 github.com/hexops/gotextdiff/span
 github.com/hexops/gotextdiff/testenv
+# github.com/hhrutter/lzw v1.0.0
+## explicit; go 1.19
+github.com/hhrutter/lzw
+# github.com/hhrutter/pkcs7 v0.2.0
+## explicit; go 1.23
+github.com/hhrutter/pkcs7
+# github.com/hhrutter/tiff v1.0.2
+## explicit; go 1.19
+github.com/hhrutter/tiff
 # github.com/hinshun/vt10x v0.0.0-20220301184237-5011da428d02
 ## explicit; go 1.14
 github.com/hinshun/vt10x
@@ -13446,6 +13455,32 @@ github.com/pborman/getopt
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
+# github.com/pdfcpu/pdfcpu v0.11.1
+## explicit; go 1.24.0
+github.com/pdfcpu/pdfcpu
+github.com/pdfcpu/pdfcpu/cmd/pdfcpu
+github.com/pdfcpu/pdfcpu/internal/corefont/metrics
+github.com/pdfcpu/pdfcpu/pkg/api
+github.com/pdfcpu/pdfcpu/pkg/api/test
+github.com/pdfcpu/pdfcpu/pkg/cli
+github.com/pdfcpu/pdfcpu/pkg/cli/test
+github.com/pdfcpu/pdfcpu/pkg/filter
+github.com/pdfcpu/pdfcpu/pkg/font
+github.com/pdfcpu/pdfcpu/pkg/log
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/color
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/create
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/draw
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/font
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/form
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/format
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/matrix
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/primitives
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/scan
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/sign
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/types
+github.com/pdfcpu/pdfcpu/pkg/pdfcpu/validate
 # github.com/pelletier/go-buffruneio v0.3.0
 ## explicit
 # github.com/pelletier/go-toml v1.9.5
@@ -18970,8 +19005,9 @@ golang.org/x/exp/slog/slogtest
 # golang.org/x/exp/typeparams v0.0.0-20251023183803-a4bb9ffd2546
 ## explicit; go 1.24.0
 golang.org/x/exp/typeparams
-# golang.org/x/image v0.25.0
-## explicit; go 1.23.0
+# golang.org/x/image v0.32.0
+## explicit; go 1.24.0
+golang.org/x/image
 golang.org/x/image/bmp
 golang.org/x/image/ccitt
 golang.org/x/image/colornames

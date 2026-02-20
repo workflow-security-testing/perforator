@@ -679,6 +679,7 @@ require (
 	github.com/paulmach/orb v0.11.1
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pborman/uuid v1.2.1
+	github.com/pdfcpu/pdfcpu v0.11.1
 	github.com/pemistahl/lingua-go v1.3.4
 	github.com/peterh/liner v1.2.2
 	github.com/phin1x/go-ipp v1.6.1
@@ -994,7 +995,7 @@ require (
 	golang.org/x/arch v0.12.0
 	golang.org/x/crypto v0.46.0
 	golang.org/x/exp v0.0.0-20250813145105-42675adae3e6
-	golang.org/x/image v0.25.0
+	golang.org/x/image v0.32.0
 	golang.org/x/mod v0.31.0
 	golang.org/x/net v0.48.0
 	golang.org/x/oauth2 v0.30.0
@@ -1724,6 +1725,9 @@ require (
 	github.com/heetch/avro v0.4.4 // indirect
 	github.com/hetznercloud/hcloud-go/v2 v2.19.1 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
+	github.com/hhrutter/lzw v1.0.0 // indirect
+	github.com/hhrutter/pkcs7 v0.2.0 // indirect
+	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/hjson/hjson-go/v4 v4.3.0 // indirect
 	github.com/hpcloud/tail v1.0.1-0.20180514194441-a1dbeea552b7 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
