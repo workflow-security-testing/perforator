@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.9.1)
+VERSION(v1.11.0)
 
 SRCS(
     memory.go

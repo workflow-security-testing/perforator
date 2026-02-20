@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.83.0)
+VERSION(v1.84.1)
 
 GO_SKIP_TESTS(
     TestTakeFromIdleWriteListChecked
@@ -16,6 +16,7 @@ SRCS(
     doc.go
     errors.go
     grpc_client.go
+    grpc_dp.go
     key.go
     metrics.go
     metrics_monitoring_exporter.go
@@ -32,6 +33,7 @@ SRCS(
     statement.go
     stats.go
     timestampbound.go
+    trace.go
     transaction.go
     value.go
 )
@@ -59,6 +61,7 @@ GO_TEST_SRCS(
     # sessionclient_test.go
     # statement_test.go
     timestampbound_test.go
+    trace_test.go
     # transaction_test.go
     # value_benchmarks_test.go
     # value_test.go

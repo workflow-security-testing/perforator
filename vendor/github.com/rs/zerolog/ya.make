@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(MIT)
 
-VERSION(v1.32.0)
+VERSION(v1.34.0)
 
 SRCS(
     array.go

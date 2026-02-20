@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(Apache-2.0)
 
-VERSION(v1.83.0)
+VERSION(v1.84.1)
 
 SRCS(
     change_stream.pb.go
