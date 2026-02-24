@@ -6,7 +6,7 @@
     "title": "Biome",
     "description": "Biome is a fast formatter for JavaScript, TypeScript, JSX, TSX, JSON, CSS and GraphQL that scores 97% compatibility with Prettier, saving CI and developer time.\n\n[Подробнее про линтинг в tier-0](https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint)",
     "type": "NPM_PACKAGE",
-    "default": "2.3.13",
+    "default": "2.3.14",
     "links": {
       "Home": "https://biomejs.dev/",
       "Sources": "https://github.com/biomejs/biome",
@@ -16,6 +16,10 @@
     "specifier": ">=2.0.0",
     "useDirectly": true,
     "versions": {
+      "2.3.14": {
+        "add_date": "2026-02-24T05:31:12",
+        "resources": []
+      },
       "2.3.13": {
         "add_date": "2026-02-10T05:31:01",
         "resources": []
@@ -58,7 +62,7 @@
     "title": "rspack CLI",
     "description": "CLI часть от `rspack`, вынесенная в отдельный пакет.\n\nНеобходима на проекте для того, чтобы мочь в принципе запускать сборку `rspack`.",
     "type": "NPM_PACKAGE",
-    "default": "1.7.4",
+    "default": "1.7.5",
     "links": {
       "Home": "https://rspack.rs/api/cli",
       "Sources": "https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-cli",
@@ -68,6 +72,10 @@
     "specifier": ">=1.3.11",
     "useDirectly": true,
     "versions": {
+      "1.7.5": {
+        "add_date": "2026-02-24T05:31:30",
+        "resources": []
+      },
       "1.7.4": {
         "add_date": "2026-02-17T05:32:53",
         "resources": []
@@ -182,7 +190,7 @@
     "title": "rspack Core",
     "description": "Альтернативный сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_RSPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_RSPACK).",
     "type": "NPM_PACKAGE",
-    "default": "1.7.4",
+    "default": "1.7.5",
     "links": {
       "Home": "https://rspack.rs",
       "Sources": "https://github.com/web-infra-dev/rspack",
@@ -192,6 +200,10 @@
     "specifier": ">=1.3.11",
     "useDirectly": true,
     "versions": {
+      "1.7.5": {
+        "add_date": "2026-02-24T05:31:40",
+        "resources": []
+      },
       "1.7.4": {
         "add_date": "2026-02-17T05:33:16",
         "resources": []
@@ -2129,7 +2141,7 @@
     "title": "ESLint",
     "description": "Статический анализатор кода (линтер).\n\nОсуществляет поиск, а иногда и исправление частых ошибок.\nМожет следить за стилем кода, форматированием.\n\nРасширяем плагинами (Typescript, Prettier, Stylelint).\n\n[Подробнее про линтинг в tier-0](https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint)",
     "type": "NPM_PACKAGE",
-    "default": "9.39.2",
+    "default": "10.0.0",
     "links": {
       "Home": "https://eslint.org",
       "Sources": "https://github.com/eslint/eslint",
@@ -2138,6 +2150,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "10.0.0": {
+        "add_date": "2026-02-24T05:31:50",
+        "resources": []
+      },
       "9.39.2": {
         "add_date": "2025-12-30T05:31:46",
         "resources": []
@@ -2622,6 +2638,10 @@
       },
       "16.0.7": {
         "add_date": "2025-12-04T04:07:01",
+        "resources": []
+      },
+      "15.5.12": {
+        "add_date": "2026-02-24T05:32:06",
         "resources": []
       },
       "15.5.11": {
@@ -6301,7 +6321,7 @@
     "title": "Stylelint",
     "description": "Инструмент для линтинга файлов стилей.\n\nИспользуется в макросе [TS_STYLELINT()](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint).",
     "type": "NPM_PACKAGE",
-    "default": "17.1.0",
+    "default": "17.1.1",
     "links": {
       "Home": "https://stylelint.io/",
       "Sources": "https://github.com/stylelint/stylelint",
@@ -6311,6 +6331,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "17.1.1": {
+        "add_date": "2026-02-24T05:42:33",
+        "resources": []
+      },
       "17.1.0": {
         "add_date": "2026-02-17T05:39:24",
         "resources": []
@@ -7038,7 +7062,7 @@
     "title": "webpack",
     "description": "Классический сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_WEBPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_WEBPACK).",
     "type": "NPM_PACKAGE",
-    "default": "5.104.1",
+    "default": "5.105.0",
     "links": {
       "Home": "https://webpack.js.org",
       "Sources": "https://github.com/webpack/webpack",
@@ -7048,6 +7072,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "5.105.0": {
+        "add_date": "2026-02-24T05:42:51",
+        "resources": []
+      },
       "5.104.1": {
         "add_date": "2026-01-06T05:33:27",
         "resources": []
