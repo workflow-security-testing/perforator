@@ -987,10 +987,7 @@ export const renderFlamegraph: RenderFlamegraphType = (
     }
 
 
-    // maybe ignore vertiacal resizes?
     const onResize = () => requestAnimationFrame(() => {
-
-        if (canvasWidth === canvas.offsetWidth) {return;}
         const initialH = parseInt(getState('frameDepth', '0'));
         const initialI = parseInt(getState('framePos', '0'));
         //@ts-ignore
