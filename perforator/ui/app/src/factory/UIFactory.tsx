@@ -86,4 +86,6 @@ export class UIFactory {
     sampleSizes = () => [1, 10, 50, 100, 500, 1000];
     defaultSampleSize = () => 100;
     goToDefinitionHref = (_: StringifiedNode): string => '';
+
+    reachGoal = (_: string) => {};
 }

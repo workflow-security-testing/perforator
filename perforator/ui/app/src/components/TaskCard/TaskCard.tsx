@@ -29,9 +29,26 @@ export interface TaskCardProps {
     error?: Error;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = props => {
-    const { task } = props;
+const renderTraceLink = (traceId?: string) => {
+    if (!traceId) {
+        return null;
+    }
+    const traceUrl = uiFactory().makeTraceUrl(traceId);
+    const link = traceUrl
+        ? (
+            <Link href={traceUrl} target="_blank">
+                {traceId}
+            </Link>
+        ) : traceId;
+    return (
+        <>
+            {link}
+            <ClipboardButton className="task-card__button-copy" size="xs" text={traceId} />
+        </>
+    );
+};
 
+export const TaskCard: React.FC<TaskCardProps> = ({ task, ...props } )=> {
     const status = task?.Status;
     const state = status?.State || TaskState.Unknown;
     const spec = task?.Spec?.MergeProfiles;
@@ -41,8 +58,8 @@ export const TaskCard: React.FC<TaskCardProps> = props => {
     const query = spec?.Query;
     const traceId = task?.Spec?.TraceBaggage?.Baggage?.traceparent?.match(/^[^-]{2}-([^-]*)-.*/)?.[1];
 
-    const isDiff = isDiffTaskResult(props.task);
-    const isLegacyFormat = isDiff && 'FlamegraphOptions' in (props.task?.Spec?.DiffProfiles || {});
+    const isDiff = isDiffTaskResult(task);
+    const isLegacyFormat = isDiff && 'FlamegraphOptions' in (task?.Spec?.DiffProfiles || {});
     const format = getFormat(spec?.Format) ?? getFormat(diffSpec?.RenderFormat) ?? (isLegacyFormat ? 'Flamegraph' : undefined);
 
     React.useMemo(() => {
@@ -64,24 +81,6 @@ export const TaskCard: React.FC<TaskCardProps> = props => {
         <Selector selector={diffQuery.Selector} />
     ) : null;
 
-    const renderTraceLink = () => {
-        if (!traceId) {
-            return null;
-        }
-        const traceUrl = uiFactory().makeTraceUrl(traceId);
-        const link = traceUrl
-            ? (
-                <Link href={traceUrl} target="_blank">
-                    {traceId}
-                </Link>
-            ) : traceId;
-        return (
-            <>
-                {link}
-                <ClipboardButton className="task-card__button-copy" size="xs" text={traceId} />
-            </>
-        );
-    };
 
     const properties: DefinitionListItem[] = [
         ['Selector', querySelector],
@@ -99,7 +98,7 @@ export const TaskCard: React.FC<TaskCardProps> = props => {
         ['Profile count', spec?.MaxSamples],
         ['Baseline profile count', diffSpec?.BaselineQuery?.MaxSamples],
         ['Diff profile count', diffSpec?.DiffQuery?.MaxSamples],
-        ['Trace', renderTraceLink()],
+        ['Trace', renderTraceLink(traceId)],
         ['Flamegraph format', format === 'Flamegraph' ? 'HTML' : undefined],
         ['Executor', getExecutor({ attempts: status?.Attempts })],
     ];
@@ -188,4 +187,3 @@ function TaskButtons({ format, isDiff, query, spec }: TaskButtonsProps) {
         ) : null}
     </div>;
 }
-

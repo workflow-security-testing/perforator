@@ -13,3 +13,7 @@ export const parseTimeInterval = (interval: TimeInterval): TimeInterval<DateTime
     start: parseTime(interval.start) || parseTime('now-1d'),
     end: parseTime(interval.end) || parseTime('now'),
 });
+
+export const areIntervalsEqual = (lhs: TimeInterval, rhs: TimeInterval): boolean => (
+    lhs.start === rhs.start && lhs.end === rhs.end
+);

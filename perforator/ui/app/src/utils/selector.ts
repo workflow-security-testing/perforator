@@ -18,7 +18,7 @@ export const makeSelectorFromConditions = (conditions: SelectorCondition[]): str
     return `{${conditionStrings.join(', ')}}`;
 };
 
-const makeTimeConditions = (query: ProfileTaskQuery): SelectorCondition[] => ([
+export const makeTimeConditions = (query: Pick<ProfileTaskQuery, 'from' | 'to'>): SelectorCondition[] => ([
     { field: 'timestamp', operator: '>=', value: getIsoDate(query.from)! },
     { field: 'timestamp', operator: '<=', value: getIsoDate(query.to)! },
 ]);
@@ -83,6 +83,18 @@ const timestampCutRegex = new RegExp(`((${timestampRg})(,\\s*)?)|((,\\s*)?${time
 
 export function cutTimeFromSelector(selector: string): string {
     return selector.replace(timestampCutRegex, '');
+}
+
+export function cutIdFromSelector(selector: string): string {
+    return selector.replace(/id\s*=\s*"(.*?)"/, '');
+}
+
+export function insertStatementIntoSelector(selector: string, statement: string): string {
+    if (selector.length > 0 && selector[selector.length - 1] === '}') {
+        const clearedSelector = removeOptionalTailingComma(selector);
+        return clearedSelector.slice(0, -1) + ',' + statement + '}';
+    }
+    return '';
 }
 
 export const SELECTOR_CONDITION_KEYS: (keyof SelectorCondition)[] = ['field', 'operator', 'value'];

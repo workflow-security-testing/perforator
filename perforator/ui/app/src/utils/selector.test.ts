@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { cutTimeFromSelector, parseTimestampFromSelector, validateSelectorContainsOnlyService } from './selector';
+import { cutTimeFromSelector, insertStatementIntoSelector, parseTimestampFromSelector, validateSelectorContainsOnlyService } from './selector';
 
 
 const selector = '{service="perforator.perforator-proxy-prod",timestamp>="2024-08-26T09:56:12.624Z", timestamp<="2024-08-27T09:56:12.625Z"}';
@@ -12,6 +12,15 @@ describe('well-known field parser', () => {
             from: '2024-08-26T09:56:12.624Z',
             to: '2024-08-27T09:56:12.625Z',
         });
+    });
+});
+
+describe('insertStatementIntoSelector', () => {
+    it('should insert statement into selector', () => {
+        expect(insertStatementIntoSelector(selector, 'smbhElseSel="smbhElse"')).toEqual('{service="perforator.perforator-proxy-prod",timestamp>="2024-08-26T09:56:12.624Z", timestamp<="2024-08-27T09:56:12.625Z",smbhElseSel="smbhElse"}');
+    });
+    it('should insert statement into selector with trailing comma', () => {
+        expect(insertStatementIntoSelector('{service="perforator.perforator-proxy-prod",}', 'smbhElseSel="smbhElse"')).toEqual('{service="perforator.perforator-proxy-prod",smbhElseSel="smbhElse"}');
     });
 });
 

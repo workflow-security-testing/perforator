@@ -4,11 +4,13 @@ import { useParams } from 'react-router-dom';
 
 import { Fullscreen } from 'src/components/Fullscreen/Fullscreen';
 import { FullscreenProvider } from 'src/components/Fullscreen/FullscreenProvider';
+import { EditableTaskTimeInterval } from 'src/components/TaskCard/EditableTaskTimeInterval';
 import { TaskCard as RawTaskCard } from 'src/components/TaskCard/TaskCard';
 import { TaskReport } from 'src/components/TaskReport/TaskReport';
 import type { TaskResult } from 'src/models/Task';
 import { TaskState } from 'src/models/Task';
 import { apiClient } from 'src/utils/api';
+import { isDiffTaskResult } from 'src/utils/renderingFormat';
 
 import type { Page } from './Page';
 
@@ -50,6 +52,8 @@ export const Task: Page = props => {
     }, [taskId]);
 
     const state = task?.Status?.State;
+
+    const isDiff = isDiffTaskResult(task);
     const isFinished = state === TaskState.Finished || state === TaskState.Failed;
     if (isFinished || error) {
         clearInterval(pollingInterval.current);
@@ -69,9 +73,14 @@ export const Task: Page = props => {
         ? (<TaskReport task={task} />)
         : null;
 
+    const timeline = (!isDiff && task) ? <EditableTaskTimeInterval
+        task={task}
+    /> : null;
+
     return (
         <FullscreenProvider>
             <Fullscreen>
+                {timeline}
                 {taskCard}
                 {taskReport}
             </Fullscreen>
