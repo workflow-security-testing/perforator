@@ -8,6 +8,7 @@ IF (NOT OPENSOURCE)
         sandbox
         scripts
         tasklets
+        ops
         v0
     )
 ENDIF()
