@@ -5,3 +5,6 @@
 .regexp-dialog__dialog .g-dialog-footer {
     padding-top: var(--g-spacing-3);
 }
+.regexp-dialog__checkbox:not(:nth-of-type(1)) {
+    margin-left: var(--g-spacing-3);
+}

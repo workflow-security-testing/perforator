@@ -10,20 +10,20 @@ export function escapeRegex(str: string) {
     return str.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
-export function makeTestFn(query: RegExp | string | undefined) {
-    if (typeof query === 'string') {
-        return (str: string) => str.includes(query);
-    }
+export function makeTestFn(query: RegExp | undefined, caseInsensitive = false) {
     if (typeof query === 'object' && query instanceof RegExp) {
+        if (caseInsensitive && !query.flags.includes('i')) {
+            return (str: string) => new RegExp(query.source, query.flags + 'i').test(str);
+        }
         return (str: string) => query.test(str);
     }
     return () => false;
 }
 
-export function search(readString: ReadString, shorten: StringModifier, shouldShorten: boolean, rows: ProfileData['rows'], query: RegExp | string, excludeQuery?: RegExp | string): DenselyPackedCoordinates {
+export function search(readString: ReadString, shorten: StringModifier, shouldShorten: boolean, rows: ProfileData['rows'], query: RegExp, excludeQuery?: RegExp, caseInsensitive = false): DenselyPackedCoordinates {
     const res: DenselyPackedCoordinates = [];
-    const test = makeTestFn(query);
-    const excludeTest = makeTestFn(excludeQuery);
+    const test = makeTestFn(query, caseInsensitive);
+    const excludeTest = makeTestFn(excludeQuery, caseInsensitive);
 
     const getNodeTitle = getNodeTitleFull.bind(null, readString, shorten, shouldShorten);
 

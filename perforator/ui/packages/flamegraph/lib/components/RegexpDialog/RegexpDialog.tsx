@@ -9,7 +9,7 @@ import { useRegexError } from './useRegexError';
 import './RegexpDialog.css';
 
 
-export type SearchUpdate = {text: string; exactMatch?: boolean; excludeText: string}
+export type SearchUpdate = {text: string; exactMatch?: boolean; excludeText: string; caseInsensitive?: boolean}
 
 interface RegexpDialogProps {
     showDialog: boolean;
@@ -17,30 +17,32 @@ interface RegexpDialogProps {
      initialSearch?: string | null;
      initialExact?: boolean | null;
      initialExcludeText?: string | null;
+     initialCaseInsensitive?: boolean | null;
      onSearchUpdate: (update: SearchUpdate) => void;
 }
 
-export function RegexpDialog({ showDialog, onCloseDialog, onSearchUpdate, initialExact, initialSearch, initialExcludeText }: RegexpDialogProps) {
+export function RegexpDialog({ showDialog, onCloseDialog, onSearchUpdate, initialExact, initialSearch, initialExcludeText, initialCaseInsensitive }: RegexpDialogProps) {
     const [searchQuery, setSearchQuery] = useState(initialSearch ?? '');
     const [excludeText, setExcludeText] = useState(initialExcludeText ?? '');
     const [exact, setExact] = useState(initialExact ?? false);
+    const [caseInsensitive, setCaseInsensitive] = useState(initialCaseInsensitive ?? false);
     const controlRef = React.useRef<null | HTMLInputElement>(null);
     const regexError = useRegexError(searchQuery);
     const excludeRegexError = useRegexError(excludeText);
 
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === 'Enter' && !regexError && !excludeRegexError) {
-            onSearchUpdate({ text: searchQuery, exactMatch: exact, excludeText });
+            onSearchUpdate({ text: searchQuery, exactMatch: exact, excludeText, caseInsensitive });
             e.preventDefault();
         }
-    }, [exact, onSearchUpdate, regexError, excludeRegexError, searchQuery, excludeText]);
+    }, [exact, onSearchUpdate, regexError, excludeRegexError, searchQuery, excludeText, caseInsensitive]);
 
     const handleApply = () => {
         if (regexError || excludeRegexError) {
             return;
         }
 
-        onSearchUpdate({ text: searchQuery, exactMatch: exact, excludeText });
+        onSearchUpdate({ text: searchQuery, exactMatch: exact, excludeText, caseInsensitive });
 
     };
 
@@ -75,7 +77,8 @@ export function RegexpDialog({ showDialog, onCloseDialog, onSearchUpdate, initia
                     onUpdate={handleExcludeUpdate}
                     error={Boolean(excludeRegexError)}
                     errorMessage={excludeRegexError} />
-                <Checkbox title="Disable regex parsing, literal mode" checked={exact} onUpdate={setExact}>Exact match</Checkbox>
+                <Checkbox className={'regexp-dialog__checkbox'} title="Disable regex parsing, literal mode" checked={exact} onUpdate={setExact}>Exact match</Checkbox>
+                <Checkbox className={'regexp-dialog__checkbox'} title="Case insensitive search" checked={caseInsensitive} onUpdate={setCaseInsensitive}>Case insensitive</Checkbox>
             </Dialog.Body>
             <Dialog.Footer
                 onClickButtonCancel={onCloseDialog}

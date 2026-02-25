@@ -22,7 +22,6 @@ import { getNodeTitleFull } from './node-title';
 import { pct } from './pct';
 import type { GetStateFromQuery, SetStateFromQuery } from './query-utils';
 import { parseStacks, stringifyStacks } from './query-utils';
-import { escapeRegex } from './search';
 import { shorten } from './shorten/shorten';
 import { getStatusTitleFull, renderTitleFull } from './title';
 
@@ -47,6 +46,7 @@ export type QueryKeys =
     | 'omittedIndexes'
     | 'keepOnlyFound'
     | 'exactMatch'
+    | 'caseInsensitive'
     | 'frameDepth'
     | 'tab'
     | 'topQuery'
@@ -60,7 +60,8 @@ export type RenderFlamegraphOptions = {
     isDiff: boolean;
     shortenFrameTexts: 'true' | 'false' | 'hover';
     onFinishRendering?: (opts?: {textNodesCount: number; delta: number; exceededLimit: boolean}) => void;
-    searchPattern: RegExp | string | null;
+    searchPattern: RegExp | null;
+    excludeSearchPattern: RegExp | null;
     reverse: boolean;
     disableHighlightRender: boolean;
     shouldScroll: boolean;
@@ -83,8 +84,8 @@ function makeByHDense(coords: DenselyPackedCoordinates): Record<H, Set<I>> {
 }
 
 interface RenderOpts {
-    pattern?: RegExp | string | null;
-    excludePattern?: RegExp | string | null;
+    pattern?: RegExp | null;
+    excludePattern?: RegExp | null;
 }
 
 
@@ -753,14 +754,8 @@ export const renderFlamegraph: RenderFlamegraphType = (
 
         const currentNodeCoords = fg.currentNodeCoords;
         const currentNode = rows[currentNodeCoords[0]][currentNodeCoords[1]];
-        let pattern = opts?.pattern;
-        if (typeof pattern === 'string') {
-            pattern = new RegExp(escapeRegex(pattern));
-        }
-        let excludePattern = opts?.excludePattern;
-        if (typeof excludePattern === 'string') {
-            excludePattern = new RegExp(escapeRegex(excludePattern));
-        }
+        const pattern = opts?.pattern;
+        const excludePattern = opts?.excludePattern;
 
         for (let h = 0; h < rows.length; h++) {
             const y = fg.calcTopOffset(h);

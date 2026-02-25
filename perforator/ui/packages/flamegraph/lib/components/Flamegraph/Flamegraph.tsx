@@ -5,6 +5,7 @@ import { ArrowRightArrowLeft, BarsAscendingAlignLeftArrowUp, BarsDescendingAlign
 import { Button, Icon, Switch } from '@gravity-ui/uikit';
 
 import type { DenselyPackedCoordinates } from '../../densely-packed';
+import { useSearchPattern } from '../../hooks/use-search-pattern';
 import type { GoToDefinitionHref } from '../../models/goto';
 import type { ProfileData, StringifiedNode } from '../../models/Profile';
 import type { UserSettings } from '../../models/UserSettings';
@@ -159,11 +160,15 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
             'flamegraphQuery': encodeURIComponent(update.text),
             exactMatch: update.exactMatch ? 'true' : undefined,
             'flamegraphExclude': update.excludeText ? encodeURIComponent(update.excludeText) : false,
+            caseInsensitive: update.caseInsensitive ? 'true' : undefined,
         });
         onSearch?.(update.text);
         setShowDialog(false);
     };
-    const exactMatch = getQuery('exactMatch');
+    const exactMatch = getQuery('exactMatch') === 'true';
+    const caseInsensitive = getQuery('caseInsensitive') === 'true';
+
+    const { searchPattern, excludeSearchPattern } = useSearchPattern(search, excludeSearch, exactMatch, caseInsensitive);
 
     const foundCoords: DenselyPackedCoordinates | null = useMemo(() => {
         if (!profileData || !search || !keepOnlyFound) {
@@ -177,11 +182,8 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
         };
         const shouldShortenTextForOverview = userSettings.shortenFrameTexts === 'true' || userSettings.shortenFrameTexts === 'hover';
 
-        const searchPattern = exactMatch === 'true' ? decodeURIComponent(search) : RegExp(decodeURIComponent(search));
-        const excludeSearchPattern = excludeSearch ? (exactMatch === 'true' ? decodeURIComponent(excludeSearch) : RegExp(decodeURIComponent(excludeSearch))) : null;
-
         return searchFn(readString, shorten, shouldShortenTextForOverview, profileData.rows, searchPattern, excludeSearchPattern);
-    }, [profileData, search, excludeSearch, exactMatch, keepOnlyFound, userSettings.shortenFrameTexts]);
+    }, [profileData, search, keepOnlyFound, userSettings.shortenFrameTexts, searchPattern, excludeSearchPattern]);
 
     React.useEffect(() => {
         if (flamegraphContainer.current) {
@@ -199,7 +201,8 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                 theme,
                 shortenFrameTexts: userSettings.shortenFrameTexts,
                 isDiff,
-                searchPattern: search ? exactMatch === 'true' ? decodeURIComponent(search) : RegExp(decodeURIComponent(search)) : null,
+                searchPattern: searchPattern,
+                excludeSearchPattern: excludeSearchPattern,
                 reverse,
                 onFinishRendering,
                 foundCoords,
@@ -235,7 +238,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
             }
         }
         return () => { };
-    }, [exactMatch, getQuery, isDiff, profileData, reverse, search, setQuery, theme, userSettings, levelHeight, onFinishRendering, isLeftHeavy, shouldTrim, foundCoords]);
+    }, [getQuery, isDiff, profileData, reverse, setQuery, theme, userSettings, levelHeight, onFinishRendering, isLeftHeavy, shouldTrim, foundCoords, searchPattern, excludeSearchPattern, useSelfAsScrollParent]);
 
     const handleContextMenu = React.useCallback((event: React.MouseEvent) => {
         if (!flamegraphContainer.current || !profileData || !flamegraphOffsets.current) {
@@ -381,6 +384,7 @@ export const Flamegraph: React.FC<FlamegraphProps> = ({
                     initialSearch={search}
                     initialExact={getQuery('exactMatch') === 'true'}
                     initialExcludeText={excludeSearch}
+                    initialCaseInsensitive={getQuery('caseInsensitive') === 'true'}
                 />}
                 <div className="flamegraph__header">
                     <div className="flamegraph__buttons">

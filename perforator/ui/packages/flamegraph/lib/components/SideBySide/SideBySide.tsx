@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Divider } from '@gravity-ui/uikit';
 
 import type { DenselyPackedCoordinates } from '../../densely-packed';
+import { useSearchPattern } from '../../hooks/use-search-pattern';
 import { parseStacks } from '../../query-utils';
 import { search as outerSearch } from '../../search';
 import { calculateTopForTable } from '../../top';
@@ -24,10 +25,11 @@ export function SideBySide(props: SideBySideProps) {
     const omitted = getState('omittedIndexes', '');
     const keepOnlyFound = getState('keepOnlyFound') === 'true';
     const search = getState('flamegraphQuery');
-    const exactMatch = getState('exactMatch');
+    const exactMatch = getState('exactMatch') === 'true';
     const excludeSearch = getState('flamegraphExclude');
+    const caseInsensitive = getState('caseInsensitive') === 'true';
 
-    const searchFn = React.useCallback((query: RegExp | string, omitQuery?: RegExp | string): DenselyPackedCoordinates => {
+    const searchFn = React.useCallback((query: RegExp, omitQuery?: RegExp): DenselyPackedCoordinates => {
         if (!profileData.rows) {
             return [];
         }
@@ -37,17 +39,17 @@ export function SideBySide(props: SideBySideProps) {
 
         return outerSearch(readString, (str) => str, false, profileData.rows, query, omitQuery);
     }, [profileData.rows, profileData?.stringTable]);
+
+    const { searchPattern, excludeSearchPattern } = useSearchPattern(search, excludeSearch, exactMatch, caseInsensitive);
+
     const topData = React.useMemo(() => {
         let keepCoords: DenselyPackedCoordinates | null = null;
         if (keepOnlyFound && search) {
 
-            keepCoords = searchFn(
-                exactMatch === 'true' ? decodeURIComponent(search) : RegExp(decodeURIComponent(search)),
-                exactMatch === 'true' ? decodeURIComponent(excludeSearch) : RegExp(decodeURIComponent(excludeSearch)),
-            );
+            keepCoords = searchFn(searchPattern, excludeSearchPattern);
         }
         return profileData ? calculateTopForTable(profileData.rows, profileData.stringTable.length, { rootCoords: [frameDepth, framePos] as [number, number], omitted: parseStacks(omitted), keepCoords }) : null;
-    }, [keepOnlyFound, search, profileData, frameDepth, framePos, omitted, searchFn, exactMatch, excludeSearch]);
+    }, [keepOnlyFound, search, excludeSearchPattern, searchPattern, profileData, frameDepth, framePos, omitted, searchFn]);
     return <div className={b()}>
         <TopTable
             lines={100}
