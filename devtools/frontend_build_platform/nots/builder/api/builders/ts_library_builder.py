@@ -78,6 +78,7 @@ class TsLibraryBuilder(BaseBuilder):
             'pack',
             '--json',
             '--dry-run',
+            '--config.ignoreScripts=true',
         ]
         return_code, stdout, stderr = popen(args, env=self._get_envs(), cwd=self.options.bindir)
 
