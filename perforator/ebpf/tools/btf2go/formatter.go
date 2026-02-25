@@ -561,6 +561,33 @@ func (f *GoFormatter) generateStructUnmarshal(w *strings.Builder, v *btf.Struct,
 	fmt.Fprint(w, "}\n")
 }
 
+func (f *GoFormatter) generateStructUnmarshalUnsafe(w *strings.Builder, v *btf.Struct, name string) {
+	fmt.Fprintf(w, "func (v *%s) UnmarshalBinaryUnsafe(data []byte) error {\n", name)
+	fmt.Fprint(w, "  if uintptr(len(data)) < unsafe.Sizeof(*v) {\n")
+	fmt.Fprint(w, "    return errors.New(\"cannot unmarshal from []byte, wrong slice length\")\n  }\n")
+	fmt.Fprintf(w, "  *v = *(*%s)(unsafe.Pointer(&data[0]))\n", name)
+	fmt.Fprint(w, "  return nil\n")
+	fmt.Fprint(w, "}\n")
+}
+
+func (f *GoFormatter) generateStructLayoutCheck(w *strings.Builder, v *btf.Struct, name string) {
+	fmt.Fprintf(w, "// The following var block performs a compile-time check to ensure that the memory layout of the C struct\n")
+	fmt.Fprintf(w, "// matches the memory layout of the corresponding Go struct. This is necessary because UnmarshalBinaryUnsafe\n")
+	fmt.Fprintf(w, "// casts the raw bytes of the C struct to the Go struct, which requires the layouts to be identical.\n")
+	fmt.Fprintf(w, "var (\n")
+	fmt.Fprintf(w, "\t// Check struct size\n")
+	fmt.Fprintf(w, "\t_ = [1]byte{}[unsafe.Sizeof(%s{}) - %d]\n", name, v.Size)
+	fmt.Fprintf(w, "\n")
+	fmt.Fprintf(w, "\t// Check field offsets\n")
+	for _, member := range v.Members {
+		memberName := snakeToPascal(member.Name)
+		expectedOffset := member.Offset / 8
+
+		fmt.Fprintf(w, "\t_ = [1]byte{}[unsafe.Offsetof(%s{}.%s) - %d]\n", name, memberName, expectedOffset)
+	}
+	fmt.Fprintf(w, ")\n")
+}
+
 func (f *GoFormatter) generateUnionParser(w *strings.Builder, v *btf.Union, name string) {
 	fmt.Fprintf(w, "func parse%s(data []byte) %s {\n", strings.Title(name), name)
 	fmt.Fprintf(w, "  result := (*[%d]byte)(data)\n", v.Size)
@@ -700,6 +727,13 @@ func (f *GoFormatter) visitStruct(v *btf.Struct) (*typeInfo, error) {
 	}
 	fmt.Fprint(w, "\n")
 	f.generateStructUnmarshal(w, v, name)
+	fmt.Fprint(w, "\n")
+
+	if f.isNaturallyAligned(v) {
+		f.generateStructUnmarshalUnsafe(w, v, name)
+		fmt.Fprint(w, "\n")
+		f.generateStructLayoutCheck(w, v, name)
+	}
 
 	return &typeInfo{
 		SystemName: v.Name,
@@ -834,6 +868,121 @@ var engTitle = cases.Title(language.English)
 
 func capitalize(word string) string {
 	return engTitle.String(engLower.String(word))
+}
+
+func (f *GoFormatter) getNaturalAlignment(typ btf.Type) int {
+	switch v := typ.(type) {
+	case *btf.Int:
+		return int(v.Size)
+	case *btf.Pointer:
+		return 8
+	case *btf.Enum:
+		return int(v.Size)
+	case *btf.Array:
+		return f.getNaturalAlignment(v.Type)
+	case *btf.Typedef:
+		return f.getNaturalAlignment(v.Type)
+	case *btf.Volatile:
+		return f.getNaturalAlignment(v.Type)
+	case *btf.Const:
+		return f.getNaturalAlignment(v.Type)
+	case *btf.Restrict:
+		return f.getNaturalAlignment(v.Type)
+	case *btf.Union, *btf.Struct:
+		var members []btf.Member
+		if s, ok := v.(*btf.Struct); ok {
+			members = s.Members
+		} else {
+			members = v.(*btf.Union).Members
+		}
+		maxAlign := 1
+		for _, m := range members {
+			mAlign := f.getNaturalAlignment(m.Type)
+			if mAlign > maxAlign {
+				maxAlign = mAlign
+			}
+		}
+		return maxAlign
+	default:
+		return 1
+	}
+}
+
+func (f *GoFormatter) unwrap(t btf.Type) btf.Type {
+	for {
+		switch v := t.(type) {
+		case *btf.Typedef:
+			t = v.Type
+		case *btf.Volatile:
+			t = v.Type
+		case *btf.Const:
+			t = v.Type
+		case *btf.Restrict:
+			t = v.Type
+		default:
+			return t
+		}
+	}
+}
+
+func (f *GoFormatter) isTypeNaturallyAligned(t btf.Type) bool {
+	t = f.unwrap(t)
+
+	switch v := t.(type) {
+	case *btf.Array:
+		// For arrays, the element size must be a multiple of its alignment,
+		// otherwise the C array stride (packed) will differ from Go array stride (aligned).
+		elemSize, err := btf.Sizeof(v.Type)
+		if err != nil {
+			return false
+		}
+		elemAlign := f.getNaturalAlignment(v.Type)
+		if elemSize%elemAlign != 0 {
+			return false
+		}
+		return f.isTypeNaturallyAligned(v.Type)
+
+	case *btf.Struct:
+		return f.isNaturallyAligned(v)
+
+	case *btf.Union:
+		for _, m := range v.Members {
+			if !f.isTypeNaturallyAligned(m.Type) {
+				return false
+			}
+		}
+		return true
+	}
+
+	return true
+}
+
+func (f *GoFormatter) isNaturallyAligned(v *btf.Struct) bool {
+	// Check total size alignment.
+	structAlign := f.getNaturalAlignment(v)
+	if int(v.Size)%structAlign != 0 {
+		return false
+	}
+
+	for _, member := range v.Members {
+		// Bitfields are never naturally aligned in a way that Go can handle via direct copy.
+		if member.Offset%8 != 0 {
+			return false
+		}
+
+		align := f.getNaturalAlignment(member.Type)
+		if int(member.Offset/8)%align != 0 {
+			// Field is misaligned (likely due to __attribute__((packed))).
+			return false
+		}
+
+		// Recursively check member type.
+		if !f.isTypeNaturallyAligned(member.Type) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func snakeToPascal(name string) string {

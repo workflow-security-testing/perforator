@@ -4,6 +4,7 @@ PEERDIR(
     perforator/ebpf/examples/05-lpm-trie/prog
     vendor/github.com/cilium/ebpf
     ${GOSTD}/errors
+    ${GOSTD}/unsafe
 )
 
 RUN_PROGRAM(

@@ -775,6 +775,9 @@ func testEnvConfig() *Config {
 					Type:      perfevent.CPUCycles.Name(),
 					Frequency: ptr.Uint64(99),
 				}},
+				FeatureFlagsConfig: profiler_config.FeatureFlagsConfig{
+					EnableSampleParsingBypass: ptr.Bool(true),
+				},
 			},
 			CPOService: &agentcpo.ServiceConfig{
 				Host: "localhost",

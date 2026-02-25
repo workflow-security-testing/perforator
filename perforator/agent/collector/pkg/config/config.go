@@ -106,6 +106,10 @@ type FeatureFlagsConfig struct {
 	EnableJVM    *bool `yaml:"enable_jvm"`
 	EnablePHP    *bool `yaml:"enable_php"`
 	EnableSframe *bool `yaml:"enable_sframe"`
+
+	// EnableSampleParsingBypass governs new, faster parser for recorded samples, relying on underspecified Go guarantees.
+	// In the worst case (i.e. when using other Go implementation with weaker guarantees) this may cause crashes or corrupt samples.
+	EnableSampleParsingBypass *bool `yaml:"enable_sample_parsing_bypass"`
 }
 
 func (f *FeatureFlagsConfig) JVMEnabled() bool {
@@ -127,6 +131,13 @@ func (f *FeatureFlagsConfig) SframeEnabled() bool {
 		return false
 	}
 	return *f.EnableSframe
+}
+
+func (f *FeatureFlagsConfig) SampleParsingBypassEnabled() bool {
+	if f.EnableSampleParsingBypass == nil {
+		return false
+	}
+	return *f.EnableSampleParsingBypass
 }
 
 type Config struct {

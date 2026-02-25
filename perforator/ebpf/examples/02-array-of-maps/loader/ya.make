@@ -4,6 +4,7 @@ PEERDIR(
     perforator/ebpf/examples/02-array-of-maps/prog
     vendor/github.com/cilium/ebpf
     ${GOSTD}/errors
+    ${GOSTD}/unsafe
 )
 
 RUN_PROGRAM(

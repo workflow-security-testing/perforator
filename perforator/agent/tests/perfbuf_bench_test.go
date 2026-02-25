@@ -30,7 +30,7 @@ type perfbufBenchConfig struct {
 }
 
 var (
-	concurrenciesToTry = []int{1, 2, 4}
+	concurrenciesToTry = []int{4, 8, 16}
 )
 
 var perfbufBaseBenchConfigs = [3]perfbufBenchConfig{
@@ -117,6 +117,9 @@ func runPerfbufBenchmark(b *testing.B, binaryPath string, bc perfbufBenchConfig)
 			TraceLBR:      ptr.Bool(false),
 			TraceWallTime: ptr.Bool(false),
 			TraceSignals:  ptr.Bool(false),
+		},
+		FeatureFlagsConfig: config.FeatureFlagsConfig{
+			EnableSampleParsingBypass: ptr.Bool(true),
 		},
 		PerfEvents: []config.PerfEventConfig{},
 		SampleConsumer: config.SampleConsumerConfig{

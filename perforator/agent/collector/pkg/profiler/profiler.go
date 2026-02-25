@@ -1016,6 +1016,19 @@ func (p *Profiler) openSampleReader(watermark int, sampleCallback machine.RawSam
 	return p.bpf.MakeSampleReader(opts)
 }
 
+type sampleUnmarshaller struct {
+	sample *unwinder.RecordSample
+	bypass bool
+}
+
+func (u *sampleUnmarshaller) UnmarshalBinary(data []byte) error {
+	if u.bypass {
+		return u.sample.UnmarshalBinaryUnsafe(data)
+	}
+
+	return u.sample.UnmarshalBinary(data)
+}
+
 func (p *Profiler) runSampleReader(ctx context.Context) error {
 	stopSource := p.sampleReaderShutdown.GetSource()
 	defer stopSource.Finish()
@@ -1026,7 +1039,10 @@ func (p *Profiler) runSampleReader(ctx context.Context) error {
 	}
 	defer reader.Close()
 
-	var sample unwinder.RecordSample
+	unmarshaller := &sampleUnmarshaller{
+		sample: &unwinder.RecordSample{},
+		bypass: p.conf.FeatureFlagsConfig.SampleParsingBypassEnabled(),
+	}
 
 	for {
 		select {
@@ -1037,13 +1053,13 @@ func (p *Profiler) runSampleReader(ctx context.Context) error {
 		default:
 		}
 
-		p.readSample(ctx, reader, &sample)
+		p.readSample(ctx, reader, unmarshaller)
 	}
 
 gracefulstop:
 	p.log.Debug("Graceful shutdown has been requested, going to drain sample queue")
 
-	for p.readSample(ctx, reader, &sample) {
+	for p.readSample(ctx, reader, unmarshaller) {
 		// drain sample queue
 	}
 
@@ -1054,19 +1070,20 @@ gracefulstop:
 		return err
 	}
 
-	for p.readSample(ctx, reader, &sample) {
+	for p.readSample(ctx, reader, unmarshaller) {
 		// drain sample queue once again
 	}
 
 	return nil
 }
 
-func (p *Profiler) readSample(ctx context.Context, reader *machine.PerfReader, sample *unwinder.RecordSample) bool {
-	err := reader.Read(ctx, sample)
+func (p *Profiler) readSample(ctx context.Context, reader *machine.PerfReader, unmarshaller *sampleUnmarshaller) bool {
+	err := reader.Read(ctx, unmarshaller)
 	if err != nil {
 		return false
 	}
 
+	sample := unmarshaller.sample
 	p.metrics.samplesDuration.Add(int64(sample.Runtime))
 
 	consumers := p.sampleConsumerRegistry.Consumers()
