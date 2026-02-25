@@ -58,9 +58,11 @@ func NewSymbolizer(
 		gsymBinaryProvider: gsymBinaryProvider,
 		symbolizer:         symbolizer,
 		metrics: &symbolizerMetrics{
-			symbolizationTimer:      reg.Timer("symbolization.timer"),
-			unknownBinaries:         reg.Counter("unknown_binaries.count"),
-			unsymbolizableLocations: reg.Counter("unsymbolizable_locations.count"),
+			symbolizationTimer:        reg.Timer("symbolization.timer"),
+			unknownBinaries:           reg.Counter("unknown_binaries.count"),
+			unsymbolizableLocations:   reg.Counter("unsymbolizable_locations.count"),
+			binariesWithDWARFFallback: reg.Counter("binaries_with_dwarf_fallback.count"),
+			binariesWithGSYM:          reg.Counter("binaries_with_gsym.count"),
 		},
 	}, nil
 }

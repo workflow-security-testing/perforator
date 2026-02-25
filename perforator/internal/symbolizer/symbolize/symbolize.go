@@ -30,9 +30,11 @@ func (*localSymbolizationPathProvider) Path(mapping *pprof.Mapping) string {
 }
 
 type symbolizerMetrics struct {
-	symbolizationTimer      metrics.Timer
-	unknownBinaries         metrics.Counter
-	unsymbolizableLocations metrics.Counter
+	symbolizationTimer        metrics.Timer
+	unknownBinaries           metrics.Counter
+	unsymbolizableLocations   metrics.Counter
+	binariesWithGSYM          metrics.Counter
+	binariesWithDWARFFallback metrics.Counter
 }
 
 type SymbolizationMode int
@@ -174,6 +176,9 @@ func (s *Symbolizer) acquireBinaries(ctx context.Context, buildIDs []string) (
 			buildIDsWithoutGSYM = append(buildIDsWithoutGSYM, buildID)
 		}
 	}
+	dwarf := len(buildIDsWithoutGSYM)
+	s.metrics.binariesWithDWARFFallback.Add(int64(dwarf))
+	s.metrics.binariesWithGSYM.Add(int64(len(buildIDs) - dwarf))
 	cachedBinaries, err = ScheduleBinaryDownloads(ctx, s.logger.WithName("WithoutGSYM"), buildIDsWithoutGSYM, s.binaryProvider, true)
 	if err != nil {
 		gsymCachedBinaries.Release()
