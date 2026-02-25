@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-02-25T11:59:45Z",
+    "created": "2026-02-25T14:23:55.948Z",
     "pr": {
-      "id": 11840139,
+      "id": 11839232,
       "author": "baymer",
-      "summary": "FBP-2877: ignore lifecycle scripts for pnpm pack pnpm pack реагирует на лайф скрипты ![image.png](https://arcanum.s3.mds.yandex.net/files/baymer/eZIqatJIb7GjSHd_g_fl4)"
+      "summary": "FBP-2877: Упаковывать TS_PACKAGE с помощью pnpm pack"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11203911254"
+      "uri": "sbr:11205927824"
     },
     "darwin-arm64": {
-      "uri": "sbr:11203908007"
+      "uri": "sbr:11205923366"
     },
     "linux": {
-      "uri": "sbr:11203917365"
+      "uri": "sbr:11205934899"
     },
     "linux-aarch64": {
-      "uri": "sbr:11203914206"
+      "uri": "sbr:11205931271"
     }
   }
 }
