@@ -337,7 +337,7 @@ require (
 	github.com/dnstap/golang-dnstap v0.4.0
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/docker v28.5.0+incompatible
-	github.com/docker/go-connections v0.5.0
+	github.com/docker/go-connections v0.6.0
 	github.com/docker/go-metrics v0.0.1
 	github.com/dolthub/swiss v0.1.0
 	github.com/dongri/phonenumber v0.1.12
@@ -694,7 +694,7 @@ require (
 	github.com/pion/rtcp v1.2.16
 	github.com/pion/rtp v1.8.26
 	github.com/pion/sctp v1.8.41
-	github.com/pion/sdp/v3 v3.0.16
+	github.com/pion/sdp/v3 v3.0.18
 	github.com/pion/transport/v3 v3.1.1
 	github.com/pion/webrtc/v3 v3.3.3
 	github.com/pion/webrtc/v4 v4.1.8

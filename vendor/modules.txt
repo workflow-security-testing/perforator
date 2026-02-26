@@ -6798,13 +6798,14 @@ github.com/docker/docker/registry
 ## explicit; go 1.19
 github.com/docker/docker-credential-helpers/client
 github.com/docker/docker-credential-helpers/credentials
-# github.com/docker/go-connections v0.5.0
+# github.com/docker/go-connections v0.6.0
 ## explicit; go 1.18
 github.com/docker/go-connections
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/proxy
 github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
+github.com/docker/go-connections/tlsconfig/fixtures
 # github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c
 ## explicit
 github.com/docker/go-events
@@ -13773,8 +13774,8 @@ github.com/pion/rtp/pkg/obu
 # github.com/pion/sctp v1.8.41
 ## explicit; go 1.21
 github.com/pion/sctp
-# github.com/pion/sdp/v3 v3.0.16
-## explicit; go 1.21
+# github.com/pion/sdp/v3 v3.0.18
+## explicit; go 1.24
 github.com/pion/sdp/v3
 # github.com/pion/srtp/v2 v2.0.20
 ## explicit; go 1.14
