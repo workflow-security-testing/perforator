@@ -489,19 +489,28 @@ func (s *Service) PushProfile(ctx context.Context, req *perforatorstorage.PushPr
 	)
 
 	if s.signalPublisher != nil && s.shouldPublishSignals(req.GetSignalTypes()) {
-		ev := &profile_event.SignalProfileEvent{
-			ProfileID:   profileID,
-			Service:     meta.Service,
-			Cluster:     meta.Cluster,
-			NodeID:      meta.NodeID,
-			PodID:       meta.PodID,
-			Timestamp:   meta.Timestamp.UTC(),
-			BuildIDs:    meta.BuildIDs,
-			MainEvent:   meta.MainEventType,
-			SignalTypes: req.GetSignalTypes(),
-		}
+		if slices.Contains(eventTypes, sampletype.SampleTypeSignalCount) {
+			ev := &profile_event.SignalProfileEvent{
+				ProfileID:   profileID,
+				Service:     meta.Service,
+				Cluster:     meta.Cluster,
+				NodeID:      meta.NodeID,
+				PodID:       meta.PodID,
+				Timestamp:   meta.Timestamp.UTC(),
+				BuildIDs:    meta.BuildIDs,
+				MainEvent:   sampletype.SampleTypeSignalCount,
+				SignalTypes: req.GetSignalTypes(),
+			}
 
-		s.signalPublisher.TryEnqueueForPublish(ctx, ev)
+			s.signalPublisher.TryEnqueueForPublish(ctx, ev)
+		} else {
+			l.Warn(ctx,
+				"Missing proper event type",
+				log.String("service", meta.Service),
+				log.Time("timestamp", meta.Timestamp),
+				log.String("profile_id", profileID),
+			)
+		}
 	}
 
 	return &perforatorstorage.PushProfileResponse{ID: profileID}, nil

@@ -442,18 +442,18 @@ func (c *Client) doMergeProfiles(
 	request *perforator.MergeProfilesRequest,
 	asURL bool,
 	taskAnnotation string,
-) ([]byte, []*perforator.ProfileMeta, error) {
-	_, res, err := c.MergeProfilesProto(ctx, request, taskAnnotation)
+) (string, []byte, []*perforator.ProfileMeta, error) {
+	taskID, res, err := c.MergeProfilesProto(ctx, request, taskAnnotation)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, nil, err
 	}
 
 	buf, err := c.fetchResult(res.GetProfile(), res.GetProfileURL(), asURL)
 	if err != nil {
-		return nil, nil, err
+		return "", nil, nil, err
 	}
 
-	return buf, res.GetProfileMeta(), nil
+	return taskID, buf, res.GetProfileMeta(), nil
 }
 
 func (c *Client) MergeProfilesProto(
@@ -506,7 +506,13 @@ func (c *Client) MergeProfiles(
 		Experimental: request.Experimental,
 	}
 
-	return c.doMergeProfiles(ctx, req, asURL, taskAnnotation)
+	taskID, buf, profilesMeta, err := c.doMergeProfiles(ctx, req, asURL, taskAnnotation)
+	c.l.Info(
+		ctx,
+		"Merged profile task id",
+		log.String("task.id", taskID),
+	)
+	return buf, profilesMeta, err
 }
 
 func (c *Client) GetPGOProfile(
@@ -735,6 +741,7 @@ func (c *Client) runTask(
 		}
 
 		c.l.Debug(ctx, "Fetched task",
+			log.String("task.id", id),
 			log.Any("state", state),
 			log.String("executor", executor),
 			log.Duration("runtime", time.Since(starttime)),
