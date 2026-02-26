@@ -38,12 +38,8 @@ def __add_uuid_for_output(bindir: str, output_file: str, outputs: list[str] | No
 
 
 def _postprocess_output(args: AllOptions) -> None:
-    with_after_build = getattr(args, 'with_after_build', False)
     output_file = getattr(args, 'output_file', args.node_modules_bundle)
     outputs = getattr(args, 'outputs', None)
-
-    if args.command == 'build-package' and not with_after_build:
-        output_file = args.node_modules_bundle
 
     if output_file and os.path.isfile(output_file):
         if output_file != args.node_modules_bundle:

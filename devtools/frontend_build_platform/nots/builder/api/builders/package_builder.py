@@ -34,7 +34,12 @@ class PackageBuilder(BaseLegacyBuilder):
         pack_data = json.loads(stdout)
 
         # Extract file paths from json['files'][]['path']
-        return [file_entry['path'] for file_entry in pack_data['files']]
+        # todo: всем прописать files в package.json
+        return [
+            file_entry['path']
+            for file_entry in pack_data['files']
+            if not file_entry['path'].startswith('__tarball__') and file_entry['path'] != 'pnpm-workspace.yaml'
+        ]
 
     @timeit
     def bundle(self):

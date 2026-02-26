@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2026-02-25T14:23:55.948Z",
+    "created": "2026-02-26T13:09:15.180Z",
     "pr": {
-      "id": 11839232,
+      "id": 11856341,
       "author": "baymer",
-      "summary": "FBP-2877: Упаковывать TS_PACKAGE с помощью pnpm pack"
+      "summary": "FBP-2877: fix calculating output.tar.uuid"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:11205927824"
+      "uri": "sbr:11218403246"
     },
     "darwin-arm64": {
-      "uri": "sbr:11205923366"
+      "uri": "sbr:11218399709"
     },
     "linux": {
-      "uri": "sbr:11205934899"
+      "uri": "sbr:11218410670"
     },
     "linux-aarch64": {
-      "uri": "sbr:11205931271"
+      "uri": "sbr:11218406589"
     }
   }
 }
