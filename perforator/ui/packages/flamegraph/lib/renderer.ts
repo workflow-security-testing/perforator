@@ -175,7 +175,7 @@ export class FlamegraphOffseter {
     }
 
     hasFramesWindowFor(h: number) {
-        return this.framesWindow[h * 2] !== undefined;
+        return this?.framesWindow?.[h * 2] !== undefined;
     }
 
     calcTopOffset(h: number) {
