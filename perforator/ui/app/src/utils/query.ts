@@ -24,7 +24,12 @@ export type GetStateFromQuery<T extends string = string> = (name: T, defaultValu
 
 export const getStateFromQueryParams: <T extends string = string>(params: URLSearchParams) => GetStateFromQuery<T> = (params) => (name, defaultValue) => {
     if (params.has(name)) {
-        return decodeURIComponent(params.get(name)!);
+        try {
+            return decodeURIComponent(params.get(name)!);
+        } catch (e) {
+            console.error(e);
+            return defaultValue;
+        }
     } else {
         return defaultValue;
     }
@@ -64,4 +69,3 @@ export function parseStacks(str: string) {
         return ([Number(level), Number(index)] as Coordinate);
     });
 }
-
