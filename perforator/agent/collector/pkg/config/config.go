@@ -135,7 +135,7 @@ func (f *FeatureFlagsConfig) SframeEnabled() bool {
 
 func (f *FeatureFlagsConfig) SampleParsingBypassEnabled() bool {
 	if f.EnableSampleParsingBypass == nil {
-		return false
+		return true
 	}
 	return *f.EnableSampleParsingBypass
 }
