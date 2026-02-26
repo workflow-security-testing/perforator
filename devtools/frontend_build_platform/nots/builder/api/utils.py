@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 import library.python.archive as archive
+import libarchive
 
 from build.plugins.lib.nots.package_manager import (
     constants as pm_constants,
@@ -71,7 +72,14 @@ def _extract_output_tar(moddir_abs: str):
     if not os.path.exists(output_tar_path):
         raise FileNotFoundError(output_tar_path)
 
-    archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False)
+    pj_exists = os.path.exists(os.path.join(moddir_abs, pm_constants.PACKAGE_JSON_FILENAME))
+
+    def pj_filter(e: libarchive.Entry):
+        # extract package.json if it does not exist yet
+        should_extract = e.pathname != pm_constants.PACKAGE_JSON_FILENAME or not pj_exists
+        return should_extract
+
+    archive.extract_tar(output_tar_path, moddir_abs, fail_on_duplicates=False, entry_filter=pj_filter)
 
 
 def __add_write_permissions(path):

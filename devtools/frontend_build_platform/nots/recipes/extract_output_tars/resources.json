@@ -1,24 +1,24 @@
 {
   "info": {
-    "created": "2025-10-09T13:57:41.919Z",
+    "created": "2026-02-20T06:52:12.149Z",
     "pr": {
-      "id": 10203687,
-      "author": "vturov",
-      "summary": "FBP-1712: jest: use install-node-modules recipe"
+      "id": 11751997,
+      "author": "zaverden",
+      "summary": "chore(dummy): migrate base examples to TS_LIBRARY"
     }
   },
   "by_platform": {
     "darwin": {
-      "uri": "sbr:9952124440"
+      "uri": "sbr:11164095285"
     },
     "darwin-arm64": {
-      "uri": "sbr:9952121039"
+      "uri": "sbr:11164093977"
     },
     "linux": {
-      "uri": "sbr:9952131254"
+      "uri": "sbr:11164097497"
     },
     "linux-aarch64": {
-      "uri": "sbr:9952127805"
+      "uri": "sbr:11164096254"
     }
   }
 }
