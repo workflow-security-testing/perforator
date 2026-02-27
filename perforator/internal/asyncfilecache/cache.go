@@ -233,25 +233,23 @@ func (f *AcquiredFileReference) State() FileState {
 }
 
 func (f *AcquiredFileReference) WaitStored(ctx context.Context) error {
-	if f.entry.getFSState() == Stored {
-		return nil
-	}
+	state := f.entry.getFSState()
 
 	for {
+		switch state {
+		case Stored:
+			return nil
+		case WriteFailed:
+			return ErrWriteFailed
+		}
+		var ok bool
 		select {
-		case state, ok := <-f.sub.Chan():
+		case state, ok = <-f.sub.Chan():
 			if !ok {
 				return ErrFSStateSubscriptionClosed
 			}
-
-			switch state {
-			case Stored:
-				return nil
-			case WriteFailed:
-				return ErrWriteFailed
-			}
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("canceled while waiting for file to be stored: %w", context.Cause(ctx))
 		}
 	}
 }
