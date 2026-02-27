@@ -695,6 +695,7 @@ require (
 	github.com/pion/rtp v1.8.26
 	github.com/pion/sctp v1.8.41
 	github.com/pion/sdp/v3 v3.0.18
+	github.com/pion/srtp/v3 v3.0.9
 	github.com/pion/transport/v3 v3.1.1
 	github.com/pion/webrtc/v3 v3.3.3
 	github.com/pion/webrtc/v4 v4.1.8
@@ -2085,7 +2086,6 @@ require (
 	github.com/pion/mdns/v2 v2.1.0 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/srtp/v2 v2.0.20 // indirect
-	github.com/pion/srtp/v3 v3.0.9 // indirect
 	github.com/pion/stun v0.6.1 // indirect
 	github.com/pion/stun/v3 v3.0.2 // indirect
 	github.com/pion/transport v0.14.1 // indirect
