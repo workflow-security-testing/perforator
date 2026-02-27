@@ -437,7 +437,7 @@ func (r *Registry) runRefresher(ctx context.Context) {
 			totalSyms += stats.currentSize
 			totalRebuildTime += stats.rebuildTime
 		}
-		r.logger.Info(
+		r.logger.Debug(
 			ctx,
 			"Perf map refresh finished",
 			log.Int("tracked_processes", len(targets)),
