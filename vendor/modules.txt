@@ -19697,7 +19697,7 @@ golang.yandex/hasql/sqlx
 # golang.yandex/hasql/v2 v2.0.0
 ## explicit; go 1.22
 golang.yandex/hasql/v2
-# golang.yandex/linters v1.3.0
+# golang.yandex/linters v1.3.1
 ## explicit; go 1.23.0
 golang.yandex/linters
 golang.yandex/linters/internal/lintutils
