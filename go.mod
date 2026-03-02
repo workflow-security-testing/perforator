@@ -976,12 +976,12 @@ require (
 	go.starlark.net v0.0.0-20250701195324-d457b4515e0e
 	go.step.sm/cli-utils v0.8.0
 	go.step.sm/crypto v0.38.0
-	go.temporal.io/api v1.47.0
+	go.temporal.io/api v1.50.1
 	go.temporal.io/sdk v1.34.0
 	go.temporal.io/sdk/contrib/opentelemetry v0.3.1-0.20231014000700-06c90fb36987
 	go.temporal.io/sdk/contrib/tally v0.2.1-0.20231129171107-288a04f72145
 	go.temporal.io/sdk/contrib/tools/workflowcheck v0.4.0
-	go.temporal.io/server v1.28.0-131.0
+	go.temporal.io/server v1.28.2
 	go.uber.org/atomic v1.11.0
 	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/fx v1.23.0
@@ -2513,11 +2513,14 @@ replace github.com/insomniacslk/dhcp => github.com/insomniacslk/dhcp v0.0.0-2021
 // (Go version in go.mod is at least 1.14 and vendor directory exists.)
 replace cloud.google.com/go/pubsub => cloud.google.com/go/pubsub v1.30.0
 
-replace go.temporal.io/api => go.temporal.io/api v1.46.0
+replace go.temporal.io/api => go.temporal.io/api v1.50.1
 
-replace go.temporal.io/sdk => go.temporal.io/sdk v1.33.0
+replace go.temporal.io/sdk => go.temporal.io/sdk v1.34.0
 
-replace go.temporal.io/server => go.temporal.io/server v1.27.2
+replace go.temporal.io/server => go.temporal.io/server v1.28.2
+
+// keep arcadia own patched version
+replace github.com/uber-go/tally/v4 => github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
 
 // https://st.yandex-team.ru/TM-7347
 replace github.com/jackc/pgtype => github.com/jackc/pgtype v1.12.0

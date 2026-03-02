@@ -16051,7 +16051,7 @@ github.com/uber-go/tally/prometheus/example
 github.com/uber-go/tally/statsd
 github.com/uber-go/tally/statsd/example
 github.com/uber-go/tally/thirdparty/github.com/apache/thrift/lib/go/thrift
-# github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
+# github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0 => github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
 ## explicit; go 1.20
 github.com/uber-go/tally/v4
 github.com/uber-go/tally/v4/example
@@ -18389,22 +18389,11 @@ go.step.sm/crypto/x509util
 # go.step.sm/linkedca v0.20.1
 ## explicit; go 1.18
 go.step.sm/linkedca
-# go.temporal.io/api v1.47.0 => go.temporal.io/api v1.46.0
+# go.temporal.io/api v1.50.1 => go.temporal.io/api v1.50.1
 ## explicit; go 1.21
+go.temporal.io/api
 go.temporal.io/api/activity/v1
 go.temporal.io/api/batch/v1
-go.temporal.io/api/cloud/account/v1
-go.temporal.io/api/cloud/cloudservice/v1
-go.temporal.io/api/cloud/cloudservicemock/v1
-go.temporal.io/api/cloud/identity/v1
-go.temporal.io/api/cloud/namespace/v1
-go.temporal.io/api/cloud/nexus/v1
-go.temporal.io/api/cloud/operation/v1
-go.temporal.io/api/cloud/region/v1
-go.temporal.io/api/cloud/resource/v1
-go.temporal.io/api/cloud/sink/v1
-go.temporal.io/api/cloud/usage/v1
-go.temporal.io/api/cmd/copyright
 go.temporal.io/api/cmd/encode-openapi-spec
 go.temporal.io/api/cmd/mockgen-fix
 go.temporal.io/api/cmd/protoc-gen-go-helpers
@@ -18435,6 +18424,7 @@ go.temporal.io/api/protocol/v1
 go.temporal.io/api/proxy
 go.temporal.io/api/query/v1
 go.temporal.io/api/replication/v1
+go.temporal.io/api/rules/v1
 go.temporal.io/api/schedule/v1
 go.temporal.io/api/sdk/v1
 go.temporal.io/api/serviceerror
@@ -18443,11 +18433,13 @@ go.temporal.io/api/temporalproto
 go.temporal.io/api/temporalproto/openapi
 go.temporal.io/api/update/v1
 go.temporal.io/api/version/v1
+go.temporal.io/api/worker/v1
 go.temporal.io/api/workflow/v1
 go.temporal.io/api/workflowservice/v1
 go.temporal.io/api/workflowservicemock/v1
-# go.temporal.io/sdk v1.34.0 => go.temporal.io/sdk v1.33.0
-## explicit; go 1.21
+# go.temporal.io/sdk v1.34.0 => go.temporal.io/sdk v1.34.0
+## explicit; go 1.23.0
+go.temporal.io/sdk
 go.temporal.io/sdk/activity
 go.temporal.io/sdk/client
 go.temporal.io/sdk/converter
@@ -18485,8 +18477,9 @@ go.temporal.io/sdk/contrib/tally
 go.temporal.io/sdk/contrib/tools/workflowcheck
 go.temporal.io/sdk/contrib/tools/workflowcheck/determinism
 go.temporal.io/sdk/contrib/tools/workflowcheck/workflow
-# go.temporal.io/server v1.28.0-131.0 => go.temporal.io/server v1.27.2
-## explicit; go 1.23.2
+# go.temporal.io/server v1.28.2 => go.temporal.io/server v1.28.2
+## explicit; go 1.24.5
+go.temporal.io/server
 go.temporal.io/server/api/adminservice/v1
 go.temporal.io/server/api/adminservicemock/v1
 go.temporal.io/server/api/archiver/v1
@@ -18509,6 +18502,8 @@ go.temporal.io/server/api/persistence/v1
 go.temporal.io/server/api/replication/v1
 go.temporal.io/server/api/schedule/v1
 go.temporal.io/server/api/taskqueue/v1
+go.temporal.io/server/api/testservice/v1
+go.temporal.io/server/api/testservicemock/v1
 go.temporal.io/server/api/token/v1
 go.temporal.io/server/api/workflow/v1
 go.temporal.io/server/chasm
@@ -18520,7 +18515,7 @@ go.temporal.io/server/client/history/historytest
 go.temporal.io/server/client/matching
 go.temporal.io/server/cmd/server
 go.temporal.io/server/cmd/tools/cassandra
-go.temporal.io/server/cmd/tools/copyright
+go.temporal.io/server/cmd/tools/codegen
 go.temporal.io/server/cmd/tools/gendynamicconfig
 go.temporal.io/server/cmd/tools/genrpcserverinterceptors
 go.temporal.io/server/cmd/tools/genrpcwrappers
@@ -18560,10 +18555,12 @@ go.temporal.io/server/common/deadlock
 go.temporal.io/server/common/debug
 go.temporal.io/server/common/definition
 go.temporal.io/server/common/dynamicconfig
+go.temporal.io/server/common/effect
 go.temporal.io/server/common/enums
 go.temporal.io/server/common/failure
 go.temporal.io/server/common/finalizer
 go.temporal.io/server/common/future
+go.temporal.io/server/common/goro
 go.temporal.io/server/common/headers
 go.temporal.io/server/common/locks
 go.temporal.io/server/common/log
@@ -18620,6 +18617,8 @@ go.temporal.io/server/common/pprof
 go.temporal.io/server/common/predicates
 go.temporal.io/server/common/primitives
 go.temporal.io/server/common/primitives/timestamp
+go.temporal.io/server/common/priorities
+go.temporal.io/server/common/protocol
 go.temporal.io/server/common/quotas
 go.temporal.io/server/common/quotas/calculator
 go.temporal.io/server/common/quotas/quotastest
@@ -18637,6 +18636,7 @@ go.temporal.io/server/common/sdk
 go.temporal.io/server/common/searchattribute
 go.temporal.io/server/common/serviceerror
 go.temporal.io/server/common/shuffle
+go.temporal.io/server/common/softassert
 go.temporal.io/server/common/sqlquery
 go.temporal.io/server/common/stream_batcher
 go.temporal.io/server/common/tasks
@@ -18644,11 +18644,14 @@ go.temporal.io/server/common/tasktoken
 go.temporal.io/server/common/telemetry
 go.temporal.io/server/common/testing
 go.temporal.io/server/common/testing/fakedata
+go.temporal.io/server/common/testing/freeport
 go.temporal.io/server/common/testing/historyrequire
 go.temporal.io/server/common/testing/mockapi
 go.temporal.io/server/common/testing/mockapi/operatorservicemock/v1
 go.temporal.io/server/common/testing/mockapi/workflowservicemock/v1
 go.temporal.io/server/common/testing/mocksdk
+go.temporal.io/server/common/testing/nettest
+go.temporal.io/server/common/testing/otellogger
 go.temporal.io/server/common/testing/protoassert
 go.temporal.io/server/common/testing/protomock
 go.temporal.io/server/common/testing/protorequire
@@ -18657,6 +18660,7 @@ go.temporal.io/server/common/testing/runtime
 go.temporal.io/server/common/testing/taskpoller
 go.temporal.io/server/common/testing/temporalapi
 go.temporal.io/server/common/testing/testhooks
+go.temporal.io/server/common/testing/testlogger
 go.temporal.io/server/common/testing/testvars
 go.temporal.io/server/common/testing/updateutils
 go.temporal.io/server/common/timer
@@ -18670,13 +18674,6 @@ go.temporal.io/server/components/nexusoperations
 go.temporal.io/server/components/nexusoperations/frontend
 go.temporal.io/server/components/nexusoperations/workflow
 go.temporal.io/server/components/scheduler
-go.temporal.io/server/environment
-go.temporal.io/server/internal/effect
-go.temporal.io/server/internal/freeport
-go.temporal.io/server/internal/goro
-go.temporal.io/server/internal/nettest
-go.temporal.io/server/internal/protocol
-go.temporal.io/server/internal/temporalite
 go.temporal.io/server/schema
 go.temporal.io/server/schema/cassandra
 go.temporal.io/server/schema/mysql/v8
@@ -18747,6 +18744,7 @@ go.temporal.io/server/service/history/events
 go.temporal.io/server/service/history/historybuilder
 go.temporal.io/server/service/history/hsm
 go.temporal.io/server/service/history/hsm/hsmtest
+go.temporal.io/server/service/history/interfaces
 go.temporal.io/server/service/history/ndc
 go.temporal.io/server/service/history/queues
 go.temporal.io/server/service/history/queues/queuestest
@@ -18784,8 +18782,12 @@ go.temporal.io/server/service/worker/scanner/history
 go.temporal.io/server/service/worker/scanner/taskqueue
 go.temporal.io/server/service/worker/scheduler
 go.temporal.io/server/service/worker/workerdeployment
+go.temporal.io/server/service/worker/workerdeployment/replaytester
+go.temporal.io/server/service/worker/workerdeployment/replaytester/worker
 go.temporal.io/server/temporal
+go.temporal.io/server/temporal/environment
 go.temporal.io/server/temporaltest
+go.temporal.io/server/temporaltest/internal
 go.temporal.io/server/tests
 go.temporal.io/server/tests/ndc
 go.temporal.io/server/tests/testcore
@@ -20462,9 +20464,6 @@ gopkg.in/evanphx/json-patch.v4
 ## explicit
 # gopkg.in/go-jose/go-jose.v2 v2.6.3
 ## explicit
-gopkg.in/go-jose/go-jose.v2
-gopkg.in/go-jose/go-jose.v2/cipher
-gopkg.in/go-jose/go-jose.v2/json
 # gopkg.in/go-playground/assert.v1 v1.2.1
 ## explicit
 gopkg.in/go-playground/assert.v1
@@ -22369,11 +22368,12 @@ www.velocidex.com/golang/regparser
 # github.com/temporalio/features/harness/go => github.com/temporalio/features/harness/go v0.0.0-20231218231852-27c681667dae
 # github.com/temporalio/omes => github.com/temporalio/omes v0.0.0-20240701113332-211647aa9dae
 # github.com/testcontainers/testcontainers-go => github.com/testcontainers/testcontainers-go v0.31.0
+# github.com/uber-go/tally/v4 => github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
 # github.com/vertica/vertica-sql-go => github.com/vertica/vertica-sql-go v1.2.2
 # go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc => go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
-# go.temporal.io/api => go.temporal.io/api v1.46.0
-# go.temporal.io/sdk => go.temporal.io/sdk v1.33.0
-# go.temporal.io/server => go.temporal.io/server v1.27.2
+# go.temporal.io/api => go.temporal.io/api v1.50.1
+# go.temporal.io/sdk => go.temporal.io/sdk v1.34.0
+# go.temporal.io/server => go.temporal.io/server v1.28.2
 # golang.org/x/sync => golang.org/x/sync v0.15.0
 # gopkg.in/DataDog/dd-trace-go.v1 => gopkg.in/DataDog/dd-trace-go.v1 v1.62.0
 # k8s.io/api => k8s.io/api v0.31.6
