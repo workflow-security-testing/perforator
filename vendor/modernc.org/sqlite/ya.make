@@ -49,6 +49,12 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        bind_blob.go
+    )
+ENDIF()
+
 GO_TEST_EMBED_PATTERN(embed.db)
 
 GO_TEST_EMBED_PATTERN(embed2.db)

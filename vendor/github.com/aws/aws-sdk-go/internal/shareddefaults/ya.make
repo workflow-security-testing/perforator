@@ -26,6 +26,10 @@ IF (OS_ANDROID)
     GO_XTEST_SRCS(shared_config_other_test.go)
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    GO_XTEST_SRCS(shared_config_other_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

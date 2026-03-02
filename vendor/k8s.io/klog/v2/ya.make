@@ -60,6 +60,12 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        klog_file_others.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

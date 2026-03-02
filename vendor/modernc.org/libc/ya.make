@@ -174,6 +174,25 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        ccgo.go
+        etc.go
+        libc.go
+        libc64.go
+        mem.go
+        printf.go
+        pthread.go
+        pthread_all.go
+        scanf.go
+        sync.go
+    )
+
+    GO_TEST_SRCS(
+        # all_non_musl_test.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

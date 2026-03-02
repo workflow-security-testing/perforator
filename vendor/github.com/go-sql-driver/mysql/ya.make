@@ -74,6 +74,12 @@ IF (OS_ANDROID)
     GO_TEST_SRCS(conncheck_test.go)
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        conncheck_dummy.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

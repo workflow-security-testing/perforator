@@ -42,6 +42,14 @@ IF (OS_ANDROID)
     GO_TEST_SRCS(isatty_others_test.go)
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        isatty_others.go
+    )
+
+    GO_TEST_SRCS(isatty_others_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

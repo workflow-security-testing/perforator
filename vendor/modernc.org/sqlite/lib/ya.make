@@ -73,4 +73,11 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        hooks.go
+        mutex.go
+    )
+ENDIF()
+
 END()

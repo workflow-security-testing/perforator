@@ -41,6 +41,12 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        os.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

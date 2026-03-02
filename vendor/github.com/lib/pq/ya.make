@@ -82,6 +82,14 @@ IF (OS_ANDROID)
     GO_TEST_SRCS(ssl_permissions_test.go)
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        ssl_permissions.go
+    )
+
+    GO_TEST_SRCS(ssl_permissions_test.go)
+ENDIF()
+
 END()
 
 RECURSE(

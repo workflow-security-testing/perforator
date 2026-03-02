@@ -41,6 +41,12 @@ IF (OS_ANDROID)
     GO_TEST_SRCS(net_linux_test.go)
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        net_fallback.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

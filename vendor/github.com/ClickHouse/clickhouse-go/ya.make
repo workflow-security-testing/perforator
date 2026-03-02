@@ -74,6 +74,12 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        connect_check_dummy.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

@@ -61,6 +61,12 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        conn_check_ping.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

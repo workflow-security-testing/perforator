@@ -64,6 +64,12 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        detect_ref.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

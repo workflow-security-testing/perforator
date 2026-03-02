@@ -34,4 +34,10 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        invoke_notunix.go
+    )
+ENDIF()
+
 END()

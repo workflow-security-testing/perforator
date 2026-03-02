@@ -37,6 +37,12 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        colorable_others.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

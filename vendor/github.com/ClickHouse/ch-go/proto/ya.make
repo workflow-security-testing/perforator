@@ -323,6 +323,45 @@ IF (OS_LINUX AND ARCH_ARM6 OR OS_LINUX AND ARCH_ARM7)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        col_bool_safe.go
+        col_date32_safe_gen.go
+        col_date_safe_gen.go
+        col_datetime64_safe_gen.go
+        col_datetime_safe_gen.go
+        col_decimal128_safe_gen.go
+        col_decimal256_safe_gen.go
+        col_decimal32_safe_gen.go
+        col_decimal64_safe_gen.go
+        col_enum16_safe_gen.go
+        col_enum8_safe_gen.go
+        col_fixedstr128_safe_gen.go
+        col_fixedstr16_safe_gen.go
+        col_fixedstr256_safe_gen.go
+        col_fixedstr32_safe_gen.go
+        col_fixedstr512_safe_gen.go
+        col_fixedstr64_safe_gen.go
+        col_fixedstr8_safe_gen.go
+        col_float32_safe_gen.go
+        col_float64_safe_gen.go
+        col_int128_safe_gen.go
+        col_int16_safe_gen.go
+        col_int256_safe_gen.go
+        col_int32_safe_gen.go
+        col_int64_safe_gen.go
+        col_int8_safe_gen.go
+        col_ipv4_safe_gen.go
+        col_ipv6_safe_gen.go
+        col_uint128_safe_gen.go
+        col_uint16_safe_gen.go
+        col_uint256_safe_gen.go
+        col_uint32_safe_gen.go
+        col_uint64_safe_gen.go
+        col_uuid_safe.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

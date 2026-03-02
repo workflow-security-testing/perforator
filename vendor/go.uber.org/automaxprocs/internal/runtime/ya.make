@@ -36,6 +36,12 @@ IF (OS_ANDROID)
     GO_TEST_SRCS(cpu_quota_linux_test.go)
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        cpu_quota_unsupported.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

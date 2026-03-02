@@ -64,6 +64,12 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        const_win_unix.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(

@@ -68,6 +68,13 @@ IF (OS_ANDROID)
     )
 ENDIF()
 
+IF (OS_EMSCRIPTEN)
+    SRCS(
+        output_interceptor_wasm.go
+        progress_report_wasm.go
+    )
+ENDIF()
+
 END()
 
 RECURSE(
