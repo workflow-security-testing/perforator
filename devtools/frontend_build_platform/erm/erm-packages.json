@@ -6,7 +6,7 @@
     "title": "Biome",
     "description": "Biome is a fast formatter for JavaScript, TypeScript, JSX, TSX, JSON, CSS and GraphQL that scores 97% compatibility with Prettier, saving CI and developer time.\n\n[Подробнее про линтинг в tier-0](https://docs.yandex-team.ru/frontend-in-arcadia/index/quick-start#lint)",
     "type": "NPM_PACKAGE",
-    "default": "2.3.14",
+    "default": "2.4.2",
     "links": {
       "Home": "https://biomejs.dev/",
       "Sources": "https://github.com/biomejs/biome",
@@ -16,6 +16,10 @@
     "specifier": ">=2.0.0",
     "useDirectly": true,
     "versions": {
+      "2.4.2": {
+        "add_date": "2026-03-03T05:32:26",
+        "resources": []
+      },
       "2.3.14": {
         "add_date": "2026-02-24T05:31:12",
         "resources": []
@@ -62,7 +66,7 @@
     "title": "rspack CLI",
     "description": "CLI часть от `rspack`, вынесенная в отдельный пакет.\n\nНеобходима на проекте для того, чтобы мочь в принципе запускать сборку `rspack`.",
     "type": "NPM_PACKAGE",
-    "default": "1.7.5",
+    "default": "1.7.6",
     "links": {
       "Home": "https://rspack.rs/api/cli",
       "Sources": "https://github.com/web-infra-dev/rspack/tree/main/packages/rspack-cli",
@@ -72,6 +76,10 @@
     "specifier": ">=1.3.11",
     "useDirectly": true,
     "versions": {
+      "1.7.6": {
+        "add_date": "2026-03-03T05:32:44",
+        "resources": []
+      },
       "1.7.5": {
         "add_date": "2026-02-24T05:31:30",
         "resources": []
@@ -190,7 +198,7 @@
     "title": "rspack Core",
     "description": "Альтернативный сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_RSPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_RSPACK).",
     "type": "NPM_PACKAGE",
-    "default": "1.7.5",
+    "default": "1.7.6",
     "links": {
       "Home": "https://rspack.rs",
       "Sources": "https://github.com/web-infra-dev/rspack",
@@ -200,6 +208,10 @@
     "specifier": ">=1.3.11",
     "useDirectly": true,
     "versions": {
+      "1.7.6": {
+        "add_date": "2026-03-03T05:32:56",
+        "resources": []
+      },
       "1.7.5": {
         "add_date": "2026-02-24T05:31:40",
         "resources": []
@@ -2842,6 +2854,10 @@
       },
       "14.2.25": {
         "add_date": "2025-04-01T05:31:41",
+        "resources": []
+      },
+      "14.2.10": {
+        "add_date": "2026-03-03T05:33:10",
         "resources": []
       },
       "13.5.11": {
@@ -5876,7 +5892,7 @@
   "playwright": {
     "description": "Раннер для тестов Playwright, позволяет выполнять end-to-end тесты с учётом специфики различных браузеров и устройств",
     "type": "NPM_PACKAGE",
-    "default": "1.58.1",
+    "default": "1.58.2",
     "links": {
       "Home": "https://playwright.dev/",
       "Sources": "https://github.com/microsoft/playwright",
@@ -5886,6 +5902,10 @@
     "specifier": ">=1.41.2",
     "useDirectly": true,
     "versions": {
+      "1.58.2": {
+        "add_date": "2026-03-03T05:40:18",
+        "resources": []
+      },
       "1.58.1": {
         "add_date": "2026-02-17T05:39:10",
         "resources": []
@@ -6391,7 +6411,7 @@
     "title": "Stylelint",
     "description": "Инструмент для линтинга файлов стилей.\n\nИспользуется в макросе [TS_STYLELINT()](https://docs.yandex-team.ru/frontend-in-arcadia/references/macros#ts-stylelint).",
     "type": "NPM_PACKAGE",
-    "default": "17.1.1",
+    "default": "17.3.0",
     "links": {
       "Home": "https://stylelint.io/",
       "Sources": "https://github.com/stylelint/stylelint",
@@ -6401,6 +6421,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "17.3.0": {
+        "add_date": "2026-03-03T05:40:27",
+        "resources": []
+      },
       "17.1.1": {
         "add_date": "2026-02-24T05:42:33",
         "resources": []
@@ -7132,7 +7156,7 @@
     "title": "webpack",
     "description": "Классический сборщик frontend проектов\n\nВ tier-0 используется в модуле/макросе [`TS_WEBPACK()`](https://docs.yandex-team.ru/frontend-in-arcadia/references/TS_WEBPACK).",
     "type": "NPM_PACKAGE",
-    "default": "5.105.0",
+    "default": "5.105.2",
     "links": {
       "Home": "https://webpack.js.org",
       "Sources": "https://github.com/webpack/webpack",
@@ -7142,6 +7166,10 @@
     },
     "useDirectly": true,
     "versions": {
+      "5.105.2": {
+        "add_date": "2026-03-03T05:40:42",
+        "resources": []
+      },
       "5.105.0": {
         "add_date": "2026-02-24T05:42:51",
         "resources": []
