@@ -16051,7 +16051,7 @@ github.com/uber-go/tally/prometheus/example
 github.com/uber-go/tally/statsd
 github.com/uber-go/tally/statsd/example
 github.com/uber-go/tally/thirdparty/github.com/apache/thrift/lib/go/thrift
-# github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0 => github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
+# github.com/uber-go/tally/v4 v4.1.17 => github.com/uber-go/tally/v4 v4.1.17-0.20240412215630-22fe011f5ff0
 ## explicit; go 1.20
 github.com/uber-go/tally/v4
 github.com/uber-go/tally/v4/example
@@ -19699,7 +19699,7 @@ golang.yandex/hasql/sqlx
 # golang.yandex/hasql/v2 v2.0.0
 ## explicit; go 1.22
 golang.yandex/hasql/v2
-# golang.yandex/linters v1.3.1
+# golang.yandex/linters v1.3.2
 ## explicit; go 1.23.0
 golang.yandex/linters
 golang.yandex/linters/internal/lintutils
