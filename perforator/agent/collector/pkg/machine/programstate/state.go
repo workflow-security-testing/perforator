@@ -167,19 +167,6 @@ func (s *State) GetProcess(pid linux.CurrentNamespacePID) (*unwinder.ProcessInfo
 	return &info, err
 }
 
-func (s *State) DumpProcesses() {
-	it := s.maps.ProcessInfo.Iterate()
-	var info unwinder.ProcessInfo
-	var pid uint32
-	for it.Next(&pid, &info) {
-		fmt.Println(info, pid)
-	}
-	err := it.Err()
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func (s *State) AddMappingLPMSegment(key *unwinder.ExecutableMappingTrieKey, value *unwinder.ExecutableMappingInfo) error {
 	return s.maps.ExecutableMappingTrie.Update(key, value, ebpf.UpdateAny)
 }
