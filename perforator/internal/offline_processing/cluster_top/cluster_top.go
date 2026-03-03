@@ -2,6 +2,7 @@ package cluster_top
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -190,11 +191,32 @@ func (t *ClusterTop) selectAndProcessService(
 ) (shouldContinueRightAway bool) {
 	serviceHandler, err := serviceSelector.SelectService(ctx, heavy)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			t.l.Info(ctx, "No cluster top service jobs")
+			return false
+		}
 		t.l.Warn(ctx, "Failed to select a service", log.Error(err))
-		// In case of select service failure - we should avoid retrying immediately in the upper layer.
+		// In case of select service failure - we should avoid retrying immediately in the upper layer
 		return false
 	}
+
+	startTime := time.Now()
+	var profilesCount int
 	defer func() {
+		duration := time.Since(startTime)
+		l := t.l.With(
+			log.String("service", serviceHandler.GetServiceName()),
+			log.Duration("duration", duration),
+			log.Int("generation", serviceHandler.GetGeneration()),
+			log.Time("from", serviceHandler.GetTimeRange().From),
+			log.Time("to", serviceHandler.GetTimeRange().To),
+			log.Int("profilesCount", profilesCount),
+		)
+		if err != nil {
+			l.Error(ctx, "Failed to process the service", log.Error(err))
+		} else {
+			l.Info(ctx, "Successfully processed the service")
+		}
 		serviceHandler.Finalize(ctx, err)
 	}()
 
@@ -203,7 +225,7 @@ func (t *ClusterTop) selectAndProcessService(
 		profilesBatchSize = kHeavyProfilesBatchSize
 	}
 
-	err = t.processService(
+	profilesCount, err = t.processService(
 		ctx,
 		clusterPerfTopAggregator,
 		serviceHandler.GetGeneration(),
@@ -212,14 +234,6 @@ func (t *ClusterTop) selectAndProcessService(
 		degreeOfParallelism,
 		profilesBatchSize,
 	)
-	if err != nil {
-		t.l.Error(
-			ctx,
-			"Failed to process the service",
-			log.String("service", serviceHandler.GetServiceName()),
-			log.Error(err),
-		)
-	}
 
 	return true
 }
@@ -232,27 +246,32 @@ func (t *ClusterTop) processService(
 	timeRange TimeRange,
 	degreeOfParallelism int,
 	profilesBatchSize int,
-) error {
+) (processedProfiles int, err error) {
 	selector, err := buildSelector(serviceName, timeRange)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	profileMetas, err := t.profileStorage.SelectProfiles(ctx, &meta.ProfileQuery{
 		Selector: selector,
 	})
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	buildIDs := getBuildIDsFromProfiles(profileMetas)
+	if len(profileMetas) == 0 {
+		t.l.Warn(ctx, "Service has no profiles, marking as done",
+			log.String("service", serviceName),
+		)
+		return 0, nil
+	}
 
-	t.l.Info(
-		ctx,
-		"New service to process",
+	t.l.Info(ctx, "Starting service processing",
 		log.String("service", serviceName),
 		log.Int("profilesCount", len(profileMetas)),
 	)
+
+	buildIDs := getBuildIDsFromProfiles(profileMetas)
 
 	functions, err := t.processServiceProfiles(
 		ctx,
@@ -263,20 +282,15 @@ func (t *ClusterTop) processService(
 		profilesBatchSize,
 	)
 	if err != nil {
-		return err
+		return len(profileMetas), err
 	}
 
-	t.l.Info(
-		ctx,
-		"Finished service processing",
-		log.String("service", serviceName),
-	)
-
-	return clusterPerfTopAggregator.Save(ctx, &ServicePerfTop{
+	err = clusterPerfTopAggregator.Save(ctx, &ServicePerfTop{
 		Generation:  generation,
 		ServiceName: serviceName,
 		Functions:   functions,
 	})
+	return len(profileMetas), err
 }
 
 func (t *ClusterTop) processServiceProfiles(
