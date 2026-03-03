@@ -22,3 +22,7 @@ ELSE()
 ENDIF()
 
 END()
+
+RECURSE(
+    scheduler
+)

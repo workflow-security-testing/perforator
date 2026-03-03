@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type StorageType string
+
+const (
+	Postgres StorageType = "postgres"
+)
+
 type Storage interface {
 	// Acquire tries to acquire the lease. Returns true if acquired.
 	// If the lease is already held by someone else but expired, it should be taken over.

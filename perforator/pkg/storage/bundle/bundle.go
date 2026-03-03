@@ -8,6 +8,8 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/internal/asynctask"
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
+	"github.com/yandex/perforator/perforator/pkg/lease"
+	postgres_lease "github.com/yandex/perforator/perforator/pkg/lease/postgres"
 	binarystorage "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	binarycompound "github.com/yandex/perforator/perforator/pkg/storage/binary/compound"
 	clustertop "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
@@ -41,6 +43,7 @@ type StorageBundle struct {
 	TaskStorage                     asynctask.TaskService
 	CustomProfilingOperationStorage custom_profiling_operation.Storage
 	ClusterTopGenerationsStorage    clustertop.Storage
+	LeaseStorage                    lease.Storage
 }
 
 // bgCtx should be valid for as long as databases are used
@@ -132,6 +135,18 @@ func NewStorageBundle(ctx context.Context, bgCtx context.Context, l xlog.Logger,
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to init cluster top storage: %w", err)
+		}
+	}
+
+	if c.LeaseStorage != nil {
+		switch *c.LeaseStorage {
+		case lease.Postgres:
+			if res.DBs.PostgresCluster == nil {
+				return nil, ErrPostgresClusterNotSpecified
+			}
+			res.LeaseStorage = postgres_lease.NewStorage(l, res.DBs.PostgresCluster)
+		default:
+			return nil, fmt.Errorf("unknown lease storage type: %s", *c.LeaseStorage)
 		}
 	}
 

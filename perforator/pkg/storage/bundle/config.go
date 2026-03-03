@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	tasks "github.com/yandex/perforator/perforator/internal/asynctask/compound"
+	"github.com/yandex/perforator/perforator/pkg/lease"
 	binary "github.com/yandex/perforator/perforator/pkg/storage/binary"
 	clustertop "github.com/yandex/perforator/perforator/pkg/storage/cluster_top"
 	"github.com/yandex/perforator/perforator/pkg/storage/custom_profiling_operation"
@@ -22,6 +23,7 @@ type Config struct {
 	TaskStorage                     *tasks.TasksConfig                                              `yaml:"tasks"`
 	CustomProfilingOperationStorage *custom_profiling_operation.CustomProfilingOperationStorageType `yaml:"custom_profiling_operation"`
 	ClusterTopStorage               *clustertop.Config                                              `yaml:"cluster_top"`
+	LeaseStorage                    *lease.StorageType                                              `yaml:"lease"`
 
 	DBs databases.Config `yaml:"databases"`
 }

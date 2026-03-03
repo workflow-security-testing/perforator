@@ -8,6 +8,7 @@ import (
 
 	"github.com/yandex/perforator/library/go/core/log"
 	"github.com/yandex/perforator/perforator/internal/offline_processing/cluster_top"
+	"github.com/yandex/perforator/perforator/internal/offline_processing/cluster_top/scheduler"
 	"github.com/yandex/perforator/perforator/internal/xmetrics"
 	"github.com/yandex/perforator/perforator/pkg/mlock"
 	"github.com/yandex/perforator/perforator/pkg/must"
@@ -40,7 +41,13 @@ var (
 	clusterTopConfigPath          string
 	clusterTopLogLevelStr         string
 	clusterTopIsHeavy             bool
-	clusterTopDegreeOfParallelism *uint
+	clusterTopDegreeOfParallelism uint
+
+	clusterTopSchedulerGenerationInterval time.Duration
+	clusterTopSchedulerProfileLag         time.Duration
+	clusterTopSchedulerMaxServices        int
+	clusterTopSchedulerHeavyPercent       float64
+	clusterTopSchedulerMaxConflictErrors  uint32
 
 	clusterTopCommand = &cobra.Command{
 		Use:   "cluster-top",
@@ -96,30 +103,79 @@ var (
 				serviceSelector,
 				clusterPerfTopAggregator,
 				clusterTopIsHeavy,
-				*clusterTopDegreeOfParallelism,
+				clusterTopDegreeOfParallelism,
 			)
+		},
+	}
+
+	clusterTopSchedulerCommand = &cobra.Command{
+		Use:   "scheduler",
+		Short: "Run the cluster-top generation scheduler",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := context.Background()
+
+			logLevel, err := log.ParseLevel(clusterTopLogLevelStr)
+			if err != nil {
+				return err
+			}
+
+			reg := xmetrics.NewRegistry(
+				xmetrics.WithAddCollectors(xmetrics.GetCollectFuncs()...),
+			)
+
+			logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{Level: logLevel}, reg)
+			if err != nil {
+				return err
+			}
+			defer stopLogger()
+
+			conf, err := cluster_top.ParseConfig(clusterTopConfigPath)
+			if err != nil {
+				return err
+			}
+
+			storageBundle, err := createStorageBundle(ctx, logger, reg, conf)
+			if err != nil {
+				return err
+			}
+
+			schedulerConf := &scheduler.Config{
+				GenerationInterval: clusterTopSchedulerGenerationInterval,
+				ProfileLag:         clusterTopSchedulerProfileLag,
+				MaxServices:        clusterTopSchedulerMaxServices,
+				HeavyPercent:       clusterTopSchedulerHeavyPercent,
+				MaxConflictErrors:  clusterTopSchedulerMaxConflictErrors,
+			}
+			schedulerConf.FillDefault()
+
+			s := scheduler.NewScheduler(logger, reg, storageBundle, schedulerConf)
+
+			return s.Run(ctx)
 		},
 	}
 )
 
 func init() {
-	clusterTopCommand.Flags().StringVarP(
-		&clusterTopConfigPath,
-		"config",
-		"c",
-		"",
-		"Path to offline-processing config",
-	)
-	must.Must(clusterTopCommand.MarkFlagFilename("config"))
+	for _, cmd := range []*cobra.Command{clusterTopCommand, clusterTopSchedulerCommand} {
+		cmd.Flags().StringVarP(
+			&clusterTopConfigPath,
+			"config",
+			"c",
+			"",
+			"Path to offline-processing config",
+		)
+		must.Must(cmd.MarkFlagFilename("config"))
 
-	clusterTopCommand.Flags().StringVar(
-		&clusterTopLogLevelStr,
-		"log-level",
-		"info",
-		"Logging level - ('info') {'debug', 'info', 'warn', 'error'}",
-	)
+		cmd.Flags().StringVar(
+			&clusterTopLogLevelStr,
+			"log-level",
+			"info",
+			"Logging level - ('info') {'debug', 'info', 'warn', 'error'}",
+		)
+	}
 
-	clusterTopDegreeOfParallelism = clusterTopCommand.Flags().UintP(
+	clusterTopCommand.Flags().UintVarP(
+		&clusterTopDegreeOfParallelism,
 		"parallelism",
 		"p",
 		4,
@@ -132,6 +188,43 @@ func init() {
 		false,
 		`Whether to parallelise services processing (default), or profiles processing within a service.`,
 	)
+
+	clusterTopSchedulerCommand.Flags().DurationVar(
+		&clusterTopSchedulerGenerationInterval,
+		"generation-interval",
+		24*time.Hour,
+		"Time between generations",
+	)
+
+	clusterTopSchedulerCommand.Flags().DurationVar(
+		&clusterTopSchedulerProfileLag,
+		"profile-lag",
+		10*time.Minute,
+		"Safety buffer to allow all profiles to arrive in storage",
+	)
+
+	clusterTopSchedulerCommand.Flags().IntVar(
+		&clusterTopSchedulerMaxServices,
+		"max-services",
+		10000,
+		"Maximum number of services to build cluster top for",
+	)
+
+	clusterTopSchedulerCommand.Flags().Float64Var(
+		&clusterTopSchedulerHeavyPercent,
+		"heavy-percent",
+		10.0,
+		"Percentage of selected services to classify as 'heavy'",
+	)
+
+	clusterTopSchedulerCommand.Flags().Uint32Var(
+		&clusterTopSchedulerMaxConflictErrors,
+		"max-conflict-errors",
+		3,
+		"Maximum number of consecutive concurrent schedulers errors before shutting down",
+	)
+
+	clusterTopCommand.AddCommand(clusterTopSchedulerCommand)
 
 	rootCmd.AddCommand(clusterTopCommand)
 }

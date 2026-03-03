@@ -2,8 +2,11 @@ package lease
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -11,6 +14,20 @@ import (
 	"github.com/yandex/perforator/library/go/core/metrics"
 	"github.com/yandex/perforator/perforator/pkg/xlog"
 )
+
+// BuildPerProcessHolderID generates a unique identifier for a lease holder based on the hostname
+// and random bytes encoded in base64.
+func BuildPerProcessHolderID() (string, error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return "", fmt.Errorf("failed to get hostname: %w", err)
+	}
+	b := make([]byte, 6)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("failed to read random bytes: %w", err)
+	}
+	return fmt.Sprintf("%s-%s", hostname, base64.RawURLEncoding.EncodeToString(b)), nil
+}
 
 type leaseOptions struct {
 	ttl                  time.Duration

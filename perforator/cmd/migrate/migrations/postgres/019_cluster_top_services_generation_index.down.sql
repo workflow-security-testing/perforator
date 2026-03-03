@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS cluster_top_services_generation_index;
