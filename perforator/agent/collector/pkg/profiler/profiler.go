@@ -961,19 +961,18 @@ func (p *Profiler) Start(ctx context.Context) error {
 		})
 	}
 
-	concurrency := 4
-	if c := p.conf.ProcessDiscovery.Concurrency; c != 0 {
-		concurrency = c
+	if p.conf.ProcessDiscovery.Concurrency <= 0 {
+		return fmt.Errorf("invalid process discovery concurrency: %d", p.conf.ProcessDiscovery.Concurrency)
 	}
 
-	for i := 0; i < concurrency; i++ {
+	for i := 0; i < p.conf.ProcessDiscovery.Concurrency; i++ {
 		p.wg.Go(func() error {
 			err := p.runProcessDiscovery(ctx)
 			return p.handleWorkerError(ctx, err, "process discovery")
 		})
 
 		p.wg.Go(func() error {
-			err := p.procs.RunWorker(ctx)
+			err := p.procs.RunWorker(ctx, p.conf.ProcessDiscovery.AnalysisConfig)
 			return p.handleWorkerError(ctx, err, "process analyzer")
 		})
 	}

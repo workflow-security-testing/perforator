@@ -237,7 +237,12 @@ func (r *ProcessRegistry) initialize() {
 	r.procsGeneration.Store(1)
 }
 
-func (r *ProcessRegistry) RunWorker(ctx context.Context) error {
+type WorkerConfig struct {
+	// Wait with exponential backoff is reading process environment returns empty result.
+	WaitOnEmptyEnv *bool `yaml:"wait_on_empty_environment"`
+}
+
+func (r *ProcessRegistry) RunWorker(ctx context.Context, conf WorkerConfig) error {
 	g, newCtx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
@@ -245,7 +250,7 @@ func (r *ProcessRegistry) RunWorker(ctx context.Context) error {
 	})
 
 	g.Go(func() error {
-		return r.runHandler(newCtx)
+		return r.runHandler(newCtx, &conf)
 	})
 
 	return g.Wait()
@@ -453,7 +458,7 @@ func (r *ProcessRegistry) MaybeRescanProcess(ctx context.Context, pid linux.Curr
 	r.tryScheduleProcessUpdate(ctx, p)
 }
 
-func (r *ProcessRegistry) runHandler(ctx context.Context) error {
+func (r *ProcessRegistry) runHandler(ctx context.Context, config *WorkerConfig) error {
 	var proc *processInfo
 	for {
 		select {
@@ -462,7 +467,7 @@ func (r *ProcessRegistry) runHandler(ctx context.Context) error {
 		case proc = <-r.procchan:
 		}
 
-		err := r.handleProcess(ctx, proc)
+		err := r.handleProcess(ctx, proc, config)
 		if err != nil {
 			r.log.Debug(
 				ctx,
@@ -476,9 +481,10 @@ func (r *ProcessRegistry) runHandler(ctx context.Context) error {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (r *ProcessRegistry) handleProcess(ctx context.Context, proc *processInfo) error {
+func (r *ProcessRegistry) handleProcess(ctx context.Context, proc *processInfo, config *WorkerConfig) error {
 	a := processAnalyzer{
 		reg:         r,
+		config:      config,
 		proc:        proc,
 		log:         r.log.With(log.UInt32("pid", uint32(proc.currentNamespaceID))),
 		uploader:    r.uploader,
@@ -489,6 +495,7 @@ func (r *ProcessRegistry) handleProcess(ctx context.Context, proc *processInfo) 
 
 type processAnalyzer struct {
 	reg         *ProcessRegistry
+	config      *WorkerConfig
 	proc        *processInfo
 	uploader    *upload.Scheduler
 	log         xlog.Logger
@@ -909,9 +916,13 @@ func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
 		backoff.WithMaxElapsedTime(1*time.Second),
 	)
 	backoff.Reset()
-	defer func() {
-		a.reg.metrics.processEnvironmentWaitDelay.Add(backoff.GetElapsedTime().Milliseconds())
-	}()
+	waitOnEmptyEnv := a.config.WaitOnEmptyEnv != nil && *a.config.WaitOnEmptyEnv
+
+	if waitOnEmptyEnv {
+		defer func() {
+			a.reg.metrics.processEnvironmentWaitDelay.Add(backoff.GetElapsedTime().Milliseconds())
+		}()
+	}
 	// TODO(PERFORATOR-1102): loop here is hacky attempt to work around some
 	// race conditions when we fail to observe correct process environment shortly after process creation.
 	for i := 0; ; i++ {
@@ -935,7 +946,7 @@ func (a *processAnalyzer) loadEnvs(ctx context.Context) error {
 		// While this is technically possible, it is more likely a race
 		// with a newly created process.
 		sleepFor := backoff.NextBackOff()
-		if sleepFor == backoff.Stop {
+		if sleepFor == backoff.Stop || !waitOnEmptyEnv {
 			// Level is not DEBUG because it is the only sign of a possible race
 			// and processes with actually empty environment are likely to be rare.
 			a.log.Info(ctx, "Process seems to have empty environment")

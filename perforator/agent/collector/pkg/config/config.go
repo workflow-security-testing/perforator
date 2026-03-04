@@ -6,6 +6,7 @@ import (
 	"github.com/yandex/perforator/library/go/ptr"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/cgroups"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/machine"
+	"github.com/yandex/perforator/perforator/agent/collector/pkg/process"
 	storage "github.com/yandex/perforator/perforator/agent/collector/pkg/storage/client"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/storage/upload"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/uprobe"
@@ -26,6 +27,18 @@ type ProcessDiscoveryConfig struct {
 	// It makes sense to have this option disabled for daemonized system-wide profiler
 	// And enable for ad-hoc one-shot profiles.
 	IgnoreUnrelatedProcesses bool `yaml:"ignore_unrelated_processes"`
+
+	// Configuration to use when analyzing discovered processes.
+	AnalysisConfig process.WorkerConfig `yaml:"analysis_config"`
+}
+
+func (c *ProcessDiscoveryConfig) FillDefault() {
+	if c.Concurrency == 0 {
+		c.Concurrency = 4
+	}
+	if c.AnalysisConfig.WaitOnEmptyEnv == nil {
+		c.AnalysisConfig.WaitOnEmptyEnv = ptr.Bool(true)
+	}
 }
 
 type EgressConfig struct {
@@ -278,4 +291,6 @@ func (c *Config) FillDefault() {
 	if c.StorageClientConfigDeprecated != nil {
 		c.StorageClientConfigDeprecated.FillDefault()
 	}
+
+	c.ProcessDiscovery.FillDefault()
 }
