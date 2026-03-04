@@ -14264,6 +14264,14 @@ github.com/protocolbuffers/txtpbfmt/ast
 github.com/protocolbuffers/txtpbfmt/cmd/txtpbfmt
 github.com/protocolbuffers/txtpbfmt/parser
 github.com/protocolbuffers/txtpbfmt/unquote
+# github.com/proxy-wasm/proxy-wasm-go-sdk v0.0.0-20260105142703-44c7d5847745
+## explicit; go 1.24
+github.com/proxy-wasm/proxy-wasm-go-sdk
+github.com/proxy-wasm/proxy-wasm-go-sdk/properties
+github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm
+github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/internal
+github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/proxytest
+github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types
 # github.com/pseudomuto/protoc-gen-doc v1.5.1
 ## explicit; go 1.17
 github.com/pseudomuto/protoc-gen-doc
@@ -15756,8 +15764,8 @@ github.com/testcontainers/testcontainers-go/internal/core
 github.com/testcontainers/testcontainers-go/internal/core/network
 github.com/testcontainers/testcontainers-go/network
 github.com/testcontainers/testcontainers-go/wait
-# github.com/tetratelabs/wazero v1.9.0
-## explicit; go 1.22.0
+# github.com/tetratelabs/wazero v1.11.0
+## explicit; go 1.24.0
 github.com/tetratelabs/wazero
 github.com/tetratelabs/wazero/api
 github.com/tetratelabs/wazero/experimental

@@ -719,6 +719,7 @@ require (
 	github.com/prometheus/procfs v0.16.0
 	github.com/prometheus/prometheus v0.303.1
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20240116145035-ef3ab179eed6
+	github.com/proxy-wasm/proxy-wasm-go-sdk v0.0.0-20260105142703-44c7d5847745
 	github.com/pseudomuto/protoc-gen-doc v1.5.1
 	github.com/qdrant/go-client v1.15.2
 	github.com/r3labs/diff/v3 v3.0.0
@@ -2238,7 +2239,7 @@ require (
 	github.com/temporalio/tctl-kit v0.0.0-20250107205014-58462b03dfb2 // indirect
 	github.com/tenntenn/modver v1.0.1 // indirect
 	github.com/tenntenn/text/transform v0.0.0-20200319021203-7eef512accb3 // indirect
-	github.com/tetratelabs/wazero v1.9.0 // indirect
+	github.com/tetratelabs/wazero v1.11.0 // indirect
 	github.com/tevino/abool v1.2.0 // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
 	github.com/theupdateframework/notary v0.7.0 // indirect
