@@ -297,6 +297,7 @@ require (
 	github.com/container-storage-interface/spec v1.10.0
 	github.com/containerd/cgroups/v3 v3.0.5
 	github.com/containerd/containerd v1.7.25
+	github.com/containerd/continuity v0.4.4
 	github.com/containerd/go-cni v1.1.12
 	github.com/containernetworking/cni v1.2.2
 	github.com/containernetworking/plugins v1.4.0
@@ -1386,7 +1387,6 @@ require (
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/containerd/containerd/api v1.8.0 // indirect
-	github.com/containerd/continuity v0.4.4 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
