@@ -6,6 +6,7 @@ SRCS(
     config.go
     llvm_tools.go
     merge.go
+    methods.go
     microscope.go
     render.go
     server.go
