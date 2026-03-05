@@ -204,13 +204,25 @@ func (s *Scheduler) tryScheduleGeneration(ctx context.Context) error {
 		return fmt.Errorf("failed to get last generation: %w", err)
 	}
 
+	latestAllowedEnd := now.Add(-s.conf.ProfileLag).Truncate(s.conf.GenerationInterval)
+
 	var targetStart, targetEnd time.Time
 	if maxTo.Unix() <= 0 { // 'epoch' fallback or empty
-		targetEnd = now.Add(-s.conf.ProfileLag).Truncate(s.conf.GenerationInterval)
+		targetEnd = latestAllowedEnd
 		targetStart = targetEnd.Add(-s.conf.GenerationInterval)
 	} else {
 		targetStart = maxTo
 		targetEnd = targetStart.Add(s.conf.GenerationInterval)
+
+		if targetEnd.Before(latestAllowedEnd.Add(-s.conf.GenerationInterval)) {
+			s.l.Warn(ctx, "Skipping stale generations",
+				log.Time("old_target_end", targetEnd),
+				log.Time("new_target_end", latestAllowedEnd),
+				log.Time("max_to", maxTo),
+			)
+			targetEnd = latestAllowedEnd
+			targetStart = targetEnd.Add(-s.conf.GenerationInterval)
+		}
 	}
 
 	if now.Before(targetEnd.Add(s.conf.ProfileLag)) {
