@@ -588,7 +588,7 @@ require (
 	github.com/kr/pretty v0.3.1
 	github.com/kr/text v0.2.0
 	github.com/kyoh86/exportloopref v0.1.11
-	github.com/labstack/echo/v4 v4.11.4
+	github.com/labstack/echo/v4 v4.13.4
 	github.com/leodido/go-urn v1.4.0
 	github.com/lestrrat-go/jwx/v2 v2.0.11
 	github.com/lni/dragonboat/v4 v4.0.0-20240618143154-6a1623140f27
@@ -796,7 +796,7 @@ require (
 	github.com/temporalio/cli v1.3.0
 	github.com/temporalio/omes v1.0.0
 	github.com/temporalio/omes/workers/go v0.0.0-20240701113332-211647aa9dae
-	github.com/temporalio/ui-server/v2 v2.36.4
+	github.com/temporalio/ui-server/v2 v2.40.0
 	github.com/terminalstatic/go-xsd-validate v0.1.6
 	github.com/testcontainers/testcontainers-go v0.40.0
 	github.com/tidwall/gjson v1.18.0
