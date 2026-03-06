@@ -872,7 +872,7 @@ require (
 	github.com/ydb-platform/ydb-go-sdk/v3 v3.127.1
 	github.com/ydb-platform/ydb-go-yc v0.12.3
 	github.com/ydb-platform/ydb-go-yc-metadata v0.6.1
-	github.com/ydb-platform/ydbops v0.0.23
+	github.com/ydb-platform/ydbops v0.0.24
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869
 	github.com/ysmood/gson v0.7.3
 	github.com/yuin/goldmark v1.7.13
