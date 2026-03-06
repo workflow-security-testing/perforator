@@ -156,7 +156,6 @@ func (s *ClickhouseAggregationStorage) CountTotalCycles(ctx context.Context, gen
 		return nil, errors.New("unexpected row count")
 	}
 
-	fmt.Printf("total %v cumulative %v", res[0].TotalSelfCycles, res[0].TotalCumulativeCycles)
 	return res[0], nil
 }
 
