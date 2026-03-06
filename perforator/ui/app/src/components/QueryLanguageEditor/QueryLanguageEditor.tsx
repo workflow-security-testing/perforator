@@ -36,6 +36,7 @@ export interface QueryLanguageEditorProps {
     onUpdate: (selector: Optional<string>) => void;
     onSelectorChange?: (selector: Optional<string>) => void;
     height: string;
+    className?: string;
 }
 
 export const QueryLanguageEditorImpl: React.FC<QueryLanguageEditorProps> = props => {
@@ -143,7 +144,7 @@ export const QueryLanguageEditorImpl: React.FC<QueryLanguageEditorProps> = props
     }, []);
 
     return (
-        <div className={b(null)}>
+        <div className={b(null, props.className)}>
             <div className={b('wrapper')}>
                 <MonacoEditor
                     language={QUERY_LANGUAGE_ID}
