@@ -114,6 +114,14 @@ var (
 	envsColumn = "envs"
 )
 
+func init() {
+	for _, cols := range labelsToColumns {
+		for _, col := range cols {
+			allowedSortFields[col] = struct{}{}
+		}
+	}
+}
+
 func getTimestampFraction(ts time.Time) float64 {
 	return float64(ts.UnixNano()) / 1e9
 }
