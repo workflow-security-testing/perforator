@@ -64,9 +64,10 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 	g, ctx := errgroup.WithContext(ctx)
 
 	var entries []*aggregated.AggregationValue
-	var err error
+	var total *aggregated.TotalCycles
 
 	g.Go(func() error {
+		var err error
 		entries, err = s.clusterTopGenerationStorage.AggregateClusterTop(ctx, generation, filter, groupBy, util.Pagination{
 			Offset: offset,
 			Limit:  limit + 1,
@@ -74,21 +75,18 @@ func (s *APIService) getClusterTop(ctx context.Context, req *perforator.ClusterT
 		return err
 	})
 
-	var total *aggregated.TotalCycles
-
 	g.Go(func() error {
-
 		totalFunctionFilter := ""
 		if filter != nil && filter.FunctionFilterMatchMode == aggregated.ExactMatch && filter.FunctionFilter != "" && groupBy == aggregated.GroupByService {
 			totalFunctionFilter = filter.FunctionFilter
 		}
 
+		var err error
 		total, err = s.clusterTopGenerationStorage.CountTotalCycles(ctx, generation, totalFunctionFilter)
-
 		return err
 	})
 
-	err = g.Wait()
+	err := g.Wait()
 
 	if err != nil {
 		return nil, err
