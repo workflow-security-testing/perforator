@@ -722,7 +722,8 @@ func (a *processAnalyzer) fillMappedBinaryInfo(pi *unwinder.ProcessInfo, mapping
 
 func newProcessInfo() *unwinder.ProcessInfo {
 	return &unwinder.ProcessInfo{
-		UnwindType:   unwinder.UnwindTypeDwarf,
+		UnwindType:   unwinder.UnwindTypeMixed,
+		LibjvmBinary: unwinder.MappedBinary{BaseAddress: math.MaxUint64},
 		MainBinaryId: unwinder.BinaryId(math.MaxUint64),
 		PhpBinary:    unwinder.MappedBinary{BaseAddress: math.MaxUint64},
 		PythonBinary: unwinder.MappedBinary{BaseAddress: math.MaxUint64},

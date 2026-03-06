@@ -5,7 +5,7 @@
 #include "lbr.h"
 #include "python/types.h"
 #include "thread_local.h"
-#include "php/types.h"
+#include "jvm/api.h"
 
 #include <linux/perf_event.h>
 #include <bpf/bpf.h>
@@ -104,6 +104,8 @@ struct record_sample {
     struct interpreter_stack python_stack;
 
     struct interpreter_stack php_stack;
+
+    struct jvm_stack jvm_stack;
 
     struct tls_collect_result tls_values;
 

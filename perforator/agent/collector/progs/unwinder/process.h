@@ -7,7 +7,7 @@
 enum unwind_type : u8 {
     UNWIND_TYPE_DISABLED = 0,
     UNWIND_TYPE_FP = 1,
-    UNWIND_TYPE_DWARF = 2,
+    UNWIND_TYPE_MIXED = 2,
 };
 
 struct mapped_binary {
@@ -28,4 +28,5 @@ struct process_info {
 
     struct mapped_binary python_binary;
     struct mapped_binary php_binary;
+    struct mapped_binary libjvm_binary;
 };

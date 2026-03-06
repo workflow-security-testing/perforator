@@ -29,6 +29,9 @@
 #include "thread_local.h"
 #include "tracepoints.h"
 
+#include "jvm/api.h"
+#include "jvm/unwind.h"
+
 #include <bpf/bpf.h>
 
 #include <linux/bpf.h>
@@ -84,6 +87,7 @@ struct profiler_state {
 #ifdef PERFORATOR_ENABLE_PHP
     struct php_state php_state;
 #endif
+
     struct record_sample sample;
     struct record_new_process newproc;
 
@@ -465,7 +469,90 @@ static NOINLINE int profiler_stage_locate_traceee(struct profiler_state* state, 
     return 0;
 }
 
-static NOINLINE int profiler_stage_collect_stack(void* ctx, struct user_regs* regs, struct profiler_state* state, struct profiler_config* config) {
+static ALWAYS_INLINE int mixed_collect_stack(struct user_regs* regs, struct stack* stack, struct process_info* proc, struct record_sample* sample) {
+#ifndef PERFORATOR_COMPAT_5_4
+    struct jvm_binary_config* jvm_bin_config = NULL;
+    struct jvm_process_config* jvm_proc_config = NULL;
+    if (is_mapped(proc->libjvm_binary)) {
+        jvm_bin_config = jvm_get_bin_config(&proc->libjvm_binary);
+        if (jvm_bin_config != NULL) {
+            jvm_proc_config = jvm_get_proc_config(sample->pid);
+        }
+    }
+#endif
+
+    struct dwarf_unwind_context* ctx = dwarf_get_context();
+    if (ctx == NULL) {
+        DWARF_TRACE("[mixed_unwinder] failed to load DWARF unwinder state from heap\n");
+        return 0;
+    }
+    if (!dwarf_unwind_init(ctx, regs, sample->pid)) {
+        DWARF_TRACE("[mixed_unwinder] failed to retrieve userspace registers\n");
+        return 0;
+    }
+
+    int res = -1;
+    for (int i = 0; i < DWARF_UNWIND_MAX_STACK_SIZE; ++i) {
+#ifndef PERFORATOR_COMPAT_5_4
+        bool is_jvm = false;
+#endif
+        u64 rip = ctx->cfi.ip;
+#ifdef PERFORATOR_COMPAT_5_4
+        (void) rip;
+#endif
+
+        BPF_TRACE("[mixed_unwinder] start iteration %d: processing address %llx\n", i, ctx->cfi.ip);
+#ifndef PERFORATOR_COMPAT_5_4
+        if (jvm_proc_config != NULL) {
+            if (jvm_proc_config->interpreter_begin <= rip && rip < jvm_proc_config->interpreter_end) {
+                BPF_TRACE("[jvm] address 0x%llx is in JVM interpreter\n", rip);
+                is_jvm = true;
+            }
+        }
+        if (is_jvm) {
+            BPF_TRACE("[mixed_unwinder] using JVM unwinder for this frame\n");
+            int jvm_res = jvm_collect_stack(&ctx->cfi, jvm_bin_config, stack, &sample->jvm_stack);
+            if (jvm_res < 0) {
+                BPF_TRACE("[jvm] failed to collect stack, error=%d\n", -jvm_res);
+                res = -1;
+                goto done;
+            }
+        } else
+#endif
+        {
+            BPF_TRACE("[mixed_unwinder] using DWARF unwinder for this frame\n");
+            if (!dwarf_unwind_record_stack_frame(ctx, stack)) {
+                DWARF_TRACE("[mixed_unwinder] failed to record DWARF stack frame\n");
+                goto done;
+            }
+
+            enum dwarf_unwind_step_result step_result = dwarf_unwind_step();
+            switch (step_result) {
+            case DWARF_UNWIND_STEP_FAILED:
+                DWARF_TRACE("[mixed_unwinder] DWARF unwinding failed at step %d: %d\n", i, ctx->error);
+                res = -1;
+                goto done;
+            case DWARF_UNWIND_STEP_FINISHED:
+                DWARF_TRACE("[mixed_unwinder] DWARF unwinding finished\n");
+                res = 0;
+                goto done;
+            case DWARF_UNWIND_STEP_CONTINUE:
+                break;
+            }
+        }
+    }
+
+    BPF_TRACE("[mixed_unwinder] stack limit exhausted\n");
+
+done:
+    metric_add(METRIC_STACK_FRAME_DWARF_COUNT, stack->len - ctx->framepointers);
+    metric_add(METRIC_STACK_FRAME_FP_COUNT, ctx->framepointers);
+    metric_add(METRIC_STACK_FRAME_COUNT, stack->len);
+    BPF_TRACE("[mixed_unwinder] found %u/%u frames using frame pointers\n", ctx->framepointers, stack->len);
+    return res;
+}
+
+static ALWAYS_INLINE int profiler_stage_collect_stack(void* ctx, struct user_regs* regs, struct profiler_state* state, struct profiler_config* config) {
     if (state == NULL || config == NULL) {
         return -301;
     }
@@ -483,13 +570,13 @@ static NOINLINE int profiler_stage_collect_stack(void* ctx, struct user_regs* re
     case UNWIND_TYPE_FP:
         try_get_stack(ctx, &state->userstack, BPF_F_USER_STACK);
         break;
-    case UNWIND_TYPE_DWARF:
-        dwarf_collect_stack(regs, &state->userstack, state->sample.pid);
-        break;
     case UNWIND_TYPE_DISABLED:
         break;
+    case UNWIND_TYPE_MIXED:
+        mixed_collect_stack(regs, &state->userstack, proc, &state->sample);
+        break;
     default:
-        BPF_TRACE("Unsupported unwind type %d", proc->unwind_type);
+        BPF_TRACE("Unsupported unwind type %d\n", proc->unwind_type);
         return 0;
     }
 
@@ -598,6 +685,8 @@ struct profiler_sample_args {
     state->normalize_walltime = args->normalize_walltime; \
     state->record_walltime = args->record_walltime; \
     state->skip_sample_recording = args->skip_sample_recording; \
+    state->sample.jvm_stack.frames_len = 0; \
+    state->userstack.len = 0; \
 \
     int err = 0; \
 

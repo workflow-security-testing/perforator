@@ -6,9 +6,17 @@ import (
 	"github.com/yandex/perforator/library/go/core/resource"
 )
 
+type KernelCompatibilityLevel int
+
+const (
+	KernelCompatibilityLevelNone KernelCompatibilityLevel = iota
+	KernelCompatibilityLevel5_4
+)
+
 type ProgramRequirements struct {
-	Debug bool
-	PHP   bool
+	Debug               bool
+	PHP                 bool
+	KernelCompatibility KernelCompatibilityLevel
 }
 
 func LoadProg(reqs ProgramRequirements) ([]byte, error) {
@@ -18,6 +26,10 @@ func LoadProg(reqs ProgramRequirements) ([]byte, error) {
 		name = "debug"
 	} else {
 		name = "release"
+	}
+
+	if reqs.KernelCompatibility == KernelCompatibilityLevel5_4 {
+		name += ".k54"
 	}
 
 	if reqs.PHP {

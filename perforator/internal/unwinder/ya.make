@@ -14,6 +14,8 @@ RUN_PROGRAM(
     --elf unwinder.debug.elf
     --elf unwinder.release.php.elf
     --elf unwinder.debug.php.elf
+    --elf unwinder.release.k54.elf
+    --elf unwinder.debug.k54.elf
     --package
     unwinder
     --output
@@ -23,6 +25,8 @@ RUN_PROGRAM(
     IN
     ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.release.elf
     ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.debug.elf
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.release.k54.elf
+    ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.debug.k54.elf
     ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.release.php.elf
     ${ARCADIA_BUILD_ROOT}/perforator/agent/collector/progs/unwinder.debug.php.elf
     OUT
@@ -32,6 +36,8 @@ RUN_PROGRAM(
 RESOURCE(
     perforator/agent/collector/progs/unwinder.release.elf ebpf/unwinder.release.elf
     perforator/agent/collector/progs/unwinder.debug.elf ebpf/unwinder.debug.elf
+    perforator/agent/collector/progs/unwinder.release.k54.elf ebpf/unwinder.release.k54.elf
+    perforator/agent/collector/progs/unwinder.debug.k54.elf ebpf/unwinder.debug.k54.elf
     perforator/agent/collector/progs/unwinder.release.php.elf ebpf/unwinder.release.php.elf
     perforator/agent/collector/progs/unwinder.debug.php.elf ebpf/unwinder.debug.php.elf
 )

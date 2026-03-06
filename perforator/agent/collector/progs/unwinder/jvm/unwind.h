@@ -1,0 +1,92 @@
+#pragma once
+
+#include "api.h"
+#include "../dwarf.h"
+#include "../unwind_ctx.h"
+
+static ALWAYS_INLINE long jvm_read(void* dst, u8 size, u64 src) {
+    long res = bpf_probe_read_user(dst, size, (const void*) src);
+    if (res < 0) {
+        BPF_TRACE("[jvm] bpf_probe_read_user failed (%u bytes at 0x%lx): %lu", size, src, -res);
+    }
+    return res;
+}
+
+static ALWAYS_INLINE struct jvm_binary_config* jvm_get_bin_config(struct mapped_binary* libjvm) {
+    binary_id id = libjvm->id;
+    return bpf_map_lookup_elem(&jvm_binaries, &id);
+}
+
+static ALWAYS_INLINE struct jvm_process_config* jvm_get_proc_config(u32 pid) {
+    return bpf_map_lookup_elem(&jvm_processes, &pid);
+}
+
+static ALWAYS_INLINE int jvm_process_interpreted_frame(
+    struct jvm_binary_config* jc,
+    struct unwind_context* regs,
+    struct stack* stack,
+    u64* method_ptr
+) {
+    u64 method_ptr_addr = regs->fp + jc->interpreter_stack_frame_method_offset * 8;
+    BPF_TRACE("[jvm] method_ptr located at %llX\n", method_ptr_addr);
+    long ret = jvm_read(method_ptr, sizeof(method_ptr), method_ptr_addr);
+    if (ret < 0) {
+        BPF_TRACE("[jvm] failed to read JVM method pointer: %lld\n", -ret);
+        return -1;
+    }
+    BPF_TRACE("[jvm] method_ptr: %llX\n", *method_ptr);
+
+    u64 caller_ip_addr = regs->fp + jc->stack_frame_return_addr_offset * 8;
+    BPF_TRACE("[jvm] return address located af %llX\n", caller_ip_addr);
+    u64 caller_ip = 0;
+    ret = jvm_read(&caller_ip, sizeof(caller_ip), caller_ip_addr);
+    if (ret < 0) {
+        BPF_TRACE("[jvm] failed to read return address: %lld\n", -ret);
+        return -1;
+    }
+    BPF_TRACE("[jvm] return address: %llX\n", caller_ip);
+    regs->ip = caller_ip;
+    regs->cfa = regs->fp;
+    u64 caller_rbp = 0;
+    BPF_TRACE("[jvm] caller_rbp located at %llX\n", regs->fp);
+    ret = jvm_read(&caller_rbp, sizeof(caller_rbp), regs->fp);
+    if (ret < 0) {
+        BPF_TRACE("[jvm] failed to read caller rbp: %lld\n", -ret);
+        return -1;
+    }
+    regs->fp = caller_rbp;
+    BPF_TRACE("[jvm] frame done\n");
+    return 0;
+}
+
+enum {
+    JVM_UNWIND_STATUS_OK = 0,
+    JVM_UNWIND_STATUS_OVERFLOW = 101,
+    JVM_UNWIND_STATUS_ERROR = 102,
+};
+
+static NOINLINE int jvm_collect_stack(struct unwind_context* regs, struct jvm_binary_config* jc, struct stack* stack, struct jvm_stack* jstack) {
+    u64 method_addr = 0;
+
+    int res = jvm_process_interpreted_frame(jc, regs, stack, &method_addr);
+    if (res < 0) {
+        BPF_TRACE("[jvm] failed to process frame, error=%d\n", -res);
+        return -JVM_UNWIND_STATUS_ERROR;
+    }
+    BPF_TRACE("[jvm] processed frame, recording at index %d, jvm index %d\n", stack->len, jstack->frames_len);
+    if (jstack->frames_len >= MAX_JVM_FRAMES) {
+        BPF_TRACE("[jvm] too many JVM frames, stopping\n");
+        return -JVM_UNWIND_STATUS_OVERFLOW;
+    }
+    if (stack->len >= STACK_SIZE) {
+        BPF_TRACE("[jvm] too many stack frames, stopping\n");
+        return -JVM_UNWIND_STATUS_OVERFLOW;
+    }
+
+    struct jvm_frame* jframe = &jstack->frames[jstack->frames_len++];
+    jframe->index = stack->len;
+    stack->ips[stack->len++] = 0xFFFFFFFFDEADF00D;
+    jframe->method_addr = method_addr;
+
+    return JVM_UNWIND_STATUS_OK;
+}

@@ -14,7 +14,7 @@ func TestNewProcessInfo(t *testing.T) {
 	pi := newProcessInfo()
 
 	require.Equal(t, pi.MainBinaryId, unwinder.BinaryId(math.MaxUint64))
-	require.Equal(t, pi.UnwindType, unwinder.UnwindTypeDwarf)
+	require.Equal(t, pi.UnwindType, unwinder.UnwindTypeMixed)
 
 	v := reflect.ValueOf(pi).Elem()
 	typ := v.Type()

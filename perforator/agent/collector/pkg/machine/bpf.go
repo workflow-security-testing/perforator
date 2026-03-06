@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/cilium/ebpf"
@@ -59,6 +61,9 @@ type Config struct {
 	BPFFSRoot string `yaml:"bpffs_root"`
 	// Path prefix to use when pinning BPF objects.
 	PinPrefix string `yaml:"pin_prefix"`
+	// Explicitly choose desired kernel version support.
+	// Possible values: "none" (assume fresh kernel, currently 5.10+), "5.4"
+	KernelCompatibility string `yaml:"kernel_compatibility"`
 }
 
 type Options struct {
@@ -85,9 +90,10 @@ type BPF struct {
 
 	mapsToUnpin []*ebpf.Map
 
-	progsmu   sync.RWMutex
-	progdebug bool
-	progs     *unwinder.Progs
+	progsmu          sync.RWMutex
+	progdebug        bool
+	progkernelcompat unwinder.KernelCompatibilityLevel
+	progs            *unwinder.Progs
 
 	links *bpfLinks
 }
@@ -119,8 +125,62 @@ func NewBPF(conf *Config, log log.Logger, metrics metrics.Registry, opts Options
 
 func (b *BPF) currentProgramRequirements() unwinder.ProgramRequirements {
 	return unwinder.ProgramRequirements{
-		Debug: b.progdebug,
-		PHP:   b.opts.EnablePHP,
+		Debug:               b.progdebug,
+		PHP:                 b.opts.EnablePHP,
+		KernelCompatibility: b.progkernelcompat,
+	}
+}
+
+func convertSignedBytes(d []int8) string {
+	buf := make([]byte, len(d))
+	for i, v := range d {
+		if v == 0 {
+			buf = buf[:i]
+			break
+		}
+		buf[i] = byte(v)
+	}
+	return string(buf)
+}
+
+func (b *BPF) selectKernelCompatibility() error {
+	switch b.conf.KernelCompatibility {
+	case "5.4":
+		b.progkernelcompat = unwinder.KernelCompatibilityLevel5_4
+		return nil
+	case "none":
+		b.progkernelcompat = unwinder.KernelCompatibilityLevelNone
+		return nil
+	case "":
+		b.log.Debug("Checking kernel version")
+		var uname syscall.Utsname
+		err := syscall.Uname(&uname)
+		if err != nil {
+			return fmt.Errorf("uname failed: %w", err)
+		}
+		release := convertSignedBytes(uname.Release[:])
+		version := strings.Split(release, "-")[0]
+		parts := strings.Split(version, ".")
+		if len(parts) < 2 {
+			return fmt.Errorf("unexpected kernel release %q", release)
+		}
+		major, err := strconv.ParseInt(parts[0], 10, 32)
+		if err != nil {
+			return fmt.Errorf("failed to parse kernel major version: %w", err)
+		}
+		minor, err := strconv.ParseInt(parts[1], 10, 32)
+		if err != nil {
+			return fmt.Errorf("failed to parse kernel minor version: %w", err)
+		}
+		b.log.Debug("Found kernel version", log.Int64("major", major), log.Int64("minor", minor), log.String("raw", release))
+		if major < 5 || (major == 5 && minor < 10) {
+			b.progkernelcompat = unwinder.KernelCompatibilityLevel5_4
+		} else {
+			b.progkernelcompat = unwinder.KernelCompatibilityLevelNone
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported kernel compatibility level %q", b.conf.KernelCompatibility)
 	}
 }
 
@@ -144,7 +204,10 @@ func (b *BPF) initialize() (err error) {
 		return fmt.Errorf("failed to remove memlock limit: %w", err)
 	}
 	b.log.Debug("Successfully removed mlock limit")
-
+	err = b.selectKernelCompatibility()
+	if err != nil {
+		return fmt.Errorf("failed to select kernel compatiblity level: %w", err)
+	}
 	spec, err := b.loadCollectionSpec(b.currentProgramRequirements())
 	if err != nil {
 		return fmt.Errorf("failed to load maps and programs: %w", err)
