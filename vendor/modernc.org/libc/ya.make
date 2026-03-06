@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.62.1)
+VERSION(v1.66.3)
 
 SRCS(
     fsync.go
@@ -40,11 +40,15 @@ ENDIF()
 
 IF (OS_LINUX AND ARCH_X86_64)
     SRCS(
+        asm_linux_amd64.go
+        asm_linux_amd64.s
         atomic64.go
         builtin64.go
         capi_linux_amd64.go
         ccgo_linux_amd64.go
         libc_musl_linux_amd64.go
+        tls_linux_amd64.go
+        tls_linux_amd64.s
     )
 
     GO_TEST_SRCS(malloc_test.go)
@@ -80,6 +84,7 @@ IF (OS_DARWIN)
         libc_darwin.go
         libc_unix.go
         libc_unix1.go
+        libc_unix3.go
         mem.go
         printf.go
         pthread.go

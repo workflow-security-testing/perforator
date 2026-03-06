@@ -2,7 +2,7 @@ GO_LIBRARY()
 
 LICENSE(BSD-3-Clause)
 
-VERSION(v1.37.0)
+VERSION(v1.38.0)
 
 SRCS(
     doc.go
@@ -23,35 +23,25 @@ GO_TEST_SRCS(
 
 IF (OS_LINUX)
     SRCS(
-        bind_blob_musl.go
         rulimit.go
     )
 ENDIF()
 
 IF (OS_DARWIN)
     SRCS(
-        bind_blob.go
         rulimit.go
     )
 ENDIF()
 
 IF (OS_WINDOWS)
     SRCS(
-        bind_blob.go
         norlimit.go
     )
 ENDIF()
 
 IF (OS_ANDROID)
     SRCS(
-        bind_blob_musl.go
         rulimit.go
-    )
-ENDIF()
-
-IF (OS_EMSCRIPTEN)
-    SRCS(
-        bind_blob.go
     )
 ENDIF()
 

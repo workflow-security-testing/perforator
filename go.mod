@@ -162,7 +162,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.6
 	github.com/Azure/go-autorest/autorest/date v0.3.0
 	github.com/Azure/go-autorest/autorest/mocks v0.4.2
-	github.com/Azure/go-autorest/autorest/to v0.4.0
+	github.com/Azure/go-autorest/autorest/to v0.4.1
 	github.com/Azure/go-autorest/autorest/validation v0.3.1
 	github.com/BurntSushi/toml v1.5.0
 	github.com/ClickHouse/ch-go v0.65.1
@@ -200,7 +200,7 @@ require (
 	github.com/ThalesIgnite/crypto11 v1.2.5
 	github.com/TuyaInc/tuya_pulsar_sdk_go v0.0.0-20201113075236-46c1e459e32e
 	github.com/Vonng/pg_exporter v0.8.1
-	github.com/XSAM/otelsql v0.23.0
+	github.com/XSAM/otelsql v0.39.0
 	github.com/a-h/templ v0.2.663
 	github.com/a2aproject/a2a-go v0.3.3
 	github.com/abema/go-mp4 v1.4.1
@@ -226,7 +226,7 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/anttsov/curator v0.0.0-20220418135948-cfbcac4c267c
 	github.com/apache/arrow/go/v13 v13.0.0-20230512153032-cd6e2a4d2b93
-	github.com/apache/thrift v0.21.0
+	github.com/apache/thrift v0.22.0
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/araddon/dateparse v0.0.0-20190510211750-d2ba70357e92
 	github.com/armon/go-metrics v0.4.1
@@ -505,7 +505,7 @@ require (
 	github.com/grpc-ecosystem/grpc-health-probe v0.4.14
 	github.com/gruntwork-io/terratest v0.36.8
 	github.com/haivision/srtgo v0.0.0-20211019211331-3f0cef2e19ee
-	github.com/hamba/avro/v2 v2.28.0
+	github.com/hamba/avro/v2 v2.30.0
 	github.com/haproxytech/client-native/v5 v5.0.0
 	github.com/haproxytech/config-parser/v5 v5.0.0
 	github.com/haproxytech/go-logger v1.1.0
@@ -966,7 +966,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.35.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.57.0
 	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.10.0
-	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.36.0
+	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.37.0
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.34.0
 	go.opentelemetry.io/otel/log v0.13.0
 	go.opentelemetry.io/otel/log/logtest v0.13.0
@@ -1020,7 +1020,7 @@ require (
 	golang.yandex/linters v1.3.2
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	gonum.org/v1/gonum v0.17.0
-	google.golang.org/api v0.247.0
+	google.golang.org/api v0.251.0
 	google.golang.org/genai v1.30.0
 	google.golang.org/genproto v0.0.0-20250811230008-5f3141c8851a
 	google.golang.org/genproto/googleapis/api v0.0.0-20251222181119-0a764e51fe1b
@@ -1283,7 +1283,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lightsail v1.50.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sfn v1.19.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.0.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sns v1.21.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sns v1.34.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.6 // indirect
@@ -1395,10 +1395,10 @@ require (
 	github.com/containerd/go-runc v1.1.0 // indirect
 	github.com/containerd/imgcrypt v1.1.9 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/nri v0.6.1 // indirect
-	github.com/containerd/platforms v0.2.1 // indirect
+	github.com/containerd/nri v0.8.0 // indirect
+	github.com/containerd/platforms v1.0.0-rc.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
-	github.com/containerd/ttrpc v1.2.5 // indirect
+	github.com/containerd/ttrpc v1.2.6-0.20240827082320-b5cd6e4b3287 // indirect
 	github.com/containerd/typeurl v1.0.2 // indirect
 	github.com/containerd/typeurl/v2 v2.2.0 // indirect
 	github.com/containerd/zfs v1.1.0 // indirect
@@ -2459,9 +2459,9 @@ require (
 	lukechampine.com/uint128 v1.3.0 // indirect
 	modernc.org/cc v1.0.1 // indirect
 	modernc.org/cc/v3 v3.41.0 // indirect
-	modernc.org/cc/v4 v4.26.1 // indirect
+	modernc.org/cc/v4 v4.26.2 // indirect
 	modernc.org/ccgo/v3 v3.17.0 // indirect
-	modernc.org/ccgo/v4 v4.25.1 // indirect
+	modernc.org/ccgo/v4 v4.28.0 // indirect
 	modernc.org/fileutil v1.3.8 // indirect
 	modernc.org/gc/v2 v2.6.5 // indirect
 	modernc.org/gc/v3 v3.0.0 // indirect
@@ -2469,12 +2469,12 @@ require (
 	modernc.org/httpfs v1.0.6 // indirect
 	modernc.org/lex v1.1.1 // indirect
 	modernc.org/lexer v1.0.5 // indirect
-	modernc.org/libc v1.62.1 // indirect
+	modernc.org/libc v1.66.3 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/opt v0.1.4 // indirect
 	modernc.org/sortutil v1.2.1 // indirect
-	modernc.org/sqlite v1.37.0 // indirect
+	modernc.org/sqlite v1.38.0 // indirect
 	modernc.org/strutil v1.2.1 // indirect
 	modernc.org/tcl v1.15.2 // indirect
 	modernc.org/token v1.1.0 // indirect
@@ -2503,7 +2503,7 @@ require (
 	sigs.k8s.io/testing_frameworks v0.1.2 // indirect
 	sourcegraph.com/sourcegraph/appdash v0.0.0-20211028080628-e2786a622600 // indirect
 	sourcegraph.com/sourcegraph/appdash-data v0.0.0-20151005221446-73f23eafcf67 // indirect
-	tags.cncf.io/container-device-interface v0.7.2 // indirect
+	tags.cncf.io/container-device-interface v1.0.1 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 	www.velocidex.com/golang/regparser v0.0.0-20240404115756-2169ac0e3c09 // indirect
 )
