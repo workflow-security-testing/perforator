@@ -16,6 +16,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/yandex/perforator/library/go/core/log"
+	"github.com/yandex/perforator/library/go/core/log/zap"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/agent"
 	"github.com/yandex/perforator/perforator/agent/collector/pkg/profiler"
 	"github.com/yandex/perforator/perforator/internal/buildinfo/cobrabuildinfo"
@@ -234,7 +235,7 @@ func run() error {
 }
 
 func newLogger(level zapcore.Level, reg xmetrics.Registry) (l xlog.Logger, stop func(), err error) {
-	logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{}, reg)
+	logger, stopLogger, err := xlog.ForDaemon(xlog.DaemonConfig{Level: zap.UnzapifyLevel(level)}, reg)
 	if err != nil {
 		return nil, nil, err
 	}
