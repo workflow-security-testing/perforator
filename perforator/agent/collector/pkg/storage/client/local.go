@@ -22,9 +22,12 @@ var _ Storage = (*LocalStorage)(nil)
 
 ////////////////////////////////////////////////////////////////////////////////
 
+const defaultMaxProfilesCount = 20
+
 type LocalStorageConfig struct {
-	ProfileDir string `yaml:"profile_dir"`
-	BinaryDir  string `yaml:"binary_dir"`
+	ProfileDir       string `yaml:"profile_dir"`
+	BinaryDir        string `yaml:"binary_dir"`
+	MaxProfilesCount *int   `yaml:"max_profiles_count,omitempty"`
 }
 
 type LocalStorage struct {
@@ -57,10 +60,18 @@ func NewLocalStorage(conf *LocalStorageConfig, l log.Logger) (*LocalStorage, err
 		return nil, err
 	}
 
+	ringBufferSize := defaultMaxProfilesCount
+	if conf.MaxProfilesCount != nil {
+		ringBufferSize = *conf.MaxProfilesCount
+	}
+	if ringBufferSize <= 0 {
+		return nil, fmt.Errorf("max_profiles_count must be greater than 0")
+	}
+
 	return &LocalStorage{
 		conf:           conf,
 		l:              l,
-		ringBufferSize: 20,
+		ringBufferSize: ringBufferSize,
 		counter:        0,
 	}, nil
 }
@@ -87,7 +98,7 @@ func (s *LocalStorage) StoreProfile(ctx context.Context, profile LabeledProfile)
 	}
 
 	samplesTypeString := sampleTypesToString(profile.Profile.SampleType)
-	profileName := fmt.Sprintf("profile.%s.%d.tar.gz", samplesTypeString, s.counter%20)
+	profileName := fmt.Sprintf("profile.%s.%d.tar.gz", samplesTypeString, s.counter%s.ringBufferSize)
 
 	f, err := atomicfs.Create(filepath.Join(s.conf.ProfileDir, profileName))
 	if err != nil {
