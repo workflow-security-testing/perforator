@@ -122,9 +122,9 @@ func (s *APIService) GetClusterTopAggregatedByService(ctx context.Context, req *
 
 // ListClusterTopGenerations implements perforator.ListClusterTopGenerations
 func (s *APIService) ListClusterTopGenerations(ctx context.Context, req *perforator.ListClusterTopGenerationRequest) (*perforator.ListClusterTopGenerationResponse, error) {
-	fields, err := s.clusterTopGenerationStorage.ListGenerations(ctx)
+	generations, err := s.clusterTopGenerationStorage.ListGenerations(ctx)
 	return &perforator.ListClusterTopGenerationResponse{
-		Generations: fields,
+		Generations: generations,
 	}, err
 }
 

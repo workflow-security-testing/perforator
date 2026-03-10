@@ -237,11 +237,18 @@ message ClusterTopCount {
 
 message ListClusterTopGenerationRequest {}
 
+enum ClusterTopGenerationStatus {
+    UNSPECIFIED = 0;
+    IN_PROGRESS = 1;
+    COMPLETED = 2;
+}
+
 message ClusterTopGeneration {
     // sequential generation number
     uint32 ID = 1;
     google.protobuf.Timestamp From = 2;
     google.protobuf.Timestamp To = 3;
+    ClusterTopGenerationStatus GenerationStatus = 4;
 }
 
 message ListClusterTopGenerationResponse {

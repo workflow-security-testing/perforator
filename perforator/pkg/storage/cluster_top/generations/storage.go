@@ -15,15 +15,27 @@ import (
 	"github.com/yandex/perforator/perforator/proto/perforator"
 )
 
+const (
+	coalescedStatusColumn = "COALESCE(status, 'finished')"
+)
+
+var (
+	generationStatusMap = map[string]perforator.ClusterTopGenerationStatus{
+		"finished":  perforator.ClusterTopGenerationStatus_COMPLETED,
+		"scheduled": perforator.ClusterTopGenerationStatus_IN_PROGRESS,
+	}
+)
+
 type PostgresGenerationsStorage struct {
 	logger  xlog.Logger
 	cluster *hasql.Cluster
 }
 
 type clusterTopGenerationRow struct {
-	ID   uint32    `db:"id"`
-	From time.Time `db:"from_ts"`
-	To   time.Time `db:"to_ts"`
+	ID     uint32    `db:"id"`
+	From   time.Time `db:"from_ts"`
+	To     time.Time `db:"to_ts"`
+	Status string    `db:"status"`
 }
 
 func NewStorage(
@@ -39,9 +51,10 @@ func NewStorage(
 func mapToProto(rows []*clusterTopGenerationRow) []*perforator.ClusterTopGeneration {
 	return foreach.Map(rows, func(row *clusterTopGenerationRow) *perforator.ClusterTopGeneration {
 		return &perforator.ClusterTopGeneration{
-			ID:   row.ID,
-			From: timestamppb.New(row.From),
-			To:   timestamppb.New(row.To),
+			ID:               row.ID,
+			From:             timestamppb.New(row.From),
+			To:               timestamppb.New(row.To),
+			GenerationStatus: generationStatusMap[row.Status],
 		}
 	})
 }
@@ -53,7 +66,7 @@ func (s *PostgresGenerationsStorage) ListGenerations(ctx context.Context) ([]*pe
 	if err != nil {
 		return nil, fmt.Errorf("failed to wait for alive replica: %w", err)
 	}
-	query := psql.Select("id", "from_ts", "to_ts").
+	query := psql.Select("id", "from_ts", "to_ts", coalescedStatusColumn).
 		From("cluster_top_generations").
 		OrderBy("id DESC")
 
