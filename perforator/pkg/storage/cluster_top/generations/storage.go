@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	coalescedStatusColumn = "COALESCE(status, 'finished')"
+	coalescedStatusColumn = "COALESCE(status, 'finished') AS status"
 )
 
 var (
