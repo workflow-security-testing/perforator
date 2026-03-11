@@ -340,6 +340,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/dgryski/go-farm v0.0.0-20240924180020-3414d57e47da
+	github.com/diegoholiveira/jsonlogic/v3 v3.9.0
 	github.com/digitalocean/go-libvirt v0.0.0-20190715144809-7b622097a793
 	github.com/disintegration/imaging v1.6.2
 	github.com/distribution/distribution/v3 v3.0.0-20221208165359-362910506bc2
@@ -1311,6 +1312,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymanbagabas/go-udiff v0.2.0 // indirect
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
+	github.com/barkimedes/go-deepcopy v0.0.0-20220514131651-17c30cfc62df // indirect
 	github.com/bboreham/go-loser v0.0.0-20230920113527-fcc2c21820a3 // indirect
 	github.com/beanstalkd/go-beanstalk v0.1.0 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
