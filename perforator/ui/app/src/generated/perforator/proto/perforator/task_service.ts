@@ -28,6 +28,8 @@ export enum TaskState {
 export interface StartTaskRequest {
   Spec: TaskSpec | undefined;
   IdempotencyKey: string;
+  /** Custom information about the task. It does not affect server behavior. */
+  Annotation: string;
 }
 
 export interface StartTaskResponse {
@@ -73,6 +75,8 @@ export interface TaskMeta {
   Author: string;
   IdempotencyKey: string;
   Pool: string;
+  /** The same string as passed to StartTask method. */
+  Annotation: string;
 }
 
 export interface TaskSpec {

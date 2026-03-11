@@ -17,6 +17,13 @@ export enum ListServicesOrderByClause {
   UNRECOGNIZED = "UNRECOGNIZED",
 }
 
+export enum ClusterTopGenerationStatus {
+  UNSPECIFIED = "UNSPECIFIED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  UNRECOGNIZED = "UNRECOGNIZED",
+}
+
 /**
  * NB: This enum should match the same enumeration in the
  * perforator/pkg/profile/flamegraph/render package.
@@ -182,6 +189,7 @@ export interface ClusterTopGeneration {
   ID: number;
   From: string | undefined;
   To: string | undefined;
+  GenerationStatus: ClusterTopGenerationStatus;
 }
 
 export interface ListClusterTopGenerationResponse {
@@ -508,7 +516,11 @@ export interface FlamegraphOptions {
     | AddressRenderPolicy
     | undefined;
   /** Whether to ignore file paths (can be useful in diffs) */
-  IgnoreFilePaths?: boolean | undefined;
+  IgnoreFilePaths?:
+    | boolean
+    | undefined;
+  /** Use new (C++) renderer instead of Go renderer. */
+  UseNewRenderer?: boolean | undefined;
 }
 
 export interface TextProfileOptions {

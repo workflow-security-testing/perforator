@@ -1,16 +1,28 @@
 import { useCallback, useEffect, useMemo } from 'react';
 
-import { Loader, Select, type SelectOption } from '@gravity-ui/uikit';
+import { Alert, Label, Loader, Select, type SelectOption } from '@gravity-ui/uikit';
 
 import { ClusterTopTable } from 'src/components/ClusterTopTable/ClusterTopTable';
 import { countHoursInterval } from 'src/components/ClusterTopTable/utils';
 import { ErrorPanel } from 'src/components/ErrorPanel/ErrorPanel';
 import { useAsyncResult } from 'src/components/TaskReport/TaskFlamegraph/useFetchResult';
+import { ClusterTopGenerationStatus } from 'src/generated/perforator/proto/perforator/perforator';
 import { apiClient } from 'src/utils/api';
 import { useTypedQuery } from 'src/utils/query';
 
 import type { Page } from './Page';
 
+
+function generationStatusLabel(status: ClusterTopGenerationStatus) {
+    switch (status) {
+    case ClusterTopGenerationStatus.IN_PROGRESS:
+        return <Label theme="warning" size="xs">Building</Label>;
+    case ClusterTopGenerationStatus.COMPLETED:
+        return <Label theme="success" size="xs">Completed</Label>;
+    default:
+        return <Label theme="unknown" size="xs">Unknown</Label>;
+    }
+}
 
 export const ClusterTop: Page = () => {
     const [getQuery, setQuery] = useTypedQuery<'generation'>();
@@ -24,7 +36,7 @@ export const ClusterTop: Page = () => {
     const options = useMemo<SelectOption[]>(() => {
         return (
             generations?.Generations.map((gen) => ({
-                content: `${gen.ID}: ${gen.From} - ${gen.To}`,
+                content: <>{gen.ID}: {gen.From} - {gen.To} {generationStatusLabel(gen.GenerationStatus)}</>,
                 value: String(gen.ID),
             } as SelectOption)) ?? []
         );
@@ -51,15 +63,23 @@ export const ClusterTop: Page = () => {
     }
 
     return (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>Cluster Top</div>
             <Select
                 options={options}
                 value={[currentGeneration]}
                 onUpdate={([val]) => setGeneration(val)}
                 placeholder={'generation'}
+                renderSelectedOption={(option) => <>{option.content}</>}
+                width="auto"
             />
+            {currentGenerationObject?.GenerationStatus === ClusterTopGenerationStatus.IN_PROGRESS && (
+                <Alert
+                    theme="warning"
+                    message="Cluster top for this generation is still being built. Data may be incomplete and can change. Switch to a completed generation for accurate results."
+                />
+            )}
             {currentGeneration && currentGenerationObject && timeInterval && <ClusterTopTable generation={Number(currentGeneration)} timeInterval={timeInterval}/>}
-        </>
+        </div>
     );
 };

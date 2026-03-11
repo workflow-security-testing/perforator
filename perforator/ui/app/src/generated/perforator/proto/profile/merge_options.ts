@@ -9,42 +9,6 @@
 /** MergeOptions defines how different profiles are merged together. */
 export interface MergeOptions {
   /**
-   * If true (default), aggregate samples with identical call stacks across
-   * different threads. The merged profile will not contain thread IDs for
-   * these aggregated samples. If false, samples from different threads remain
-   * distinct.
-   */
-  ignoreThreadIds?:
-    | boolean
-    | undefined;
-  /**
-   * If true (default), aggregate samples with identical call stacks across
-   * different processes. The merged profile will not contain process IDs for
-   * these aggregated samples. If false, samples from different processes
-   * remain distinct.
-   */
-  ignoreProcessIds?:
-    | boolean
-    | undefined;
-  /**
-   * If true, aggregate samples with identical call stacks across threads with
-   * different names. The merged profile will not contain thread names for
-   * these aggregated samples. If false (default), samples from threads with
-   * different names remain distinct.
-   */
-  ignoreThreadNames?:
-    | boolean
-    | undefined;
-  /**
-   * If true, aggregate samples with identical call stacks across processes
-   * with different names. The merged profile will not contain process names
-   * for these aggregated samples. If false (default), samples from processes
-   * with different names remain distinct.
-   */
-  ignoreProcessNames?:
-    | boolean
-    | undefined;
-  /**
    * If true, merge samples based on matching symbolized call stacks,
    * disregarding differences in underlying binaries (e.g., build IDs, paths)
    * as long as symbols match. The merged profile effectively represents logic
@@ -86,13 +50,14 @@ export interface MergeOptions {
     | boolean
     | undefined;
   /**
-   * If true, aggregate samples originating from different binary instruction
-   * addresses within the same function. Granularity at the instruction
-   * address level within a function is lost. If false (default), samples from
-   * different binary addresses are distinct.
+   * If set to positive value N, only every N-th sample from profile will be taken.
+   * Exact algorithm is implementation-dependant,
+   * but stable output for same set of profiles is guaranteed.
+   * Sampling will be performed after filtering.
+   * Value of 0 and 1 disable sampling.
    */
-  ignoreBinaryAddresses?:
-    | boolean
+  samplePeriod?:
+    | string
     | undefined;
   /**
    * If true (default), normalize some well-known value type units.
@@ -105,15 +70,6 @@ export interface MergeOptions {
    * limits.
    */
   normalizeValueTypes?:
-    | boolean
-    | undefined;
-  /**
-   * If true, sanitize thread and process names, e.g., by removing
-   * trailing digits. This helps aggregate samples from thread/process pools
-   * where names like "ThreadPoolWorker-123" would otherwise create many
-   * unique entries.
-   */
-  cleanupThreadNames?:
     | boolean
     | undefined;
   /**
@@ -132,12 +88,33 @@ export interface MergeOptions {
     | SampleFilter
     | undefined;
   /** Allows filtering of value types before merging. */
-  valueTypeFilter?: ValueTypeFilter | undefined;
+  valueTypeFilter?:
+    | ValueTypeFilter
+    | undefined;
+  /**
+   * If true, remove trailing unsymbolized frames from stacks.
+   * These "garbage root frames" typically result from stack unwinding failures
+   * where the unwinder walks past the real stack into random memory.
+   * Such frames have no binary and no inline chain, and their addresses
+   * are often garbage values (like ASCII strings read as pointers).
+   * Removing them reduces profile size without losing meaningful data.
+   */
+  stripGarbageRootFrames?:
+    | boolean
+    | undefined;
+  /**
+   * If true, sanitize thread names by removing trailing digits.
+   * This helps merge samples from threads with numbered names (e.g., "Worker1",
+   * "Worker2") into a single logical thread group.
+   */
+  sanitizeThreadNames?: boolean | undefined;
 }
 
 export interface LabelFilter {
-  /** Remove labels whose keys start with any of these prefixes. */
-  skippedKeyPrefixes: string[];
+  keysShow: string[];
+  keysHide: string[];
+  keysShowRegex: string[];
+  keysHideRegex: string[];
 }
 
 /**

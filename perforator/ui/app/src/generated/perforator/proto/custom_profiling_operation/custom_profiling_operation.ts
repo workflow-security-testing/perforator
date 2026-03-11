@@ -175,11 +175,9 @@ export interface OperationStats {
 }
 
 export interface OperationMeta {
-  CreatedAt:
-    | string
-    | undefined;
-  /** TODO: add user ? */
+  CreatedAt: string | undefined;
   Annotations: { [key: string]: string };
+  Author: string;
 }
 
 export interface OperationMeta_AnnotationsEntry {

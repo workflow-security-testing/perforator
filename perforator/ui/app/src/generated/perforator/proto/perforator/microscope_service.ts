@@ -17,6 +17,13 @@ export interface SetMicroscopeResponse {
   ID: string;
 }
 
+export interface DeleteMicroscopeRequest {
+  ID: string;
+}
+
+export interface DeleteMicroscopeResponse {
+}
+
 export interface ListMicroscopesRequest {
   Paginated:
     | Paginated
@@ -42,4 +49,6 @@ export interface MicroscopeService {
   SetMicroscope(request: SetMicroscopeRequest): Promise<SetMicroscopeResponse>;
   /** List user microscopes */
   ListMicroscopes(request: ListMicroscopesRequest): Promise<ListMicroscopesResponse>;
+  /** Delete microscope by ID */
+  DeleteMicroscope(request: DeleteMicroscopeRequest): Promise<DeleteMicroscopeResponse>;
 }
