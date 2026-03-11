@@ -72,10 +72,10 @@ func TestProcessesAndPublishes(t *testing.T) {
 	assert.Len(t, out, 2, "expected two published messages")
 
 	for _, m := range out {
-		var ce profile_event.CoreEvent
+		var ce profile_event.CoreEventMessage
 		err := json.Unmarshal(m.Value, &ce)
 		assert.NoError(t, err)
-		assert.Contains(t, []string{"svc-a", "svc-b"}, ce.Service)
+		assert.Contains(t, []string{"svc-a", "svc-b"}, ce.Core.Service)
 	}
 }
 
@@ -170,7 +170,7 @@ func (p *testProcessor) Process(ctx context.Context, in *profile_event.SignalPro
 		case <-time.After(p.Delay):
 		}
 	}
-	out := &profile_event.CoreEvent{
+	core := &profile_event.CoreEvent{
 		Service:    in.Service,
 		Type:       "go",
 		Cluster:    in.Cluster,
@@ -184,7 +184,9 @@ func (p *testProcessor) Process(ctx context.Context, in *profile_event.SignalPro
 	}
 	return &profile_event.CoreMessage{
 		PartitionKey: in.Service,
-		Event:        out,
+		Event: &profile_event.CoreEventMessage{
+			Core: core,
+		},
 	}, nil
 }
 

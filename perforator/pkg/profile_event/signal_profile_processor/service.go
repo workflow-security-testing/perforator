@@ -24,7 +24,7 @@ type Service struct {
 	proc   Processor
 
 	signalProfileEventConsumer *consumer.JSONConsumer[profile_event.SignalProfileEvent]
-	CoreEventProducer          *producer.JSONProducer[profile_event.CoreEvent]
+	CoreEventProducer          *producer.JSONProducer[profile_event.CoreEventMessage]
 
 	whitelist   map[string]struct{}
 	messageChan chan *profile_event.SignalProfileEvent
@@ -115,7 +115,7 @@ func newEventProcessor(p producer.Producer, c consumer.Consumer, proc Processor,
 		reg:                        reg,
 		proc:                       proc,
 		signalProfileEventConsumer: consumer.NewJSONConsumer[profile_event.SignalProfileEvent](c),
-		CoreEventProducer:          producer.NewJSONProducer[profile_event.CoreEvent](p),
+		CoreEventProducer:          producer.NewJSONProducer[profile_event.CoreEventMessage](p),
 		whitelist:                  wl,
 		messageChan:                make(chan *profile_event.SignalProfileEvent, cfg.QueueSize),
 		metrics:                    newServiceMetrics(reg),
@@ -230,7 +230,7 @@ func (s *Service) processMessages(ctx context.Context) {
 				s.logger.Error(ctx, "Failed to publish core event",
 					log.Error(err),
 					log.String("key", out.PartitionKey),
-					log.String("service", out.Event.Service),
+					log.String("service", out.Event.Core.Service),
 				)
 				continue
 			}

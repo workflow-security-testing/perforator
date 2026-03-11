@@ -52,17 +52,21 @@ func (p *ProxyProcessor) Process(ctx context.Context, in *profile_event.SignalPr
 		return nil, errors.New("no signal types provided")
 	}
 
+	core := &profile_event.CoreEvent{
+		Service:   in.Service,
+		Cluster:   in.Cluster,
+		PodID:     in.PodID,
+		NodeID:    in.NodeID,
+		Signal:    in.SignalTypes[0], // TODO: there might be several signal types in the same profile.
+		Message:   "perforator text profile",
+		Timestamp: in.Timestamp.Unix(),
+		Traceback: string(tracebackText),
+	}
+
 	msg := &profile_event.CoreMessage{
 		PartitionKey: in.Service,
-		Event: &profile_event.CoreEvent{
-			Service:   in.Service,
-			Cluster:   in.Cluster,
-			PodID:     in.PodID,
-			NodeID:    in.NodeID,
-			Signal:    in.SignalTypes[0], // TODO: there might be several signal types in the same profile.
-			Message:   "perforator text profile",
-			Timestamp: in.Timestamp.Unix(),
-			Traceback: string(tracebackText),
+		Event: &profile_event.CoreEventMessage{
+			Core: core,
 		},
 	}
 	return msg, nil

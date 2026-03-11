@@ -23,10 +23,14 @@ type SignalProfileEvent struct {
 
 type CoreMessage struct {
 	PartitionKey string
-	Event        *CoreEvent
+	Event        *CoreEventMessage
 }
 
 const CoreEventServiceKey = "service"
+
+type CoreEventMessage struct {
+	Core *CoreEvent `json:"core"`
+}
 
 type CoreEvent struct {
 	Service    string            `json:"service"`
