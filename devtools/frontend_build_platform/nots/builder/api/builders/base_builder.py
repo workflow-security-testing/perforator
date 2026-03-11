@@ -68,6 +68,7 @@ class BaseBuilder(object):
             os.path.join(
                 bindir_node_modules_path, pm_constants.VIRTUAL_STORE_DIRNAME, pm_constants.NODE_MODULES_DIRNAME
             ),
+            os.path.join(self.options.bindir, pm_constants.VIRTUAL_STORE_DIRNAME, pm_constants.NODE_MODULES_DIRNAME),
             bindir_node_modules_path,
         ]
 
