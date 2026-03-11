@@ -48,6 +48,7 @@ export const TimeIntervalInput: React.FC<TimeIntervalInputProps> = props => {
         });
     }, [handleUpdate]);
 
+    const value = React.useMemo(() => parseTimeInterval(interval), [interval]);
 
     const handleCancel = React.useCallback(() => {
         props.onUpdate(props.initInterval);
@@ -78,7 +79,7 @@ export const TimeIntervalInput: React.FC<TimeIntervalInputProps> = props => {
                 maxDuration={MAX_SELECTION_DURATION}
                 align={MIN_SELECTION_PRECISION}
                 scaleButtonsPosition="end"
-                value={parseTimeInterval(interval)}
+                value={value}
                 onUpdate={handleRangeUpdate}
                 numberOfIntervals={props.numberOfIntervals}
             />

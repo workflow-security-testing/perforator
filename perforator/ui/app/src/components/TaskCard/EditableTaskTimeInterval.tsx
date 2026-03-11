@@ -10,10 +10,17 @@ import { redirectToTaskPage } from 'src/utils/profileTask';
 import { cutIdFromSelector, cutTimeFromSelector, parseTimestampFromSelector } from 'src/utils/selector';
 
 import type { TimeInterval } from '../TimeIntervalInput/TimeInterval';
-import { TimeIntervalInput } from '../TimeIntervalInput/TimeIntervalInput';
+import { TimeIntervalInput as TimeIntervalInputRaw } from '../TimeIntervalInput/TimeIntervalInput';
 
 
-export const EditableTaskTimeInterval: React.FC<{ task: TaskResult | null }> = ({ task }) => {
+interface EditableTaskTimeIntervalProps {
+    task: TaskResult | null;
+}
+
+
+const TimeIntervalInput = React.memo(TimeIntervalInputRaw);
+
+export const EditableTaskTimeInterval: React.FC<EditableTaskTimeIntervalProps> = ({ task }) => {
     const spec = task?.Spec?.MergeProfiles;
     const query = spec?.Query;
     const selector = query?.Selector;
